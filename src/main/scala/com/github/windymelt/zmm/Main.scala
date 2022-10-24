@@ -4,7 +4,7 @@ import cats.effect.IO
 import cats.effect.IOApp
 import cats.effect.ExitCode
 
-object Main extends IOApp with VoiceVox {
+object Main extends IOApp with VoiceVoxComponent {
   def run(args: List[String]) = {
     // load source file
     val filePath = args(0)
@@ -13,12 +13,13 @@ object Main extends IOApp with VoiceVox {
     content >>
     IO.println("Hello Zundamon!") >>
     IO.println("Invoking audio api...") >>
-    audioQuery("こんにちはなのだ") >>
+    voiceVox.audioQuery("こんにちはなのだ") >>
     IO.pure(ExitCode.Success)
   }
 }
 
-trait VoiceVox {
+// TODO: あとでちゃんとしたCake Patternにする
+trait VoiceVoxComponent {
   import org.http4s.ember.client._
   import org.http4s.client._
   import org.http4s.Request
@@ -29,14 +30,20 @@ trait VoiceVox {
   import io.circe.literal._
   import org.http4s.circe.CirceEntityDecoder._
 
-  type AudioQuery = Json // TODO: 必要に応じて高級なcase class / HListにする
-  def audioQuery(text: String): IO[AudioQuery] = client.use { c =>
-    val uri = Uri.fromString("http://localhost:50021/audio_query").map(
-      _.copy(query = org.http4s.Query.fromMap(Map("speaker" -> Seq("1"), "text" -> Seq(text))))
-    )
-    val req = Request[IO](Method.POST, uri = uri.right.get, headers = Headers("accept" -> "application/json"))
-    c.expect[AudioQuery](req)
-  }
+  val voiceVox = new ConcreteVoiceVox
 
-  private def client = EmberClientBuilder.default[IO].build
+  final class ConcreteVoiceVox extends VoiceVox {}
+
+  trait VoiceVox {
+    type AudioQuery = Json // TODO: 必要に応じて高級なcase class / HListにする
+    def audioQuery(text: String): IO[AudioQuery] = client.use { c =>
+      val uri = Uri.fromString("http://localhost:50021/audio_query").map(
+        _.copy(query = org.http4s.Query.fromMap(Map("speaker" -> Seq("1"), "text" -> Seq(text))))
+      )
+      val req = Request[IO](Method.POST, uri = uri.right.get, headers = Headers("accept" -> "application/json"))
+      c.expect[AudioQuery](req)
+    }
+
+    private def client = EmberClientBuilder.default[IO].build
+  }
 }
