@@ -6,3 +6,6 @@ target/
 # for Emacs
 *.~undo-tree~
 
+# Artifact
+*.wav
+
