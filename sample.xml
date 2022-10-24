@@ -3,7 +3,7 @@
   <meta>
     <voiceconfig id="zundamon" backend="voicevox">
       <!-- ずんだもんはid:1  -->
-      <voivevoxconfig id="1" />
+      <voicevoxconfig id="1" />
     </voiceconfig>
     <characterconfig name="windymelt" voice-id="zundamon" />
     <assets>
