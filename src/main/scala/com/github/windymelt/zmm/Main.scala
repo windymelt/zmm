@@ -19,10 +19,11 @@ object Main extends IOApp with VoiceVoxComponent {
         x <- content
         _ <- contentSanityCheck(x)
         ctx <- prepareContext(x)
+        voiceVox = new ConcreteVoiceVox(ctx)
         _ <- IO.println(ctx)
         // TODO: 今はテキストを直接取り出して直接ずんだもんに決め打ちしているが、ちゃんとcharacterconfigやvoiceconfigを見るようにする
-        aq <- buildAudioQuery((x \\ "say").head.text)
-        wav <- buildWavFile(aq)
+        aq <- buildAudioQuery((x \\ "say").head.text, voiceVox, ctx)
+        wav <- buildWavFile(aq, voiceVox, ctx)
         path <- writeToFile(wav)
         _ <- IO.println(s"Wrote to $path")
       } yield ()
@@ -40,11 +41,6 @@ object Main extends IOApp with VoiceVoxComponent {
     IO.unit
   }
 
-  sealed trait VoiceBackendConfig
-  final case class VoiceVoxBackendConfig(speakerId: String) extends VoiceBackendConfig
-  case class Context(
-    voiceConfigMap: Map[String, VoiceBackendConfig]
-  )
   private def prepareContext(elem: scala.xml.Elem): IO[Context] = {
     val voiceConfigList = elem \ "meta" \ "voiceconfig"
     val voiceConfigMap = voiceConfigList.map { vc =>
@@ -60,12 +56,14 @@ object Main extends IOApp with VoiceVoxComponent {
     IO.pure(Context(voiceConfigMap))
   }
 
-  private def buildAudioQuery(text: String) = {
-    voiceVox.audioQuery(text)
+  private def buildAudioQuery(text: String, voiceVox: VoiceVox, ctx: Context) = {
+    val voiceConfigurationForCharacter = /* TODO: chararcter->voiceconfigの対応を取る */ ctx.voiceConfigMap.get("zundamon").map(_.asInstanceOf[VoiceVoxBackendConfig].speakerId).get
+    voiceVox.audioQuery(text, voiceConfigurationForCharacter)
   }
 
-  private def buildWavFile(aq: io.circe.Json): IO[fs2.Stream[IO, Byte]] = {
-    voiceVox.synthesis(aq)
+  private def buildWavFile(aq: io.circe.Json, voiceVox: VoiceVox, ctx: Context): IO[fs2.Stream[IO, Byte]] = {
+    val voiceConfigurationForCharacter = /* TODO: chararcter->voiceconfigの対応を取る */ ctx.voiceConfigMap.get("zundamon").map(_.asInstanceOf[VoiceVoxBackendConfig].speakerId).get
+    voiceVox.synthesis(aq, voiceConfigurationForCharacter)
   }
 
   private def writeToFile(stream: fs2.Stream[IO, Byte]) = {
@@ -74,6 +72,12 @@ object Main extends IOApp with VoiceVoxComponent {
     stream.through(Files[IO].writeAll(target)).compile.drain.as(target)
   }
 }
+
+sealed trait VoiceBackendConfig
+final case class VoiceVoxBackendConfig(speakerId: String) extends VoiceBackendConfig
+case class Context(
+  voiceConfigMap: Map[String, VoiceBackendConfig]
+)
 
 // TODO: あとでちゃんとしたCake Patternにする
 trait VoiceVoxComponent {
@@ -87,9 +91,7 @@ trait VoiceVoxComponent {
   import io.circe.literal._
   import org.http4s.circe.CirceEntityDecoder._
 
-  val voiceVox = new ConcreteVoiceVox
-
-  final class ConcreteVoiceVox extends VoiceVox {}
+  final class ConcreteVoiceVox(val ctx: Context) extends VoiceVox {}
 
   /** VOICEVOX client.
     *
@@ -100,18 +102,18 @@ trait VoiceVoxComponent {
     */
   trait VoiceVox {
     type AudioQuery = Json // TODO: 必要に応じて高級なcase class / HListにする
-    def audioQuery(text: String): IO[AudioQuery] = client.use { c =>
+    def audioQuery(text: String, speaker: String): IO[AudioQuery] = client.use { c =>
       val uri = Uri.fromString("http://localhost:50021/audio_query").map(
-        _.copy(query = org.http4s.Query.fromMap(Map("speaker" -> Seq("1"), "text" -> Seq(text))))
+        _.copy(query = org.http4s.Query.fromMap(Map("speaker" -> Seq(speaker), "text" -> Seq(text))))
       )
       val req = Request[IO](Method.POST, uri = uri.right.get, headers = Headers("accept" -> "application/json"))
       c.expect[AudioQuery](req)
     }
 
-    def synthesis(aq: AudioQuery): IO[fs2.Stream[IO, Byte]] = client.use { c =>
+    def synthesis(aq: AudioQuery, speaker: String): IO[fs2.Stream[IO, Byte]] = client.use { c =>
       val uri = Uri.fromString("http://localhost:50021/synthesis").map(
         _.copy(
-          query = org.http4s.Query.fromMap(Map("speaker" -> Seq("1"))),
+          query = org.http4s.Query.fromMap(Map("speaker" -> Seq(speaker))),
         )
       )
       val req = Request[IO](Method.POST,
