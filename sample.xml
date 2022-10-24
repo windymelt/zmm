@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<content version="0.0">
+  <meta>
+    <voiceconfig id="zundamon" backend="voicevox">
+      <!-- ずんだもんはid:1  -->
+      <voivevoxconfig id="1" />
+    </voiceconfig>
+    <characterconfig name="windymelt" voice-id="zundamon" />
+    <assets>
+      <face id="zunda1" file="zunda1.png" />
+    </assets>
+  </meta>
+  <scenary bg="black" />
+  <dialogue>
+    <say by="windymelt">こんにちは、めるくんです。</say>
+  </dialogue>
+</content>

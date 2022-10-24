@@ -17,6 +17,7 @@ object Main extends IOApp with VoiceVoxComponent {
     {
       for {
         x <- content
+        // TODO: 今はテキストを直接取り出して直接ずんだもんに決め打ちしているが、ちゃんとcharacterconfigやvoiceconfigを見るようにする
         aq <- buildAudioQuery((x \\ "say").head.text)
         wav <- buildWavFile(aq)
         path <- writeToFile(wav)
