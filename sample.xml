@@ -7,13 +7,22 @@
     <voiceconfig id="zundamon" backend="voicevox">
       <voicevoxconfig id="1" />
     </voiceconfig>
-    <characterconfig name="windymelt" voice-id="zundamon" />
+    <voiceconfig id="tsumugi" backend="voicevox">
+      <voicevoxconfig id="2" />
+    </voiceconfig>
+    <characterconfig name="char1" voice-id="metan" />
+    <characterconfig name="char2" voice-id="zundamon" />
+    <characterconfig name="char3" voice-id="tsumugi" />
     <assets>
       <face id="zunda1" file="zunda1.png" />
     </assets>
   </meta>
   <scenary bg="black" />
   <dialogue>
-    <say by="windymelt">こんにちは、めるくんです。</say>
+    <say by="char1">このXMLファイルは、zmmの動作を説明するためのサンプルです。</say>
+    <say by="char1">キャラクター1の音声です。</say>
+    <say by="char2">そして、キャラクター2の音声です。</say>
+    <say by="char3">このように、XMLタグの属性によって、
+    登場するキャラクターの音声を切り替えることができます。すごいね。</say>
   </dialogue>
 </content>

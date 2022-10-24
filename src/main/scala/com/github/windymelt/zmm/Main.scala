@@ -21,15 +21,23 @@ object Main extends IOApp with VoiceVoxComponent {
         ctx <- prepareContext(x)
         voiceVox = new ConcreteVoiceVox(ctx)
         _ <- IO.println(ctx)
-        // TODO: 今はテキストを直接取り出して直接ずんだもんに決め打ちしているが、ちゃんとcharacterconfigやvoiceconfigを見るようにする
-        aq <- buildAudioQuery((x \\ "say").head.text, voiceVox, ctx)
-        wav <- buildWavFile(aq, voiceVox, ctx)
-        path <- writeToFile(wav)
-        _ <- IO.println(s"Wrote to $path")
+        paths <- {
+          import cats.implicits._
+          import cats.effect.implicits._
+          val saySeq = (x \ "dialogue" \ "say").map(say => generateSay(say, voiceVox, ctx))
+          saySeq.parSequence
+        }
+        _ <- IO.println(s"Wrote to $paths")
       } yield ()
     } >>
     IO.pure(ExitCode.Success)
   }
+
+  private def generateSay(sayElem: scala.xml.Node, voiceVox: VoiceVox, ctx: Context): IO[fs2.io.file.Path] = for {
+    aq <- buildAudioQuery(sayElem.text, sayElem \@ "by", voiceVox, ctx)
+    wav <- buildWavFile(aq, sayElem \@ "by", voiceVox, ctx)
+    path <- writeToFile(wav, s"voice_${sayElem.text}.wav")
+  } yield path
 
   private def contentSanityCheck(elem: scala.xml.Elem): IO[Unit] = {
     val checkTopElem = elem.label == "content"
@@ -62,19 +70,25 @@ object Main extends IOApp with VoiceVoxComponent {
     IO.pure(Context(voiceConfigMap, characterConfigMap))
   }
 
-  private def buildAudioQuery(text: String, voiceVox: VoiceVox, ctx: Context) = {
-    val voiceConfigurationForCharacter = /* TODO: chararcter->voiceconfigの対応を取る */ ctx.voiceConfigMap.get("zundamon").map(_.asInstanceOf[VoiceVoxBackendConfig].speakerId).get
-    voiceVox.audioQuery(text, voiceConfigurationForCharacter)
+  private def buildAudioQuery(text: String, character: String, voiceVox: VoiceVox, ctx: Context) = {
+    val characterConfig = ctx.characterConfigMap(character)
+    val voiceConfig = ctx.voiceConfigMap(characterConfig.voiceId)
+    // VOICEVOX特有の実装 いずれどこかの層に分離する
+    val speakerId = voiceConfig.asInstanceOf[VoiceVoxBackendConfig].speakerId
+    voiceVox.audioQuery(text, speakerId)
   }
 
-  private def buildWavFile(aq: io.circe.Json, voiceVox: VoiceVox, ctx: Context): IO[fs2.Stream[IO, Byte]] = {
-    val voiceConfigurationForCharacter = /* TODO: chararcter->voiceconfigの対応を取る */ ctx.voiceConfigMap.get("zundamon").map(_.asInstanceOf[VoiceVoxBackendConfig].speakerId).get
-    voiceVox.synthesis(aq, voiceConfigurationForCharacter)
+  private def buildWavFile(aq: io.circe.Json, character: String, voiceVox: VoiceVox, ctx: Context): IO[fs2.Stream[IO, Byte]] = {
+    val characterConfig = ctx.characterConfigMap(character)
+    val voiceConfig = ctx.voiceConfigMap(characterConfig.voiceId)
+    // VOICEVOX特有の実装 いずれどこかの層に分離する
+    val speakerId = voiceConfig.asInstanceOf[VoiceVoxBackendConfig].speakerId
+    voiceVox.synthesis(aq, speakerId)
   }
 
-  private def writeToFile(stream: fs2.Stream[IO, Byte]) = {
+  private def writeToFile(stream: fs2.Stream[IO, Byte], fileName: String) = {
     import fs2.io.file.{Files, Path}
-    val target = Path("zundamon.wav")
+    val target = Path(fileName)
     stream.through(Files[IO].writeAll(target)).compile.drain.as(target)
   }
 }
@@ -135,6 +149,6 @@ trait VoiceVoxComponent {
       IO.pure(c.stream(req).flatMap(_.body))
     }
 
-    private def client = EmberClientBuilder.default[IO].build
+    private lazy val client = EmberClientBuilder.default[IO].build
   }
 }
