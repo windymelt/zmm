@@ -53,7 +53,13 @@ object Main extends IOApp with VoiceVoxComponent {
       }
     }.toMap
 
-    IO.pure(Context(voiceConfigMap))
+    val characterConfigList = elem \ "meta" \ "characterconfig"
+    val characterConfigMap = characterConfigList.map { cc =>
+      val name = cc \@ "name"
+      name -> CharacterConfig(name, cc \@ "voice-id")
+    }.toMap
+
+    IO.pure(Context(voiceConfigMap, characterConfigMap))
   }
 
   private def buildAudioQuery(text: String, voiceVox: VoiceVox, ctx: Context) = {
@@ -75,8 +81,12 @@ object Main extends IOApp with VoiceVoxComponent {
 
 sealed trait VoiceBackendConfig
 final case class VoiceVoxBackendConfig(speakerId: String) extends VoiceBackendConfig
+
+final case class CharacterConfig(name: String, voiceId: String)
+
 case class Context(
-  voiceConfigMap: Map[String, VoiceBackendConfig]
+  voiceConfigMap: Map[String, VoiceBackendConfig],
+  characterConfigMap: Map[String, CharacterConfig],
 )
 
 // TODO: あとでちゃんとしたCake Patternにする
