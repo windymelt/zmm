@@ -1,2 +1,8 @@
 /.bsp/
 target/
+.bloop/
+.metals/
+
+# for Emacs
+*.~undo-tree~
+
