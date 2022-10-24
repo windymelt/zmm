@@ -58,6 +58,13 @@ trait VoiceVoxComponent {
 
   final class ConcreteVoiceVox extends VoiceVox {}
 
+  /** VOICEVOX client.
+    *
+    * You can start local VOICEVOX container with Docker:
+    * {{{
+    * docker run --rm -it -p '127.0.0.1:50021:50021' voicevox/voicevox_engine:cpu-ubuntu20.04-latest
+    * }}}
+    */
   trait VoiceVox {
     type AudioQuery = Json // TODO: 必要に応じて高級なcase class / HListにする
     def audioQuery(text: String): IO[AudioQuery] = client.use { c =>
