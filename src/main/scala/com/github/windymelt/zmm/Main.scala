@@ -17,6 +17,9 @@ object Main extends IOApp with VoiceVoxComponent {
     {
       for {
         x <- content
+        _ <- contentSanityCheck(x)
+        ctx <- prepareContext(x)
+        _ <- IO.println(ctx)
         // TODO: 今はテキストを直接取り出して直接ずんだもんに決め打ちしているが、ちゃんとcharacterconfigやvoiceconfigを見るようにする
         aq <- buildAudioQuery((x \\ "say").head.text)
         wav <- buildWavFile(aq)
@@ -25,6 +28,36 @@ object Main extends IOApp with VoiceVoxComponent {
       } yield ()
     } >>
     IO.pure(ExitCode.Success)
+  }
+
+  private def contentSanityCheck(elem: scala.xml.Elem): IO[Unit] = {
+    val checkTopElem = elem.label == "content"
+    val ver = elem \@ "version" == "0.0"
+
+    if (! (checkTopElem && ver)) {
+      throw new Exception("Invalid scenary XML") // TODO: 丁寧なエラーメッセージ
+    }
+    IO.unit
+  }
+
+  sealed trait VoiceBackendConfig
+  final case class VoiceVoxBackendConfig(speakerId: String) extends VoiceBackendConfig
+  case class Context(
+    voiceConfigMap: Map[String, VoiceBackendConfig]
+  )
+  private def prepareContext(elem: scala.xml.Elem): IO[Context] = {
+    val voiceConfigList = elem \ "meta" \ "voiceconfig"
+    val voiceConfigMap = voiceConfigList.map { vc =>
+      vc \@ "backend" match {
+        case "voicevox" =>
+          val vvc = vc \ "voicevoxconfig"
+          val voiceVoxSpeakerId = vvc \@ "id"
+          (vc \@ "id", VoiceVoxBackendConfig(voiceVoxSpeakerId))
+        case _ => ??? // not implemented
+      }
+    }.toMap
+
+    IO.pure(Context(voiceConfigMap))
   }
 
   private def buildAudioQuery(text: String) = {
