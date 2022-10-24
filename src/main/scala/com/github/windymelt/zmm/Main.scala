@@ -12,12 +12,12 @@ object Main extends IOApp with VoiceVoxComponent {
     val filePath = args(0)
     val content = IO.delay(scala.xml.XML.loadFile(filePath))
 
-    content >>
     IO.println("Hello Zundamon!") >>
     IO.println("Invoking audio api...") >>
     {
       for {
-        aq <- buildAudioQuery("こんにちはなのだ")
+        x <- content
+        aq <- buildAudioQuery((x \\ "say").head.text)
         wav <- buildWavFile(aq)
         path <- writeToFile(wav)
         _ <- IO.println(s"Wrote to $path")
