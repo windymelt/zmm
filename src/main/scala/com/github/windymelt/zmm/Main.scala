@@ -13,8 +13,12 @@ object Main extends IOApp with VoiceVoxComponent {
     content >>
     IO.println("Hello Zundamon!") >>
     IO.println("Invoking audio api...") >>
-    voiceVox.audioQuery("こんにちはなのだ") >>
+    buildAudioQuery >>
     IO.pure(ExitCode.Success)
+  }
+
+  private def buildAudioQuery = {
+    voiceVox.audioQuery("こんにちはなのだ")
   }
 }
 
