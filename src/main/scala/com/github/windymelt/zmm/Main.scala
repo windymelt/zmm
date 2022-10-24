@@ -101,6 +101,7 @@ trait VoiceVoxComponent {
     * }}}
     */
   trait VoiceVox {
+    // TODO: localhost:50021決め打ちをやめる
     type AudioQuery = Json // TODO: 必要に応じて高級なcase class / HListにする
     def audioQuery(text: String, speaker: String): IO[AudioQuery] = client.use { c =>
       val uri = Uri.fromString("http://localhost:50021/audio_query").map(
