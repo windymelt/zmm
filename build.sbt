@@ -12,6 +12,9 @@ lazy val root = (project in file("."))
       "org.scala-lang.modules" %% "scala-xml" % "2.1.0",
       "org.typelevel" %% "cats-effect" % "3.3.12",
       "org.http4s" %% "http4s-ember-client" % "0.23.16",
+      "org.http4s" %% "http4s-circe" % "0.23.16",
+      "io.circe" %% "circe-generic" % "0.14.3",
+      "io.circe" %% "circe-literal" % "0.14.3",
       scalaTest % Test,
     )
   )
