@@ -15,10 +15,9 @@ object Main extends IOApp with VoiceVoxComponent {
     content >>
     IO.println("Hello Zundamon!") >>
     IO.println("Invoking audio api...") >>
-    buildAudioQuery >>
     {
       for {
-        aq <- buildAudioQuery
+        aq <- buildAudioQuery("こんにちはなのだ")
         wav <- buildWavFile(aq)
         path <- writeToFile(wav)
         _ <- IO.println(s"Wrote to $path")
@@ -27,8 +26,8 @@ object Main extends IOApp with VoiceVoxComponent {
     IO.pure(ExitCode.Success)
   }
 
-  private def buildAudioQuery = {
-    voiceVox.audioQuery("こんにちはなのだ")
+  private def buildAudioQuery(text: String) = {
+    voiceVox.audioQuery(text)
   }
 
   private def buildWavFile(aq: io.circe.Json): IO[fs2.Stream[IO, Byte]] = {
