@@ -44,7 +44,8 @@ final class Cli extends VoiceVoxComponent with domain.repository.FFmpegComponent
   ): IO[fs2.io.file.Path] = for {
     aq <- buildAudioQuery(sayElem.text, sayElem \@ "by", voiceVox, ctx)
     wav <- buildWavFile(aq, sayElem \@ "by", voiceVox, ctx)
-    path <- writeToFile(wav, s"artifacts/voice_${sayElem.text}.wav")
+    fileName = sayElem.text.replaceAll("\n", "") // ffmpegに渡すときに困らないようにいったん改行を削除している。あとで機械的な名前に変更する
+    path <- writeToFile(wav, s"artifacts/voice_${fileName}.wav")
   } yield path
 
   private def contentSanityCheck(elem: scala.xml.Elem): IO[Unit] = {

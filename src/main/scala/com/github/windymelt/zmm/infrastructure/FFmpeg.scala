@@ -1,5 +1,5 @@
 package com.github.windymelt.zmm
-  package infrastructure
+package infrastructure
 
 import cats.effect.IO
 
@@ -11,10 +11,28 @@ trait FFmpegComponent {
   class ConcreteFFmpeg extends FFmpeg {
     def concatenateWavFiles(files: Seq[File]): IO[File] = {
       // stub
-      val proc = os.proc("ffmpeg", "-version").call(stdout = os.Inherit)
+      val fileList = files.map(f => s"file '${f}'").mkString("\n")
+      val fileListPath = os.pwd / "fileList.txt"
+      os.remove(fileListPath, checkExists = false)
+      os.write(fileListPath, fileList)
+      val proc = os
+        .proc(
+          "ffmpeg",
+          "-protocol_whitelist",
+          "file",
+          "-f",
+          "concat",
+          "-safe", // go despite of not being absolute path
+          "0",
+          "-i",
+          "fileList.txt",
+          "-c",
+          "copy",
+          "artifacts/concatenated.wav"
+        )
+        .call(stdout = os.Inherit, stdin = fileList, cwd = os.pwd)
 
-      IO.pure("concatenated.wav")
+      IO.pure("artifacts/concatenated.wav")
     }
   }
 }
-
