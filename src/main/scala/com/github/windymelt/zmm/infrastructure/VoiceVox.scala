@@ -66,6 +66,12 @@ trait VoiceVoxComponent {
         IO.pure(c.stream(req).flatMap(_.body))
       }
 
+    def controlSpeed(aq: AudioQuery, speed: String): IO[AudioQuery] = {
+      import io.circe.syntax._
+      // TODO: .getやめて失敗できるようにする
+      IO.pure(aq.hcursor.downField("speedScale").withFocus(_ => speed.asJson).top.get)
+    }
+
     private lazy val client = EmberClientBuilder.default[IO].build
   }
 }

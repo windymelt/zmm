@@ -48,7 +48,9 @@ final class Cli
       ctx: Context
   ): IO[fs2.io.file.Path] = for {
     aq <- buildAudioQuery(sayElem.text, sayElem \@ "by", voiceVox, ctx)
-    wav <- buildWavFile(aq, sayElem \@ "by", voiceVox, ctx)
+    _ <- IO.println(aq)
+    fixedAq <- sayElem.attribute("speed") map (attrNode => voiceVox.controlSpeed(aq, attrNode.text)) getOrElse(IO.pure(aq))
+    wav <- buildWavFile(fixedAq, sayElem \@ "by", voiceVox, ctx)
     fileName = sayElem.text.replaceAll(
       "\n",
       ""
