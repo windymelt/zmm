@@ -13,25 +13,29 @@ trait FFmpegComponent {
       // stub
       val fileList = files.map(f => s"file '${f}'").mkString("\n")
       val fileListPath = os.pwd / "fileList.txt"
-      os.remove(fileListPath, checkExists = false)
-      os.write(fileListPath, fileList)
-      val proc = os
-        .proc(
-          "ffmpeg",
-          "-protocol_whitelist",
-          "file",
-          "-f",
-          "concat",
-          "-safe", // go despite of not being absolute path
-          "0",
-          "-i",
-          "fileList.txt",
-          "-c",
-          "copy",
-          "artifacts/concatenated.wav"
-        )
-        .call(stdout = os.Inherit, stdin = fileList, cwd = os.pwd)
-
+      IO.delay {
+        os.remove(fileListPath, checkExists = false)
+        os.write(fileListPath, fileList)
+      } *>
+      IO.delay {
+        os
+          .proc(
+            "ffmpeg",
+            "-protocol_whitelist",
+            "file",
+            "-y", // overwrite if exists
+            "-f",
+            "concat",
+            "-safe", // go despite of not being absolute path
+            "0",
+            "-i",
+            "fileList.txt",
+            "-c",
+            "copy",
+            "artifacts/concatenated.wav"
+          )
+          .call(stdout = os.Inherit, stdin = fileList, cwd = os.pwd)
+      } *>
       IO.pure("artifacts/concatenated.wav")
     }
   }
