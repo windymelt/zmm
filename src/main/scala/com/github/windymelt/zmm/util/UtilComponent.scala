@@ -3,15 +3,10 @@ package com.github.windymelt.zmm.util
 import cats.effect.{IO, Ref}
 import cats.effect.implicits._
 trait UtilComponent {
-  def sha1HexCode(bs: Array[Byte]): IO[String] = for {
-    mdRef <- UtilComponent.md
-    md <- mdRef.get
-  } yield md.digest(bs).map(b => (b & 0xff).toHexString).mkString
-}
-
-object UtilComponent {
   import java.security.MessageDigest
-  // MessageDigestオブジェクトはアトミックに使用する必要があるためRefを使ってアトミック操作を確保する
-  lazy val md: IO[Ref[IO, MessageDigest]] =
-    Ref[IO].of(MessageDigest.getInstance("SHA-1"))
+  // MessageDigestオブジェクトはアトミックに使用する必要があるが、とりあえず毎回生成することで面倒を回避する
+  def sha1HexCode(bs: Array[Byte]): IO[String] = {
+    val digestInstance = MessageDigest.getInstance("SHA-1")
+    IO.pure(digestInstance.digest(bs).map(b => (b & 0xff).toHexString).mkString)
+  }
 }
