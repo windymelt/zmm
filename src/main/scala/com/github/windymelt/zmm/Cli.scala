@@ -27,7 +27,6 @@ final class Cli
           x <- content
           _ <- contentSanityCheck(x)
           ctx <- prepareContext(x)
-          voiceVox = new ConcreteVoiceVox()
           _ <- IO.println(ctx)
           paths <- {
             import cats.implicits._
