@@ -58,11 +58,7 @@ final class Cli
     wav <- backgroundIndicator("Synthesizing wav").use { _ =>
       buildWavFile(fixedAq, sayElem \@ "by", voiceVox, ctx)
     }
-    fileName = sayElem.text.replaceAll(
-      "\n",
-      ""
-    ) // ffmpegに渡すときに困らないようにいったん改行を削除している。あとで機械的な名前に変更する
-    sha1Hex = sha1HexCode(fileName.getBytes())
+    sha1Hex <- sha1HexCode(sayElem.text.getBytes())
     path <- backgroundIndicator("Exporting .wav file").use { _ =>
       writeToFile(wav, s"artifacts/voice_${sha1Hex}.wav")
     }
