@@ -10,7 +10,8 @@ final class Cli
     extends domain.repository.FFmpegComponent
     with domain.repository.VoiceVoxComponent
     with infrastructure.FFmpegComponent
-    with infrastructure.VoiceVoxComponent {
+    with infrastructure.VoiceVoxComponent
+    with util.UtilComponent {
 
   def voiceVox: VoiceVox = new ConcreteVoiceVox()
   def ffmpeg = new ConcreteFFmpeg()
@@ -57,7 +58,8 @@ final class Cli
       "\n",
       ""
     ) // ffmpegに渡すときに困らないようにいったん改行を削除している。あとで機械的な名前に変更する
-    path <- writeToFile(wav, s"artifacts/voice_${fileName}.wav")
+    sha1Hex = sha1HexCode(fileName.getBytes())
+    path <- writeToFile(wav, s"artifacts/voice_${sha1Hex}.wav")
   } yield path
 
   private def contentSanityCheck(elem: scala.xml.Elem): IO[Unit] = {
