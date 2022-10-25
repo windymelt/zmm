@@ -16,6 +16,7 @@ trait VoiceVoxComponent {
   import org.http4s.circe.CirceEntityDecoder._
 
   type AudioQuery = Json // TODO: 必要に応じて高級なcase class / HListにする
+  type SpeakerInfo = Json // TODO: 必要に応じて高級なcase class / HListにする
   def voiceVox: VoiceVox
 
   /** VOICEVOX client.
@@ -26,6 +27,11 @@ trait VoiceVoxComponent {
     * }}}
     */
   class ConcreteVoiceVox extends VoiceVox {
+    def speakers(): IO[SpeakerInfo] = client.use {
+      c =>
+      val req = Request[IO](uri = Uri.fromString("http://localhost:50021/speakers").right.get)
+      c.expect[SpeakerInfo](req)
+    }
     // TODO: localhost:50021決め打ちをやめる
     def audioQuery(text: String, speaker: String): IO[AudioQuery] = client.use {
       c =>

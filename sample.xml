@@ -2,16 +2,20 @@
 <content version="0.0">
   <meta>
     <voiceconfig id="metan" backend="voicevox">
-      <voicevoxconfig id="0" />
+      <voicevoxconfig id="2" />
     </voiceconfig>
     <voiceconfig id="zundamon" backend="voicevox">
-      <voicevoxconfig id="1" />
+      <voicevoxconfig id="3" />
+    </voiceconfig>
+    <voiceconfig id="zundamon-hisohiso" backend="voicevox">
+      <voicevoxconfig id="22" />
     </voiceconfig>
     <voiceconfig id="tsumugi" backend="voicevox">
-      <voicevoxconfig id="2" />
+      <voicevoxconfig id="8" />
     </voiceconfig>
     <characterconfig name="char1" voice-id="metan" />
     <characterconfig name="char2" voice-id="zundamon" />
+    <characterconfig name="char2_hiso" voice-id="zundamon-hisohiso" />
     <characterconfig name="char3" voice-id="tsumugi" />
     <assets>
       <face id="zunda1" file="zunda1.png" />
@@ -25,5 +29,6 @@
     <say by="char3">このように、XMLタグの属性によって、
     登場するキャラクターの音声を切り替えることができます。すごいね。</say>
     <say by="char1" speed="1.2">スピード属性を使うことにより、その箇所の読み上げ速度を上げることができます。</say>
+    <say by="char2_hiso">キャラクターに用意されているひそひそ声で読み上げることも可能なのだ。</say>
   </dialogue>
 </content>

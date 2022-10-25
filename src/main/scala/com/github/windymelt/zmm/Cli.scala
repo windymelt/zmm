@@ -22,6 +22,8 @@ final class Cli
     IO.println("Hello Zundamon!") >>
       IO.println("Invoking audio api...") >> {
         for {
+//        speakers <- voiceVox.speakers()
+//        _ <- IO.println(speakers)
           x <- content
           _ <- contentSanityCheck(x)
           ctx <- prepareContext(x)
@@ -49,7 +51,7 @@ final class Cli
       ctx: domain.model.Context
   ): IO[fs2.io.file.Path] = for {
     aq <- buildAudioQuery(sayElem.text, sayElem \@ "by", voiceVox, ctx)
-    _ <- IO.println(aq)
+//    _ <- IO.println(aq)
     fixedAq <- sayElem.attribute("speed") map (attrNode =>
       voiceVox.controlSpeed(aq, attrNode.text)
     ) getOrElse (IO.pure(aq))
