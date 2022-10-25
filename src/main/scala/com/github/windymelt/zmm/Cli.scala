@@ -7,11 +7,13 @@ import java.io.OutputStream
 import org.http4s.syntax.header
 
 final class Cli
-    extends VoiceVoxComponent
-    with domain.repository.FFmpegComponent
-    with infrastructure.FFmpegComponent {
-  val voiceVox: VoiceVox = new ConcreteVoiceVox()
-  val ffmpeg = new ConcreteFFmpeg()
+    extends domain.repository.FFmpegComponent
+    with domain.repository.VoiceVoxComponent
+    with infrastructure.FFmpegComponent
+    with infrastructure.VoiceVoxComponent {
+
+  def voiceVox: VoiceVox = new ConcreteVoiceVox()
+  def ffmpeg = new ConcreteFFmpeg()
 
   def generate(filePath: String): IO[Unit] = {
     val content = IO.delay(scala.xml.XML.loadFile(filePath))
@@ -99,7 +101,7 @@ final class Cli
   }
 
   private def buildWavFile(
-      aq: io.circe.Json,
+      aq: AudioQuery,
       character: String,
       voiceVox: VoiceVox,
       ctx: Context
