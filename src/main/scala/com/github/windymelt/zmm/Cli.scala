@@ -27,7 +27,7 @@ final class Cli
           x <- content
           _ <- contentSanityCheck(x)
           ctx <- prepareContext(x)
-          _ <- IO.println(ctx)
+//        _ <- IO.println(ctx)
           paths <- {
             import cats.implicits._
             import cats.effect.implicits._
@@ -36,9 +36,8 @@ final class Cli
             )
             saySeq.parSequence
           }
-          _ <- IO.println(s"Wrote to $paths")
-          // TODO: 最終的に適当にスペースを挟んだ1つのwavになってほしい
           _ <- ffmpeg.concatenateWavFiles(paths.map(_.toString))
+          _ <- IO.println("Done!")
         } yield ()
       } >>
       IO.unit
@@ -49,18 +48,24 @@ final class Cli
       voiceVox: VoiceVox,
       ctx: domain.model.Context
   ): IO[fs2.io.file.Path] = for {
-    aq <- buildAudioQuery(sayElem.text, sayElem \@ "by", voiceVox, ctx)
+    aq <- backgroundIndicator("Building Audio Query").use { _ =>
+      buildAudioQuery(sayElem.text, sayElem \@ "by", voiceVox, ctx)
+    }
 //    _ <- IO.println(aq)
     fixedAq <- sayElem.attribute("speed") map (attrNode =>
       voiceVox.controlSpeed(aq, attrNode.text)
     ) getOrElse (IO.pure(aq))
-    wav <- buildWavFile(fixedAq, sayElem \@ "by", voiceVox, ctx)
+    wav <- backgroundIndicator("Synthesizing wav").use { _ =>
+      buildWavFile(fixedAq, sayElem \@ "by", voiceVox, ctx)
+    }
     fileName = sayElem.text.replaceAll(
       "\n",
       ""
     ) // ffmpegに渡すときに困らないようにいったん改行を削除している。あとで機械的な名前に変更する
     sha1Hex = sha1HexCode(fileName.getBytes())
-    path <- writeToFile(wav, s"artifacts/voice_${sha1Hex}.wav")
+    path <- backgroundIndicator("Exporting .wav file").use { _ =>
+      writeToFile(wav, s"artifacts/voice_${sha1Hex}.wav")
+    }
   } yield path
 
   private def contentSanityCheck(elem: scala.xml.Elem): IO[Unit] = {
@@ -125,4 +130,13 @@ final class Cli
     val target = Path(fileName)
     stream.through(Files[IO].writeAll(target)).compile.drain.as(target)
   }
+
+  // 進捗インジケータを表示するためのユーティリティ
+  private def backgroundIndicator(message: String): cats.effect.ResourceIO[IO[cats.effect.OutcomeIO[Unit]]] =
+    indicator(message).background
+  import concurrent.duration._
+  import scala.language.postfixOps
+  private def piece(s: String): IO[Unit] = IO.sleep(100 milliseconds) *> IO.print(s"\r$s")
+  private def indicator(message: String): IO[Unit] = piece(s"⢄ $message") *> piece(s"⠢ $message") *> piece(s"⠑ $message") *> piece(s"⡈ $message") foreverM
+
 }

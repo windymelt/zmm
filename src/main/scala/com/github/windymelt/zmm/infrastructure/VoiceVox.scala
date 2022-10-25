@@ -78,6 +78,10 @@ trait VoiceVoxComponent {
       IO.pure(aq.hcursor.downField("speedScale").withFocus(_ => speed.asJson).top.get)
     }
 
-    private lazy val client = EmberClientBuilder.default[IO].build
+    private lazy val client = {
+      import concurrent.duration._
+      import scala.language.postfixOps
+      EmberClientBuilder.default[IO].withTimeout(5 minutes).build
+    }
   }
 }
