@@ -45,7 +45,7 @@ final class Cli
   private def generateSay(
       sayElem: scala.xml.Node,
       voiceVox: VoiceVox,
-      ctx: Context
+      ctx: domain.model.Context
   ): IO[fs2.io.file.Path] = for {
     aq <- buildAudioQuery(sayElem.text, sayElem \@ "by", voiceVox, ctx)
     _ <- IO.println(aq)
@@ -70,14 +70,14 @@ final class Cli
     IO.unit
   }
 
-  private def prepareContext(elem: scala.xml.Elem): IO[Context] = {
+  private def prepareContext(elem: scala.xml.Elem): IO[domain.model.Context] = {
     val voiceConfigList = elem \ "meta" \ "voiceconfig"
     val voiceConfigMap = voiceConfigList.map { vc =>
       vc \@ "backend" match {
         case "voicevox" =>
           val vvc = vc \ "voicevoxconfig"
           val voiceVoxSpeakerId = vvc \@ "id"
-          (vc \@ "id", VoiceVoxBackendConfig(voiceVoxSpeakerId))
+          (vc \@ "id", domain.model.VoiceVoxBackendConfig(voiceVoxSpeakerId))
         case _ => ??? // not implemented
       }
     }.toMap
@@ -85,22 +85,22 @@ final class Cli
     val characterConfigList = elem \ "meta" \ "characterconfig"
     val characterConfigMap = characterConfigList.map { cc =>
       val name = cc \@ "name"
-      name -> CharacterConfig(name, cc \@ "voice-id")
+      name -> domain.model.CharacterConfig(name, cc \@ "voice-id")
     }.toMap
 
-    IO.pure(Context(voiceConfigMap, characterConfigMap))
+    IO.pure(domain.model.Context(voiceConfigMap, characterConfigMap))
   }
 
   private def buildAudioQuery(
       text: String,
       character: String,
       voiceVox: VoiceVox,
-      ctx: Context
+      ctx: domain.model.Context
   ) = {
     val characterConfig = ctx.characterConfigMap(character)
     val voiceConfig = ctx.voiceConfigMap(characterConfig.voiceId)
     // VOICEVOX特有の実装 いずれどこかの層に分離する
-    val speakerId = voiceConfig.asInstanceOf[VoiceVoxBackendConfig].speakerId
+    val speakerId = voiceConfig.asInstanceOf[domain.model.VoiceVoxBackendConfig].speakerId
     voiceVox.audioQuery(text, speakerId)
   }
 
@@ -108,12 +108,12 @@ final class Cli
       aq: AudioQuery,
       character: String,
       voiceVox: VoiceVox,
-      ctx: Context
+      ctx: domain.model.Context
   ): IO[fs2.Stream[IO, Byte]] = {
     val characterConfig = ctx.characterConfigMap(character)
     val voiceConfig = ctx.voiceConfigMap(characterConfig.voiceId)
     // VOICEVOX特有の実装 いずれどこかの層に分離する
-    val speakerId = voiceConfig.asInstanceOf[VoiceVoxBackendConfig].speakerId
+    val speakerId = voiceConfig.asInstanceOf[domain.model.VoiceVoxBackendConfig].speakerId
     voiceVox.synthesis(aq, speakerId)
   }
 

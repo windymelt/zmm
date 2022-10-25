@@ -16,14 +16,3 @@ object Main extends IOApp {
       IO.pure(cats.effect.ExitCode.Success)
   }
 }
-
-sealed trait VoiceBackendConfig
-final case class VoiceVoxBackendConfig(speakerId: String)
-    extends VoiceBackendConfig
-
-final case class CharacterConfig(name: String, voiceId: String)
-
-case class Context(
-    voiceConfigMap: Map[String, VoiceBackendConfig],
-    characterConfigMap: Map[String, CharacterConfig]
-)
