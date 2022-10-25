@@ -6,8 +6,9 @@ import cats.effect.ExitCode
 import java.io.OutputStream
 import org.http4s.syntax.header
 
-final class Cli extends VoiceVoxComponent {
+final class Cli extends VoiceVoxComponent with domain.repository.FFmpegComponent with infrastructure.FFmpegComponent {
   val voiceVox: VoiceVox = new ConcreteVoiceVox()
+  val ffmpeg = new ConcreteFFmpeg()
 
   def generate(filePath: String): IO[Unit] = {
     val content = IO.delay(scala.xml.XML.loadFile(filePath))
@@ -30,6 +31,7 @@ final class Cli extends VoiceVoxComponent {
           }
           _ <- IO.println(s"Wrote to $paths")
           // TODO: 最終的に適当にスペースを挟んだ1つのwavになってほしい
+          _ <- ffmpeg.concatenateWavFiles(paths.map(_.toString))
         } yield ()
       } >>
       IO.unit

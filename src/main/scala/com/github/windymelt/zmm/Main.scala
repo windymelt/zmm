@@ -17,8 +17,6 @@ object Main extends IOApp with VoiceVoxComponent {
   }
 }
 
-
-
 sealed trait VoiceBackendConfig
 final case class VoiceVoxBackendConfig(speakerId: String)
     extends VoiceBackendConfig
