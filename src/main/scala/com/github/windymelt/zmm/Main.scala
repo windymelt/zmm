@@ -29,6 +29,7 @@ object Main extends IOApp with VoiceVoxComponent {
             saySeq.parSequence
           }
           _ <- IO.println(s"Wrote to $paths")
+          // TODO: 最終的に適当にスペースを挟んだ1つのwavになってほしい
         } yield ()
       } >>
       IO.pure(ExitCode.Success)
@@ -41,7 +42,7 @@ object Main extends IOApp with VoiceVoxComponent {
   ): IO[fs2.io.file.Path] = for {
     aq <- buildAudioQuery(sayElem.text, sayElem \@ "by", voiceVox, ctx)
     wav <- buildWavFile(aq, sayElem \@ "by", voiceVox, ctx)
-    path <- writeToFile(wav, s"voice_${sayElem.text}.wav")
+    path <- writeToFile(wav, s"artifacts/voice_${sayElem.text}.wav")
   } yield path
 
   private def contentSanityCheck(elem: scala.xml.Elem): IO[Unit] = {
