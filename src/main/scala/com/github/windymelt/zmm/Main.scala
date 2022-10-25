@@ -10,6 +10,17 @@ object Main extends IOApp with VoiceVoxComponent {
   def run(args: List[String]) = {
     // load source file
     val filePath = args(0)
+
+    val cli = new Cli()
+    cli.generate(filePath) *>
+      IO.pure(cats.effect.ExitCode.Success)
+  }
+}
+
+final class Cli extends VoiceVoxComponent {
+  val voiceVox: VoiceVox = new ConcreteVoiceVox()
+
+  def generate(filePath: String): IO[Unit] = {
     val content = IO.delay(scala.xml.XML.loadFile(filePath))
 
     IO.println("Hello Zundamon!") >>
@@ -18,7 +29,7 @@ object Main extends IOApp with VoiceVoxComponent {
           x <- content
           _ <- contentSanityCheck(x)
           ctx <- prepareContext(x)
-          voiceVox = new ConcreteVoiceVox(ctx)
+          voiceVox = new ConcreteVoiceVox()
           _ <- IO.println(ctx)
           paths <- {
             import cats.implicits._
@@ -32,7 +43,7 @@ object Main extends IOApp with VoiceVoxComponent {
           // TODO: 最終的に適当にスペースを挟んだ1つのwavになってほしい
         } yield ()
       } >>
-      IO.pure(ExitCode.Success)
+      IO.unit
   }
 
   private def generateSay(
@@ -132,7 +143,7 @@ trait VoiceVoxComponent {
   import io.circe.literal._
   import org.http4s.circe.CirceEntityDecoder._
 
-  final class ConcreteVoiceVox(val ctx: Context) extends VoiceVox {}
+  final class ConcreteVoiceVox extends VoiceVox {}
 
   /** VOICEVOX client.
     *
