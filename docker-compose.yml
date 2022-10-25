@@ -1,0 +1,17 @@
+version: "3.9"
+services:
+  # どっちかを動かしてください
+  voicevox-cpu:
+    image: voicevox/voicevox_engine:cpu-ubuntu20.04-latest
+    ports:
+      - "50021:50021"
+  voicevox-gpu:
+    image: voicevox/voicevox_engine:nvidia-ubuntu20.04-latest
+    ports:
+      - "50021:50021"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
