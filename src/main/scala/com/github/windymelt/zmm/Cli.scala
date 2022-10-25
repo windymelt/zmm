@@ -6,7 +6,10 @@ import cats.effect.ExitCode
 import java.io.OutputStream
 import org.http4s.syntax.header
 
-final class Cli extends VoiceVoxComponent with domain.repository.FFmpegComponent with infrastructure.FFmpegComponent {
+final class Cli
+    extends VoiceVoxComponent
+    with domain.repository.FFmpegComponent
+    with infrastructure.FFmpegComponent {
   val voiceVox: VoiceVox = new ConcreteVoiceVox()
   val ffmpeg = new ConcreteFFmpeg()
 
@@ -44,7 +47,10 @@ final class Cli extends VoiceVoxComponent with domain.repository.FFmpegComponent
   ): IO[fs2.io.file.Path] = for {
     aq <- buildAudioQuery(sayElem.text, sayElem \@ "by", voiceVox, ctx)
     wav <- buildWavFile(aq, sayElem \@ "by", voiceVox, ctx)
-    fileName = sayElem.text.replaceAll("\n", "") // ffmpegに渡すときに困らないようにいったん改行を削除している。あとで機械的な名前に変更する
+    fileName = sayElem.text.replaceAll(
+      "\n",
+      ""
+    ) // ffmpegに渡すときに困らないようにいったん改行を削除している。あとで機械的な名前に変更する
     path <- writeToFile(wav, s"artifacts/voice_${fileName}.wav")
   } yield path
 
