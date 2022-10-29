@@ -27,7 +27,18 @@ final class Cli
           x <- content
           _ <- contentSanityCheck(x)
           ctx <- prepareContext(x)
-//        _ <- IO.println(ctx)
+          //        _ <- IO.println(ctx)
+          htmls <- {
+            import cats.implicits._
+            import cats.effect.implicits._
+            val saySeq = (x \ "dialogue" \ "say").map(say =>
+              for {
+                stream <- buildHtmlFile(say.text).map(s => fs2.Stream[IO, Byte](s.getBytes(): _*))
+                files <- writeToFile(stream, s"./artifacts/html/${say.text}.html")
+              } yield ()
+            )
+            saySeq.parSequence
+          }
           paths <- {
             import cats.implicits._
             import cats.effect.implicits._
@@ -125,6 +136,11 @@ final class Cli
     import fs2.io.file.{Files, Path}
     val target = Path(fileName)
     stream.through(Files[IO].writeAll(target)).compile.drain.as(target)
+  }
+
+  // TODO: Templaceコンポーネントとかに切り出す
+  private def buildHtmlFile(serif: String): IO[String] = {
+    IO { html.sample(serif = serif).body }
   }
 
   // 進捗インジケータを表示するためのユーティリティ

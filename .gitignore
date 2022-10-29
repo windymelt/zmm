@@ -10,3 +10,4 @@ target/
 *.wav
 # for FFmpeg
 fileList.txt
+artifacts/html/*.html
