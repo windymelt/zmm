@@ -35,7 +35,8 @@ final class Cli
               for {
                 stream <- buildHtmlFile(say.text).map(s => fs2.Stream[IO, Byte](s.getBytes(): _*))
                 sha1Hex <- sha1HexCode(say.text.getBytes())
-                files <- writeToFile(stream, s"./artifacts/html/${sha1Hex}.html")
+                htmlFile <- writeToFile(stream, s"./artifacts/html/${sha1Hex}.html")
+                _ <- generateScreenshot(htmlFile.toNioPath.toString())
               } yield ()
             )
             saySeq.parSequence
@@ -48,6 +49,9 @@ final class Cli
             )
             saySeq.parSequence
           }
+          // 実装上の選択肢:
+          // - 画像をwavと組み合わせてaviにしてから結合する
+          // - wavのデータをもとに尺情報を組み立て、画像を一連のaviにしてからwavと合わせる
           _ <- ffmpeg.concatenateWavFiles(paths.map(_.toString))
           _ <- IO.println("Done!")
         } yield ()
@@ -131,6 +135,16 @@ final class Cli
     // VOICEVOX特有の実装 いずれどこかの層に分離する
     val speakerId = voiceConfig.asInstanceOf[domain.model.VoiceVoxBackendConfig].speakerId
     voiceVox.synthesis(aq, speakerId)
+  }
+
+  // TODO: infra層に移動する
+  private def generateScreenshot(
+    htmlPath: String
+  ): IO[String] = {
+    IO.delay {
+      os.proc("chromium", "--headless", s"--screenshot=${htmlPath}.png", "--window-size=1920,1080", htmlPath)
+        .call(stdout = os.Inherit, cwd = os.pwd)
+    } *> IO.pure(s"${htmlPath}.png")
   }
 
   private def writeToFile(stream: fs2.Stream[IO, Byte], fileName: String) = {
