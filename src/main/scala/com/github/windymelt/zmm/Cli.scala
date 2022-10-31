@@ -34,7 +34,8 @@ final class Cli
             val saySeq = (x \ "dialogue" \ "say").map(say =>
               for {
                 stream <- buildHtmlFile(say.text).map(s => fs2.Stream[IO, Byte](s.getBytes(): _*))
-                files <- writeToFile(stream, s"./artifacts/html/${say.text}.html")
+                sha1Hex <- sha1HexCode(say.text.getBytes())
+                files <- writeToFile(stream, s"./artifacts/html/${sha1Hex}.html")
               } yield ()
             )
             saySeq.parSequence
