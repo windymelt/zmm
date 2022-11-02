@@ -28,7 +28,7 @@ final class Cli
           _ <- contentSanityCheck(x)
           ctx <- prepareContext(x)
           //        _ <- IO.println(ctx)
-          htmls <- {
+          video <- { // TODO: html処理は並列実行してよいのでそうする
             import cats.implicits._
             import cats.effect.implicits._
             val saySeq = (x \ "dialogue" \ "say").map(say =>
@@ -37,9 +37,10 @@ final class Cli
                 sha1Hex <- sha1HexCode(say.text.getBytes())
                 htmlFile <- writeToFile(stream, s"./artifacts/html/${sha1Hex}.html")
                 _ <- generateScreenshot(htmlFile.toNioPath.toString())
-              } yield ()
+              } yield s"html/${sha1Hex}.html.png" // cutFile.txtとの相対パスであればよい(あとで絶対パスにする)
             )
-            saySeq.parSequence
+            val sceneImages = saySeq.parSequence
+            sceneImages >>= combineScreenshotWithOutpoints
           }
           paths <- {
             import cats.implicits._
@@ -52,7 +53,10 @@ final class Cli
           // 実装上の選択肢:
           // - 画像をwavと組み合わせてaviにしてから結合する
           // - wavのデータをもとに尺情報を組み立て、画像を一連のaviにしてからwavと合わせる
-          _ <- ffmpeg.concatenateWavFiles(paths.map(_.toString))
+          // いったん個々の動画に変換する？
+          audio <- ffmpeg.concatenateWavFiles(paths.map(_.toString))
+
+          _ <- zipVideoWithAudio(video, audio)
           _ <- IO.println("Done!")
         } yield ()
       } >>
@@ -145,6 +149,43 @@ final class Cli
       os.proc("chromium", "--headless", s"--screenshot=${htmlPath}.png", "--window-size=1920,1080", htmlPath)
         .call(stdout = os.Inherit, cwd = os.pwd)
     } *> IO.pure(s"${htmlPath}.png")
+  }
+
+  private def combineScreenshotWithOutpoints(
+    pngPaths: Seq[String],
+    //outpoints: Seq[Double],
+  ): IO[String] = {
+    val writeCutfile = {
+      val outpoints = pngPaths.map(_ => 5.0) // TODO: implement this
+      val cutFileContent = pngPaths.zip(outpoints) map { case (p, o) => s"file $p\noutpoint $o" } mkString ("\n")
+      writeToFile(fs2.Stream[IO, Byte](cutFileContent.getBytes():_*), "./artifacts/cutFile.txt")
+    }
+
+    for {
+      _ <- writeCutfile
+      _ <- IO.delay {
+        // TODO: move to infra layer
+        os.proc("ffmpeg", "-protocol_whitelist", "file", "-y", "-f", "concat", "-safe", "0", "-i", "artifacts/cutFile.txt", "artifacts/scenes.avi")
+          .call(stdout = os.Inherit, cwd = os.pwd)
+      }
+    } yield "./artifacts/scenes.avi"
+  }
+
+  private def zipVideoWithAudio(
+    videoPath: String,
+    audioPath: String,
+  ): IO[String] = {
+    for {
+      _ <- IO.println(s"Zipping $videoPath and $audioPath")
+      _ <- IO.delay {
+        os.proc("ffmpeg", "-y", "-r", "30", "-i", videoPath, "-i", audioPath, "-c:v", "copy", "-c:a", "aac", "output.avi")
+        .call(stdout = os.Inherit, cwd = os.pwd)
+      }
+      _ <- IO.delay {
+        os.proc("ffmpeg", "-y", "-i", "output.avi", "output.mp4")
+        .call(stdout = os.Inherit, cwd = os.pwd)
+      }
+    } yield "output.mkv"
   }
 
   private def writeToFile(stream: fs2.Stream[IO, Byte], fileName: String) = {
