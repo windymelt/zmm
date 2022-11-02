@@ -9,5 +9,6 @@ trait FFmpegComponent {
   trait FFmpeg {
     type File = String // TODO: 必要に応じて拡張する
     def concatenateWavFiles(files: Seq[File]): IO[File]
+    def getWavDuration(file: File): IO[concurrent.duration.FiniteDuration]
   }
 }

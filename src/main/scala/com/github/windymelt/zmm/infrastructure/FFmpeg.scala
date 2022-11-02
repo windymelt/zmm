@@ -38,5 +38,26 @@ trait FFmpegComponent {
       } *>
       IO.pure("artifacts/concatenated.wav")
     }
-  }
+
+    def getWavDuration(file: File): IO[concurrent.duration.FiniteDuration] = {
+      import cats.implicits._
+      import scala.util.control.Exception.allCatch
+      import concurrent.duration.FiniteDuration
+
+      IO.println(s"ffprobe ${os.pwd / os.RelPath(file)}") *> IO.delay {
+        val commandResult = os.proc("ffprobe", (os.pwd / os.RelPath(file))).call(cwd = os.pwd, stderr = os.Pipe)
+        val durationRegex = """Duration: (\d\d):(\d\d):(\d\d)\.(\d\d)""".r.unanchored
+        commandResult.err.toString() match {
+          case durationRegex(hh, mm, ss, milli) =>
+            val toLong = (s: String) => allCatch.opt(s.toLong)
+            val to100Long = (s: String) => allCatch.opt((s.toDouble * 10).toLong)
+
+            val hms = Seq(toLong(hh), toLong(mm), toLong(ss), to100Long(milli)).sequence.get
+            val units = Seq("hour", "minute", "second", "millisecond")
+            hms.zip(units).map(pair => FiniteDuration(pair._1, pair._2)).combineAll
+        }
+      }
+    }
+}
+
 }

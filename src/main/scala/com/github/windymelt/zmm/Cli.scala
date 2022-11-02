@@ -28,7 +28,15 @@ final class Cli
           _ <- contentSanityCheck(x)
           ctx <- prepareContext(x)
           //        _ <- IO.println(ctx)
-          video <- { // TODO: html処理は並列実行してよいのでそうする
+          pathAndDurations <- {
+            import cats.implicits._
+            import cats.effect.implicits._
+            val saySeq = (x \ "dialogue" \ "say").map(say =>
+              generateSay(say, voiceVox, ctx)
+            )
+            saySeq.parSequence
+          }
+          video <- {
             import cats.implicits._
             import cats.effect.implicits._
             val saySeq = (x \ "dialogue" \ "say").map(say =>
@@ -40,21 +48,13 @@ final class Cli
               } yield s"html/${sha1Hex}.html.png" // cutFile.txtとの相対パスであればよい(あとで絶対パスにする)
             )
             val sceneImages = saySeq.parSequence
-            sceneImages >>= combineScreenshotWithOutpoints
-          }
-          paths <- {
-            import cats.implicits._
-            import cats.effect.implicits._
-            val saySeq = (x \ "dialogue" \ "say").map(say =>
-              generateSay(say, voiceVox, ctx)
-            )
-            saySeq.parSequence
+            sceneImages.flatMap(imgs => combineScreenshotWithOutpoints(imgs.zip(pathAndDurations.map(_._2))))
           }
           // 実装上の選択肢:
           // - 画像をwavと組み合わせてaviにしてから結合する
           // - wavのデータをもとに尺情報を組み立て、画像を一連のaviにしてからwavと合わせる
           // いったん個々の動画に変換する？
-          audio <- ffmpeg.concatenateWavFiles(paths.map(_.toString))
+          audio <- ffmpeg.concatenateWavFiles(pathAndDurations.map(_._1.toString))
 
           _ <- zipVideoWithAudio(video, audio)
           _ <- IO.println("Done!")
@@ -67,7 +67,7 @@ final class Cli
       sayElem: scala.xml.Node,
       voiceVox: VoiceVox,
       ctx: domain.model.Context
-  ): IO[fs2.io.file.Path] = for {
+  ): IO[(fs2.io.file.Path, scala.concurrent.duration.FiniteDuration)] = for {
     aq <- backgroundIndicator("Building Audio Query").use { _ =>
       buildAudioQuery(sayElem.text, sayElem \@ "by", voiceVox, ctx)
     }
@@ -82,7 +82,8 @@ final class Cli
     path <- backgroundIndicator("Exporting .wav file").use { _ =>
       writeToFile(wav, s"artifacts/voice_${sha1Hex}.wav")
     }
-  } yield path
+    dur <- ffmpeg.getWavDuration(path.toString)
+  } yield (path, dur)
 
   private def contentSanityCheck(elem: scala.xml.Elem): IO[Unit] = {
     val checkTopElem = elem.label == "content"
@@ -152,12 +153,11 @@ final class Cli
   }
 
   private def combineScreenshotWithOutpoints(
-    pngPaths: Seq[String],
+    pngPaths: Seq[(String, concurrent.duration.FiniteDuration)],
     //outpoints: Seq[Double],
   ): IO[String] = {
     val writeCutfile = {
-      val outpoints = pngPaths.map(_ => 5.0) // TODO: implement this
-      val cutFileContent = pngPaths.zip(outpoints) map { case (p, o) => s"file $p\noutpoint $o" } mkString ("\n")
+      val cutFileContent = pngPaths map { case p => s"file ${p._1}\noutpoint ${p._2.toUnit(concurrent.duration.SECONDS)}" } mkString ("\n")
       writeToFile(fs2.Stream[IO, Byte](cutFileContent.getBytes():_*), "./artifacts/cutFile.txt")
     }
 
