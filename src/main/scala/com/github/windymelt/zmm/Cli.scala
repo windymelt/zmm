@@ -9,12 +9,15 @@ import org.http4s.syntax.header
 final class Cli
     extends domain.repository.FFmpegComponent
     with domain.repository.VoiceVoxComponent
+    with domain.repository.ScreenShotComponent
     with infrastructure.FFmpegComponent
     with infrastructure.VoiceVoxComponent
+    with infrastructure.ChromeScreenShotComponent
     with util.UtilComponent {
 
   def voiceVox: VoiceVox = new ConcreteVoiceVox()
   def ffmpeg = new ConcreteFFmpeg()
+  def screenShot = new ChromeScreenShot("chromium")
 
   def generate(filePath: String): IO[Unit] = {
     val content = IO.delay(scala.xml.XML.loadFile(filePath))
@@ -44,8 +47,8 @@ final class Cli
                 stream <- buildHtmlFile(say.text).map(s => fs2.Stream[IO, Byte](s.getBytes(): _*))
                 sha1Hex <- sha1HexCode(say.text.getBytes())
                 htmlFile <- writeToFile(stream, s"./artifacts/html/${sha1Hex}.html")
-                _ <- generateScreenshot(htmlFile.toNioPath.toString())
-              } yield s"html/${sha1Hex}.html.png" // cutFile.txtとの相対パスであればよい(あとで絶対パスにする)
+                screenShotFile <- screenShot.takeScreenShot(os.pwd / os.RelPath(htmlFile.toString))
+              } yield screenShotFile
             )
             val sceneImages = saySeq.parSequence
             sceneImages.flatMap(imgs => combineScreenshotWithOutpoints(imgs.zip(pathAndDurations.map(_._2))))
@@ -142,22 +145,12 @@ final class Cli
     voiceVox.synthesis(aq, speakerId)
   }
 
-  // TODO: infra層に移動する
-  private def generateScreenshot(
-    htmlPath: String
-  ): IO[String] = {
-    IO.delay {
-      os.proc("chromium", "--headless", s"--screenshot=${htmlPath}.png", "--window-size=1920,1080", htmlPath)
-        .call(stdout = os.Inherit, cwd = os.pwd)
-    } *> IO.pure(s"${htmlPath}.png")
-  }
-
   private def combineScreenshotWithOutpoints(
-    pngPaths: Seq[(String, concurrent.duration.FiniteDuration)],
+    pngPaths: Seq[(os.Path, concurrent.duration.FiniteDuration)],
     //outpoints: Seq[Double],
-  ): IO[String] = {
+  ): IO[os.Path] = {
     val writeCutfile = {
-      val cutFileContent = pngPaths map { case p => s"file ${p._1}\noutpoint ${p._2.toUnit(concurrent.duration.SECONDS)}" } mkString ("\n")
+      val cutFileContent = pngPaths map { case p => s"file ${p._1.toString()}\noutpoint ${p._2.toUnit(concurrent.duration.SECONDS)}" } mkString ("\n")
       writeToFile(fs2.Stream[IO, Byte](cutFileContent.getBytes():_*), "./artifacts/cutFile.txt")
     }
 
@@ -168,11 +161,11 @@ final class Cli
         os.proc("ffmpeg", "-protocol_whitelist", "file", "-y", "-f", "concat", "-safe", "0", "-i", "artifacts/cutFile.txt", "artifacts/scenes.avi")
           .call(stdout = os.Inherit, cwd = os.pwd)
       }
-    } yield "./artifacts/scenes.avi"
+    } yield os.pwd / os.RelPath("./artifacts/scenes.avi")
   }
 
   private def zipVideoWithAudio(
-    videoPath: String,
+    videoPath: os.Path,
     audioPath: String,
   ): IO[String] = {
     for {
@@ -185,7 +178,7 @@ final class Cli
         os.proc("ffmpeg", "-y", "-i", "output.avi", "output.mp4")
         .call(stdout = os.Inherit, cwd = os.pwd)
       }
-    } yield "output.mkv"
+    } yield "output.mp4"
   }
 
   private def writeToFile(stream: fs2.Stream[IO, Byte], fileName: String) = {
