@@ -2,9 +2,10 @@ package com.github.windymelt.zmm
 package infrastructure
 
 import cats.effect.IO
+import scala.concurrent.duration.FiniteDuration
 
 trait FFmpegComponent {
-  self: domain.repository.FFmpegComponent =>
+  self: domain.repository.FFmpegComponent with util.UtilComponent =>
 
   def ffmpeg: ConcreteFFmpeg
 
@@ -57,6 +58,22 @@ trait FFmpegComponent {
             hms.zip(units).map(pair => FiniteDuration(pair._1, pair._2)).combineAll
         }
       }
+    }
+
+    def concatenateImagesWithDuration(imageDurationPair: Seq[(os.Path, FiniteDuration)]): IO[os.Path] = {
+        val writeCutfile = {
+          val cutFileContent = imageDurationPair map { case (p, dur) => s"file ${p}\noutpoint ${dur.toUnit(concurrent.duration.SECONDS)}" } mkString ("\n")
+          self.writeStreamToFile(fs2.Stream[IO, Byte](cutFileContent.getBytes():_*), "./artifacts/cutFile.txt")
+        }
+
+        for {
+          _ <- writeCutfile
+          _ <- IO.delay {
+            // TODO: move to infra layer
+            os.proc("ffmpeg", "-protocol_whitelist", "file", "-y", "-f", "concat", "-safe", "0", "-i", "artifacts/cutFile.txt", "artifacts/scenes.avi")
+            .call(stdout = os.Inherit, cwd = os.pwd)
+        }
+        } yield os.pwd / os.RelPath("./artifacts/scenes.avi")
     }
 }
 

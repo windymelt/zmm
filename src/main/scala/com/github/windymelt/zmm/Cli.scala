@@ -46,12 +46,12 @@ final class Cli
               for {
                 stream <- buildHtmlFile(say.text).map(s => fs2.Stream[IO, Byte](s.getBytes(): _*))
                 sha1Hex <- sha1HexCode(say.text.getBytes())
-                htmlFile <- writeToFile(stream, s"./artifacts/html/${sha1Hex}.html")
+                htmlFile <- writeStreamToFile(stream, s"./artifacts/html/${sha1Hex}.html")
                 screenShotFile <- screenShot.takeScreenShot(os.pwd / os.RelPath(htmlFile.toString))
               } yield screenShotFile
             )
             val sceneImages = saySeq.parSequence
-            sceneImages.flatMap(imgs => combineScreenshotWithOutpoints(imgs.zip(pathAndDurations.map(_._2))))
+            sceneImages.flatMap(imgs => ffmpeg.concatenateImagesWithDuration(imgs.zip(pathAndDurations.map(_._2))))
           }
           // 実装上の選択肢:
           // - 画像をwavと組み合わせてaviにしてから結合する
@@ -83,7 +83,7 @@ final class Cli
     }
     sha1Hex <- sha1HexCode(sayElem.text.getBytes())
     path <- backgroundIndicator("Exporting .wav file").use { _ =>
-      writeToFile(wav, s"artifacts/voice_${sha1Hex}.wav")
+      writeStreamToFile(wav, s"artifacts/voice_${sha1Hex}.wav")
     }
     dur <- ffmpeg.getWavDuration(path.toString)
   } yield (path, dur)
@@ -145,25 +145,6 @@ final class Cli
     voiceVox.synthesis(aq, speakerId)
   }
 
-  private def combineScreenshotWithOutpoints(
-    pngPaths: Seq[(os.Path, concurrent.duration.FiniteDuration)],
-    //outpoints: Seq[Double],
-  ): IO[os.Path] = {
-    val writeCutfile = {
-      val cutFileContent = pngPaths map { case p => s"file ${p._1.toString()}\noutpoint ${p._2.toUnit(concurrent.duration.SECONDS)}" } mkString ("\n")
-      writeToFile(fs2.Stream[IO, Byte](cutFileContent.getBytes():_*), "./artifacts/cutFile.txt")
-    }
-
-    for {
-      _ <- writeCutfile
-      _ <- IO.delay {
-        // TODO: move to infra layer
-        os.proc("ffmpeg", "-protocol_whitelist", "file", "-y", "-f", "concat", "-safe", "0", "-i", "artifacts/cutFile.txt", "artifacts/scenes.avi")
-          .call(stdout = os.Inherit, cwd = os.pwd)
-      }
-    } yield os.pwd / os.RelPath("./artifacts/scenes.avi")
-  }
-
   private def zipVideoWithAudio(
     videoPath: os.Path,
     audioPath: String,
@@ -179,12 +160,6 @@ final class Cli
         .call(stdout = os.Inherit, cwd = os.pwd)
       }
     } yield "output.mp4"
-  }
-
-  private def writeToFile(stream: fs2.Stream[IO, Byte], fileName: String) = {
-    import fs2.io.file.{Files, Path}
-    val target = Path(fileName)
-    stream.through(Files[IO].writeAll(target)).compile.drain.as(target)
   }
 
   // TODO: Templaceコンポーネントとかに切り出す

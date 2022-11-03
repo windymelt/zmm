@@ -9,4 +9,17 @@ trait UtilComponent {
     val digestInstance = MessageDigest.getInstance("SHA-1")
     IO.pure(digestInstance.digest(bs).map(b => (b & 0xff).toHexString).mkString)
   }
+
+  /**
+    * Writes fs2 stream into specified Path.
+    *
+    * @param stream
+    * @param fileName
+    * @return Written file path
+    */
+  def writeStreamToFile(stream: fs2.Stream[IO, Byte], fileName: String): IO[fs2.io.file.Path] = {
+    import fs2.io.file.{Files, Path}
+    val target = Path(fileName)
+    stream.through(Files[IO].writeAll(target)).compile.drain.as(target)
+  }
 }
