@@ -167,12 +167,14 @@ final class Cli
     IO { html.sample(serif = serif).body }
   }
 
+  private def withColor(color: String) = (s: String) => s"${color.toString()}${s}${scala.io.AnsiColor.RESET}"
+
   // 進捗インジケータを表示するためのユーティリティ
   private def backgroundIndicator(message: String): cats.effect.ResourceIO[IO[cats.effect.OutcomeIO[Unit]]] =
     indicator(message).background
   import concurrent.duration._
   import scala.language.postfixOps
-  private def piece(s: String): IO[Unit] = IO.sleep(100 milliseconds) *> IO.print(s"\r$s")
+  private def piece(s: String): IO[Unit] = IO.sleep(100 milliseconds) *> IO.print(s"\r${withColor(scala.io.AnsiColor.GREEN ++ scala.io.AnsiColor.BOLD)(s)}")
   private def indicator(message: String): IO[Unit] = piece(s"⢄ $message") *> piece(s"⠢ $message") *> piece(s"⠑ $message") *> piece(s"⡈ $message") foreverM
 
 }
