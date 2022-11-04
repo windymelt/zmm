@@ -20,6 +20,8 @@ $ sbt 'run sample.xml'
   - for VOICEVOX
 - ffmpeg
   - for concatenating wav file
+- chromium
+  - for generating screenshot from HTML file
 
 ## Credits
 
