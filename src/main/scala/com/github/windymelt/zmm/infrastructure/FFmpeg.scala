@@ -48,7 +48,7 @@ trait FFmpegComponent {
       IO.println(s"ffprobe ${os.pwd / os.RelPath(file)}") *> IO.delay {
         val commandResult = os.proc("ffprobe", (os.pwd / os.RelPath(file))).call(cwd = os.pwd, stderr = os.Pipe)
         val durationRegex = """Duration: (\d\d):(\d\d):(\d\d)\.(\d\d)""".r.unanchored
-        commandResult.err.toString() match {
+        commandResult.err.text match {
           case durationRegex(hh, mm, ss, milli) =>
             val toLong = (s: String) => allCatch.opt(s.toLong)
             val to100Long = (s: String) => allCatch.opt((s.toDouble * 10).toLong)
