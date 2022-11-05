@@ -36,7 +36,7 @@ final class Cli
        //        _ <- IO.println(speakers)
        x <- content
        _ <- contentSanityCheck(x)
-       ctx <- prepareContext(x)
+       ctx <- prepareDefaultContext(x)
        //        _ <- IO.println(ctx)
        pathAndDurations <- {
          import cats.implicits._
@@ -107,7 +107,7 @@ final class Cli
     IO.unit
   }
 
-  private def prepareContext(elem: scala.xml.Elem): IO[domain.model.Context] = {
+  private def prepareDefaultContext(elem: scala.xml.Elem): IO[domain.model.Context] = {
     val voiceConfigList = elem \ "meta" \ "voiceconfig"
     val voiceConfigMap = voiceConfigList.map { vc =>
       vc \@ "backend" match {
