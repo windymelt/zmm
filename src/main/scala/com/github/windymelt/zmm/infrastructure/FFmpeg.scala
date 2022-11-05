@@ -15,12 +15,12 @@ trait FFmpegComponent {
 
   def ffmpeg: ConcreteFFmpeg
 
-    def concatenateWavFiles(files: Seq[File]): IO[File] = {
   class ConcreteFFmpeg(verbosity: ConcreteFFmpeg.Verbosity) extends FFmpeg {
     val stdout = verbosity match {
       case ConcreteFFmpeg.Quiet => os.Pipe
       case ConcreteFFmpeg.Verbose => os.Inherit
     }
+    def concatenateWavFiles(files: Seq[File]): IO[os.Path] = {
       // stub
       val fileList = files.map(f => s"file '${f}'").mkString("\n")
       val fileListPath = os.pwd / "fileList.txt"
@@ -45,9 +45,9 @@ trait FFmpegComponent {
             "copy",
             "artifacts/concatenated.wav"
           )
-          .call(stdout = os.Inherit, stdin = fileList, cwd = os.pwd)
+          .call(stdout = stdout, stderr = stdout, stdin = fileList, cwd = os.pwd)
       } *>
-      IO.pure("artifacts/concatenated.wav")
+      IO.pure(os.pwd / os.RelPath("artifacts/concatenated.wav"))
     }
 
     def getWavDuration(file: File): IO[concurrent.duration.FiniteDuration] = {
@@ -56,7 +56,7 @@ trait FFmpegComponent {
       import concurrent.duration.FiniteDuration
 
       IO.println(s"ffprobe ${os.pwd / os.RelPath(file)}") *> IO.delay {
-        val commandResult = os.proc("ffprobe", (os.pwd / os.RelPath(file))).call(cwd = os.pwd, stderr = os.Pipe)
+        val commandResult = os.proc("ffprobe", (os.pwd / os.RelPath(file))).call(cwd = os.pwd, stderr = os.Pipe, stdout = stdout)
         val durationRegex = """Duration: (\d\d):(\d\d):(\d\d)\.(\d\d)""".r.unanchored
         commandResult.err.text match {
           case durationRegex(hh, mm, ss, milli) =>
@@ -81,10 +81,21 @@ trait FFmpegComponent {
           _ <- IO.delay {
             // TODO: move to infra layer
             os.proc("ffmpeg", "-protocol_whitelist", "file", "-y", "-f", "concat", "-safe", "0", "-i", "artifacts/cutFile.txt", "artifacts/scenes.avi")
-            .call(stdout = os.Inherit, cwd = os.pwd)
+            .call(stdout = stdout, stderr = stdout, cwd = os.pwd)
         }
         } yield os.pwd / os.RelPath("./artifacts/scenes.avi")
     }
+
+    def zipVideoWithAudio(video: os.Path, audio: os.Path): IO[os.Path] = for {
+      _ <- IO.delay {
+        os.proc("ffmpeg", "-y", "-r", "30", "-i", video, "-i", audio, "-c:v", "copy", "-c:a", "aac", "output.avi")
+        .call(stdout = stdout, cwd = os.pwd)
+      }
+      _ <- IO.delay {
+        os.proc("ffmpeg", "-y", "-i", "output.avi", "output.mp4")
+        .call(stdout = stdout, cwd = os.pwd)
+      }
+    } yield os.pwd / os.RelPath("output.mp4")
 }
 
 }

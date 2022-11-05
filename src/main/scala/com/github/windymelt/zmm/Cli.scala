@@ -65,8 +65,7 @@ final class Cli
        // - wavのデータをもとに尺情報を組み立て、画像を一連のaviにしてからwavと合わせる
        // いったん個々の動画に変換する？
        audio <- ffmpeg.concatenateWavFiles(pathAndDurations.map(_._1.toString))
-
-       _ <- zipVideoWithAudio(video, audio)
+       _ <- backgroundIndicator("").use { _ => ffmpeg.zipVideoWithAudio(video, audio) }
        _ <- IO.println("Done!")
      } yield ()
 }
@@ -152,23 +151,6 @@ final class Cli
     // VOICEVOX特有の実装 いずれどこかの層に分離する
     val speakerId = voiceConfig.asInstanceOf[domain.model.VoiceVoxBackendConfig].speakerId
     voiceVox.synthesis(aq, speakerId)
-  }
-
-  private def zipVideoWithAudio(
-    videoPath: os.Path,
-    audioPath: String,
-  ): IO[String] = {
-    for {
-      _ <- IO.println(s"Zipping $videoPath and $audioPath")
-      _ <- IO.delay {
-        os.proc("ffmpeg", "-y", "-r", "30", "-i", videoPath, "-i", audioPath, "-c:v", "copy", "-c:a", "aac", "output.avi")
-        .call(stdout = os.Inherit, cwd = os.pwd)
-      }
-      _ <- IO.delay {
-        os.proc("ffmpeg", "-y", "-i", "output.avi", "output.mp4")
-        .call(stdout = os.Inherit, cwd = os.pwd)
-      }
-    } yield "output.mp4"
   }
 
   // TODO: Templaceコンポーネントとかに切り出す
