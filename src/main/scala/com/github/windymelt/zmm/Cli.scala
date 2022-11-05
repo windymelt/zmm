@@ -5,6 +5,7 @@ import cats.effect.IOApp
 import cats.effect.ExitCode
 import java.io.OutputStream
 import org.http4s.syntax.header
+import com.github.windymelt.zmm.domain.model.Context
 
 final class Cli
     extends domain.repository.FFmpegComponent
@@ -50,8 +51,9 @@ final class Cli
          import cats.implicits._
          import cats.effect.implicits._
          val saySeq = (x \ "dialogue" \ "say").map(say =>
+           // TODO: say中の各属性によってctxを上書きしていく
            for {
-             stream <- buildHtmlFile(say.text).map(s => fs2.Stream[IO, Byte](s.getBytes(): _*))
+             stream <- buildHtmlFile(say.text, ctx).map(s => fs2.Stream[IO, Byte](s.getBytes(): _*))
              sha1Hex <- sha1HexCode(say.text.getBytes())
              htmlFile <- writeStreamToFile(stream, s"./artifacts/html/${sha1Hex}.html")
              screenShotFile <- screenShot.takeScreenShot(os.pwd / os.RelPath(htmlFile.toString))
@@ -74,10 +76,14 @@ final class Cli
     IO.println(withColor(scala.io.AnsiColor.GREEN ++ scala.io.AnsiColor.BOLD)(zmmLogo)) >>
     IO.println(withColor(scala.io.AnsiColor.GREEN)(s"${BuildInfo.version}"))
 
+  // TODO: sayやsceneごとにコンテキストを更新していくための処理
+  private def composeContext(baseCtx: Context)(overlayCtx: Context): IO[Context] = ???
+  private def extractContextFromNode(node: scala.xml.Node): IO[Context] = ???
+
   private def generateSay(
       sayElem: scala.xml.Node,
       voiceVox: VoiceVox,
-      ctx: domain.model.Context
+      ctx: Context
   ): IO[(fs2.io.file.Path, scala.concurrent.duration.FiniteDuration)] = for {
     aq <- backgroundIndicator("Building Audio Query").use { _ =>
       buildAudioQuery(sayElem.text, sayElem \@ "by", voiceVox, ctx)
@@ -106,7 +112,7 @@ final class Cli
     IO.unit
   }
 
-  private def prepareDefaultContext(elem: scala.xml.Elem): IO[domain.model.Context] = {
+  private def prepareDefaultContext(elem: scala.xml.Elem): IO[Context] = {
     val voiceConfigList = elem \ "meta" \ "voiceconfig"
     val voiceConfigMap = voiceConfigList.map { vc =>
       vc \@ "backend" match {
@@ -124,14 +130,20 @@ final class Cli
       name -> domain.model.CharacterConfig(name, cc \@ "voice-id")
     }.toMap
 
-    IO.pure(domain.model.Context(voiceConfigMap, characterConfigMap))
+    val defaultBackgroundImage =
+      (elem \ "meta" \ "assets" \ "background")
+        .filter(_.attribute("id").map(_.text).contains("default"))
+        .headOption
+        .flatMap(_.attribute("url").headOption.map(_.text))
+
+    IO.pure(domain.model.Context(voiceConfigMap, characterConfigMap, defaultBackgroundImage))
   }
 
   private def buildAudioQuery(
       text: String,
       character: String,
       voiceVox: VoiceVox,
-      ctx: domain.model.Context
+      ctx: Context
   ) = {
     val characterConfig = ctx.characterConfigMap(character)
     val voiceConfig = ctx.voiceConfigMap(characterConfig.voiceId)
@@ -144,7 +156,7 @@ final class Cli
       aq: AudioQuery,
       character: String,
       voiceVox: VoiceVox,
-      ctx: domain.model.Context
+      ctx: Context
   ): IO[fs2.Stream[IO, Byte]] = {
     val characterConfig = ctx.characterConfigMap(character)
     val voiceConfig = ctx.voiceConfigMap(characterConfig.voiceId)
@@ -154,8 +166,8 @@ final class Cli
   }
 
   // TODO: Templaceコンポーネントとかに切り出す
-  private def buildHtmlFile(serif: String): IO[String] = {
-    IO { html.sample(serif = serif).body }
+  private def buildHtmlFile(serif: String, ctx: Context): IO[String] = {
+    IO { html.sample(serif = serif, ctx = ctx).body }
   }
 
   private def withColor(color: String) = (s: String) => s"${color.toString()}${s}${scala.io.AnsiColor.RESET}"
