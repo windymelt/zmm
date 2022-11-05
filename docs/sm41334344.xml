@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<content version="0.0">
+  <meta>
+    <voiceconfig id="zundamon" backend="voicevox">
+      <voicevoxconfig id="3" />
+    </voiceconfig>
+    <voiceconfig id="zundamon-hisohiso" backend="voicevox">
+      <voicevoxconfig id="22" />
+    </voiceconfig>
+    <voiceconfig id="zundamon-ama" backend="voicevox">
+      <voicevoxconfig id="1" />
+    </voiceconfig>
+    <characterconfig name="char2" voice-id="zundamon" />
+    <characterconfig name="char2_hiso" voice-id="zundamon-hisohiso" />
+    <characterconfig name="char2_ama" voice-id="zundamon-ama" />
+    <assets>
+      <face id="zunda1" file="zunda1.png" />
+      <background id="default" url="./assets/zmm_ogp.jpeg" />
+    </assets>
+  </meta>
+  <scenary bg="black" />
+  <dialogue>
+    <say by="char2">zmm開発日誌、はーじまーるよー</say>
+    <say by="char2">この動画では、動画生成ツールzmmの開発の進捗をちびちび報告していくのだ</say>
+    <say by="char2">ちなみにこの動画自体もzmmで生成されているのだ</say>
+    <say by="char2">zmmの特徴はテキストベースのシステムを採用していることなのだ</say>
+    <say by="char2" speed="1.1">よくある動画編集ツールのようにウィンドウをいじるのではなく、原稿となる1つのXMLファイルを動画へと変換するというエンジニア好みの方式をとっているのだ</say>
+    <say by="char2" speed="1.1">解説動画から怪文書までを手軽に作成しつつ、字幕ファイルの提供といったアクセシビリティにやさしい機能も取り込んでいこうと思っているのだ</say>
+    <say by="char2">VOICEVOXを見習って、中機能な動画生成ツールを目指すのだ</say>
+
+    <say by="char2">どうしてこのようなツールを作ろうと思ったかについてもちょっと説明しておくのだ</say>
+    <say by="char2" speed="1.1">投稿者は普段はWebエンジニアとして暮らしている一方、頻繁にニコ動も利用する視聴者なのだ</say>
+    <say by="char2" speed="1.2">解説動画を筆頭に動画コンテンツは素晴らしいと思う傍ら、いくつかの欠点も感じるようになったのだ</say>
+    <say by="char2" speed="1.2">例えば動画の内容から動画を検索しにくかったり、全部動画を見ないと目当ての情報があるかどうか分からないという欠点も感じるようになったのだ</say>
+    <say by="char2" speed="1.2">こうした欠点は最初からテキストで動画を生成することでカバーできるかもしれないと思ったのだ</say>
+    <say by="char2" speed="1.2">例えば、原稿ファイルをもとにHTML形式のスライドショーを生成したり、</say>
+    <say by="char2"
+         speed="1.2">何らかの理由で動画上の文字が直接読めない人のために字幕ファイルを生成したりできるようになるのだ</say>
+    <say by="char2_hiso">後はまあ・・・腕試し的なところもあるのだ</say>
+
+    <say by="char2">さて、今日の進捗なのだ</say>
+    <say by="char2">今日は起動時にロゴが表示されるようになったのだ</say>
+    <say by="char2">他にも余分なメッセージが表示されないようにするなどのちょっとした処理を行ったのだ</say>
+    <say by="char2">今のところアルファクオリティでどんどん仕様は変更されていくけど、なるべく早く最初のバージョンをリリースするべく投稿者は頑張っているのだ</say>
+    <say by="char2">この調子で進捗報告をしていくので詳細は投コメの公式サイトをチェックしてほしいのだ</say>
+    <say by="char2_ama">ご視聴ありがとうなのだ！</say>
+  </dialogue>
+</content>
