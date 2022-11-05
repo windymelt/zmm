@@ -89,11 +89,11 @@ trait FFmpegComponent {
     def zipVideoWithAudio(video: os.Path, audio: os.Path): IO[os.Path] = for {
       _ <- IO.delay {
         os.proc("ffmpeg", "-y", "-r", "30", "-i", video, "-i", audio, "-c:v", "copy", "-c:a", "aac", "output.avi")
-        .call(stdout = stdout, cwd = os.pwd)
+        .call(stdout = stdout, stderr = stdout, cwd = os.pwd)
       }
       _ <- IO.delay {
         os.proc("ffmpeg", "-y", "-i", "output.avi", "output.mp4")
-        .call(stdout = stdout, cwd = os.pwd)
+        .call(stdout = stdout, stderr = stdout, cwd = os.pwd)
       }
     } yield os.pwd / os.RelPath("output.mp4")
 }

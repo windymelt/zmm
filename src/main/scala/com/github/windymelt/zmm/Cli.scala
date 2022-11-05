@@ -65,8 +65,8 @@ final class Cli
        // - wavのデータをもとに尺情報を組み立て、画像を一連のaviにしてからwavと合わせる
        // いったん個々の動画に変換する？
        audio <- ffmpeg.concatenateWavFiles(pathAndDurations.map(_._1.toString))
-       _ <- backgroundIndicator("").use { _ => ffmpeg.zipVideoWithAudio(video, audio) }
-       _ <- IO.println("Done!")
+       _ <- backgroundIndicator("Zipping silent video and audio").use { _ => ffmpeg.zipVideoWithAudio(video, audio) }
+       _ <- IO.println("\nDone!")
      } yield ()
 }
 
