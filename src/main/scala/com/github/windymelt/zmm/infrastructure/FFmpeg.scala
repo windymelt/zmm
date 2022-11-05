@@ -55,7 +55,7 @@ trait FFmpegComponent {
       import scala.util.control.Exception.allCatch
       import concurrent.duration.FiniteDuration
 
-      IO.println(s"ffprobe ${os.pwd / os.RelPath(file)}") *> IO.delay {
+      IO.delay {
         val commandResult = os.proc("ffprobe", (os.pwd / os.RelPath(file))).call(cwd = os.pwd, stderr = os.Pipe, stdout = stdout)
         val durationRegex = """Duration: (\d\d):(\d\d):(\d\d)\.(\d\d)""".r.unanchored
         commandResult.err.text match {

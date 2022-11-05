@@ -24,7 +24,7 @@ final class Cli
 
   def voiceVox: VoiceVox = new ConcreteVoiceVox()
   def ffmpeg = new ConcreteFFmpeg(ConcreteFFmpeg.Quiet)
-  def screenShot = new ChromeScreenShot("chromium")
+  def screenShot = new ChromeScreenShot("chromium", ChromeScreenShot.Quiet)
 
   def generate(filePath: String): IO[Unit] = {
     val content = IO.delay(scala.xml.XML.loadFile(filePath))
@@ -57,14 +57,14 @@ final class Cli
              screenShotFile <- screenShot.takeScreenShot(os.pwd / os.RelPath(htmlFile.toString))
            } yield screenShotFile
          )
-         val sceneImages = saySeq.parSequence
+         val sceneImages = backgroundIndicator("Generating scenary image").use(_ => saySeq.parSequence)
          sceneImages.flatMap(imgs => ffmpeg.concatenateImagesWithDuration(imgs.zip(pathAndDurations.map(_._2))))
        }
        // 実装上の選択肢:
        // - 画像をwavと組み合わせてaviにしてから結合する
        // - wavのデータをもとに尺情報を組み立て、画像を一連のaviにしてからwavと合わせる
        // いったん個々の動画に変換する？
-       audio <- ffmpeg.concatenateWavFiles(pathAndDurations.map(_._1.toString))
+       audio <- backgroundIndicator("Concatenating wav files").use(_ => ffmpeg.concatenateWavFiles(pathAndDurations.map(_._1.toString)))
        _ <- backgroundIndicator("Zipping silent video and audio").use { _ => ffmpeg.zipVideoWithAudio(video, audio) }
        _ <- IO.println("\nDone!")
      } yield ()
