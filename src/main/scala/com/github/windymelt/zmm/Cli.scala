@@ -29,50 +29,51 @@ final class Cli
   def generate(filePath: String): IO[Unit] = {
     val content = IO.delay(scala.xml.XML.loadFile(filePath))
 
-    IO.println(withColor(scala.io.AnsiColor.GREEN ++ scala.io.AnsiColor.BOLD)(zmmLogo)) >>
-    IO.println(withColor(scala.io.AnsiColor.GREEN)(BuildInfo.version)) >>
-      IO.println("Invoking audio api...") >> {
-        for {
-//        speakers <- voiceVox.speakers()
-//        _ <- IO.println(speakers)
-          x <- content
-          _ <- contentSanityCheck(x)
-          ctx <- prepareContext(x)
-          //        _ <- IO.println(ctx)
-          pathAndDurations <- {
-            import cats.implicits._
-            import cats.effect.implicits._
-            val saySeq = (x \ "dialogue" \ "say").map(say =>
-              generateSay(say, voiceVox, ctx)
-            )
-            saySeq.parSequence
-          }
-          video <- {
-            import cats.implicits._
-            import cats.effect.implicits._
-            val saySeq = (x \ "dialogue" \ "say").map(say =>
-              for {
-                stream <- buildHtmlFile(say.text).map(s => fs2.Stream[IO, Byte](s.getBytes(): _*))
-                sha1Hex <- sha1HexCode(say.text.getBytes())
-                htmlFile <- writeStreamToFile(stream, s"./artifacts/html/${sha1Hex}.html")
-                screenShotFile <- screenShot.takeScreenShot(os.pwd / os.RelPath(htmlFile.toString))
-              } yield screenShotFile
-            )
-            val sceneImages = saySeq.parSequence
-            sceneImages.flatMap(imgs => ffmpeg.concatenateImagesWithDuration(imgs.zip(pathAndDurations.map(_._2))))
-          }
-          // 実装上の選択肢:
-          // - 画像をwavと組み合わせてaviにしてから結合する
-          // - wavのデータをもとに尺情報を組み立て、画像を一連のaviにしてからwavと合わせる
-          // いったん個々の動画に変換する？
-          audio <- ffmpeg.concatenateWavFiles(pathAndDurations.map(_._1.toString))
+     for {
+       _ <- showLogo
+       _ <- IO.println("Invoking audio api...")
+       //        speakers <- voiceVox.speakers()
+       //        _ <- IO.println(speakers)
+       x <- content
+       _ <- contentSanityCheck(x)
+       ctx <- prepareContext(x)
+       //        _ <- IO.println(ctx)
+       pathAndDurations <- {
+         import cats.implicits._
+         import cats.effect.implicits._
+         val saySeq = (x \ "dialogue" \ "say").map(say =>
+           generateSay(say, voiceVox, ctx)
+         )
+         saySeq.parSequence
+       }
+       video <- {
+         import cats.implicits._
+         import cats.effect.implicits._
+         val saySeq = (x \ "dialogue" \ "say").map(say =>
+           for {
+             stream <- buildHtmlFile(say.text).map(s => fs2.Stream[IO, Byte](s.getBytes(): _*))
+             sha1Hex <- sha1HexCode(say.text.getBytes())
+             htmlFile <- writeStreamToFile(stream, s"./artifacts/html/${sha1Hex}.html")
+             screenShotFile <- screenShot.takeScreenShot(os.pwd / os.RelPath(htmlFile.toString))
+           } yield screenShotFile
+         )
+         val sceneImages = saySeq.parSequence
+         sceneImages.flatMap(imgs => ffmpeg.concatenateImagesWithDuration(imgs.zip(pathAndDurations.map(_._2))))
+       }
+       // 実装上の選択肢:
+       // - 画像をwavと組み合わせてaviにしてから結合する
+       // - wavのデータをもとに尺情報を組み立て、画像を一連のaviにしてからwavと合わせる
+       // いったん個々の動画に変換する？
+       audio <- ffmpeg.concatenateWavFiles(pathAndDurations.map(_._1.toString))
 
-          _ <- zipVideoWithAudio(video, audio)
-          _ <- IO.println("Done!")
-        } yield ()
-      } >>
-      IO.unit
-  }
+       _ <- zipVideoWithAudio(video, audio)
+       _ <- IO.println("Done!")
+     } yield ()
+}
+
+  private def showLogo: IO[Unit] =
+    IO.println(withColor(scala.io.AnsiColor.GREEN ++ scala.io.AnsiColor.BOLD)(zmmLogo)) >>
+    IO.println(withColor(scala.io.AnsiColor.GREEN)(s"${BuildInfo.version}"))
 
   private def generateSay(
       sayElem: scala.xml.Node,
