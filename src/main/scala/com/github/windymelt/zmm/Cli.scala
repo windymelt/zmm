@@ -23,7 +23,7 @@ final class Cli
 \_____/\_|  |_/\_|  |_/"""
 
   def voiceVox: VoiceVox = new ConcreteVoiceVox()
-  def ffmpeg = new ConcreteFFmpeg()
+  def ffmpeg = new ConcreteFFmpeg(ConcreteFFmpeg.Quiet)
   def screenShot = new ChromeScreenShot("chromium")
 
   def generate(filePath: String): IO[Unit] = {

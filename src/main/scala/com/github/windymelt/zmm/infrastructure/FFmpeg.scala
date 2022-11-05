@@ -7,10 +7,20 @@ import scala.concurrent.duration.FiniteDuration
 trait FFmpegComponent {
   self: domain.repository.FFmpegComponent with util.UtilComponent =>
 
+  object ConcreteFFmpeg {
+    sealed trait Verbosity
+    final object Quiet extends Verbosity
+    final object Verbose extends Verbosity
+  }
+
   def ffmpeg: ConcreteFFmpeg
 
-  class ConcreteFFmpeg extends FFmpeg {
     def concatenateWavFiles(files: Seq[File]): IO[File] = {
+  class ConcreteFFmpeg(verbosity: ConcreteFFmpeg.Verbosity) extends FFmpeg {
+    val stdout = verbosity match {
+      case ConcreteFFmpeg.Quiet => os.Pipe
+      case ConcreteFFmpeg.Verbose => os.Inherit
+    }
       // stub
       val fileList = files.map(f => s"file '${f}'").mkString("\n")
       val fileListPath = os.pwd / "fileList.txt"
