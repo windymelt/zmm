@@ -15,6 +15,13 @@ final class Cli
     with infrastructure.ChromeScreenShotComponent
     with util.UtilComponent {
 
+  val zmmLogo = """ _________  ______  ___
+|___  /|  \/  ||  \/  |
+   / / | .  . || .  . |
+  / /  | |\/| || |\/| |
+./ /___| |  | || |  | |
+\_____/\_|  |_/\_|  |_/"""
+
   def voiceVox: VoiceVox = new ConcreteVoiceVox()
   def ffmpeg = new ConcreteFFmpeg()
   def screenShot = new ChromeScreenShot("chromium")
@@ -22,7 +29,8 @@ final class Cli
   def generate(filePath: String): IO[Unit] = {
     val content = IO.delay(scala.xml.XML.loadFile(filePath))
 
-    IO.println("Hello Zundamon!") >>
+    IO.println(withColor(scala.io.AnsiColor.GREEN ++ scala.io.AnsiColor.BOLD)(zmmLogo)) >>
+    IO.println(withColor(scala.io.AnsiColor.GREEN)(BuildInfo.version)) >>
       IO.println("Invoking audio api...") >> {
         for {
 //        speakers <- voiceVox.speakers()
