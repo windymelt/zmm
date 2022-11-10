@@ -39,6 +39,8 @@ object Context {
       dialogueElem: scala.xml.Node,
       currentContext: Context = Context.empty
   ): Seq[(Say, Context)] = dialogueElem match {
+    case Comment(_) => Seq.empty // コメントは無視する
+    case Text(t) if t.forall(_.isWhitespace) => Seq.empty // 空行やただの入れ子でコンテキストが生成されないようにする
     case Text(t) => Seq(Say(t) -> currentContext)
     case e: Elem =>
       e.child.flatMap(c => fromNode(c, currentContext |+| extract(e)))

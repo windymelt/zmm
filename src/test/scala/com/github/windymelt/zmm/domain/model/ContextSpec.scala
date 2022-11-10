@@ -37,4 +37,48 @@ class ContextSpec extends AnyFlatSpec with Matchers {
     import cats.implicits._
     (x |+| e) shouldEqual (e |+| x)
   }
+
+  import scala.xml._
+  "Context.fromNode" should "extract say=node pair from empty elems" in {
+    val e = <dialogue />
+    Context.fromNode(e) shouldBe empty
+  }
+
+  it should "extract say=node pair from one say" in {
+    val e = <dialogue><say>こんにちは</say></dialogue>
+    val c = Context.fromNode(e)
+    c should have size (1)
+    c.head._1.text shouldBe "こんにちは"
+    c.head._2.voiceConfigMap shouldBe empty
+    c.head._2.characterConfigMap shouldBe empty
+    c.head._2.backgroundImageUrl shouldBe empty
+  }
+
+  it should "recognize context propergation" in {
+    val e =
+      <dialogue backgroundImage="https://example.com/default.png">
+        <scene backgroundImage="https://example.com/bg1.png">
+          <!-- ここではbg1.pngが伝播してくる -->
+          <say>こんにちはなのだ</say>
+          <say>一つめのコンテキストなのだ</say>
+        </scene>
+        <scene>
+          <!-- ここではdefault.pngが伝播してくる -->
+          <say>そして、二つめのコンテキストだよ</say>
+        </scene>
+     </dialogue>
+
+    val cs = Context.fromNode(e)
+    cs should have size (3)
+    cs.map(_._1.text) shouldBe Seq(
+      "こんにちはなのだ",
+      "一つめのコンテキストなのだ",
+      "そして、二つめのコンテキストだよ"
+    )
+    cs.map(_._2.backgroundImageUrl) shouldBe Seq(
+      Some("https://example.com/bg1.png"),
+      Some("https://example.com/bg1.png"),
+      Some("https://example.com/default.png")
+    )
+  }
 }
