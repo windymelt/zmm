@@ -131,7 +131,7 @@ final class Cli
     }.toMap
 
     val defaultBackgroundImage =
-      (elem \ "meta" \ "assets" \ "background")
+      (elem \ "meta" \ "assets" \ "backgroundImage")
         .filter(_.attribute("id").map(_.text).contains("default"))
         .headOption
         .flatMap(_.attribute("url").headOption.map(_.text))
