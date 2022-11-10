@@ -37,28 +37,26 @@ final class Cli
        //        _ <- IO.println(speakers)
        x <- content
        _ <- contentSanityCheck(x)
-       ctx <- prepareDefaultContext(x)
+       defaultCtx <- prepareDefaultContext(x)
        //        _ <- IO.println(ctx)
+       sayCtxPairs <- IO.pure(Context.fromNode((x \ "dialogue").head, defaultCtx))
        pathAndDurations <- {
          import cats.implicits._
          import cats.effect.implicits._
-         val saySeq = (x \ "dialogue" \ "say").map(say =>
-           generateSay(say, voiceVox, ctx)
-         )
+         val saySeq = sayCtxPairs map { case (s, ctx) => generateSay(s, voiceVox, ctx) }
          saySeq.parSequence
        }
        video <- {
          import cats.implicits._
          import cats.effect.implicits._
-         val saySeq = (x \ "dialogue" \ "say").map(say =>
-           // TODO: say中の各属性によってctxを上書きしていく
+         val saySeq = sayCtxPairs map { case (s, ctx) =>
            for {
-             stream <- buildHtmlFile(say.text, ctx).map(s => fs2.Stream[IO, Byte](s.getBytes(): _*))
-             sha1Hex <- sha1HexCode(say.text.getBytes())
+             stream <- buildHtmlFile(s.text, ctx).map(s => fs2.Stream[IO, Byte](s.getBytes(): _*))
+             sha1Hex <- sha1HexCode(s.text.getBytes())
              htmlFile <- writeStreamToFile(stream, s"./artifacts/html/${sha1Hex}.html")
              screenShotFile <- screenShot.takeScreenShot(os.pwd / os.RelPath(htmlFile.toString))
            } yield screenShotFile
-         )
+         }
          val sceneImages = backgroundIndicator("Generating scenary image").use(_ => saySeq.parSequence)
          sceneImages.flatMap(imgs => ffmpeg.concatenateImagesWithDuration(imgs.zip(pathAndDurations.map(_._2))))
        }
@@ -81,19 +79,20 @@ final class Cli
   private def extractContextFromNode(node: scala.xml.Node): IO[Context] = ???
 
   private def generateSay(
-      sayElem: scala.xml.Node,
+      sayElem: domain.model.Say,
       voiceVox: VoiceVox,
       ctx: Context
   ): IO[(fs2.io.file.Path, scala.concurrent.duration.FiniteDuration)] = for {
     aq <- backgroundIndicator("Building Audio Query").use { _ =>
-      buildAudioQuery(sayElem.text, sayElem \@ "by", voiceVox, ctx)
+      // by属性がないことはないやろという想定でgetしている
+      buildAudioQuery(sayElem.text, ctx.spokenByCharacterId.get, voiceVox, ctx)
     }
 //    _ <- IO.println(aq)
-    fixedAq <- sayElem.attribute("speed") map (attrNode =>
-      voiceVox.controlSpeed(aq, attrNode.text)
+    fixedAq <- ctx.speed map (sp =>
+      voiceVox.controlSpeed(aq, sp)
     ) getOrElse (IO.pure(aq))
     wav <- backgroundIndicator("Synthesizing wav").use { _ =>
-      buildWavFile(fixedAq, sayElem \@ "by", voiceVox, ctx)
+      buildWavFile(fixedAq, ctx.spokenByCharacterId.get, voiceVox, ctx)
     }
     sha1Hex <- sha1HexCode(sayElem.text.getBytes())
     path <- backgroundIndicator("Exporting .wav file").use { _ =>

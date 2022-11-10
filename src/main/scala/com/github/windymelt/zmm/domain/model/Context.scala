@@ -9,7 +9,9 @@ final case class CharacterConfig(name: String, voiceId: String)
 final case class Context(
     voiceConfigMap: Map[String, VoiceBackendConfig] = Map.empty,
     characterConfigMap: Map[String, CharacterConfig] = Map.empty,
-    backgroundImageUrl: Option[String] = None
+    backgroundImageUrl: Option[String] = None,
+    spokenByCharacterId: Option[String] = None,
+    speed: Option[String] = Some("1.0"),
     // TODO: BGM, fontColor, etc.
 )
 
@@ -30,7 +32,9 @@ object Context {
       voiceConfigMap = x.voiceConfigMap ++ y.voiceConfigMap,
       characterConfigMap = x.characterConfigMap ++ y.characterConfigMap,
       backgroundImageUrl =
-        y.backgroundImageUrl orElse x.backgroundImageUrl // 後勝ち
+        y.backgroundImageUrl orElse x.backgroundImageUrl, // 後勝ち
+      spokenByCharacterId = y.spokenByCharacterId orElse x.spokenByCharacterId, // 後勝ち
+      speed = y.speed orElse x.speed // 後勝ち
     )
     def empty: Context = Context.empty
   }
@@ -46,16 +50,15 @@ object Context {
       e.child.flatMap(c => fromNode(c, currentContext |+| extract(e)))
   }
 
+  private def firstAttrTextOf(e: Elem, a: String): Option[String] = e.attribute(a).headOption.flatMap(_.headOption).map(_.text)
+
   private def extract(e: Elem): Context = {
     Context(
       voiceConfigMap = empty.voiceConfigMap, // TODO
       characterConfigMap = empty.characterConfigMap, // TODO
-      // <say backgroundImage="...">...</say>
-      backgroundImageUrl = e
-        .attribute("backgroundImage")
-        .headOption
-        .flatMap(_.headOption)
-        .map(_.text)
+      backgroundImageUrl = firstAttrTextOf(e, "backgroundImage"),
+      spokenByCharacterId = firstAttrTextOf(e, "by"),
+      speed = firstAttrTextOf(e, "speed"),
     )
   }
 
