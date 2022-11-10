@@ -22,7 +22,7 @@
     </assets>
   </meta>
   <scenary bg="black" />
-  <dialogue>
+  <dialogue backgroundImage="">
     <say by="char1">このXMLファイルは、zmmの動作を説明するためのサンプルです。</say>
     <say by="char1">キャラクター1の音声です。</say>
     <say by="char2">そして、キャラクター2の音声です。</say>
