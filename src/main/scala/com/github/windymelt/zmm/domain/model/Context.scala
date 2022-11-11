@@ -4,7 +4,7 @@ sealed trait VoiceBackendConfig
 final case class VoiceVoxBackendConfig(speakerId: String)
     extends VoiceBackendConfig
 
-final case class CharacterConfig(name: String, voiceId: String)
+final case class CharacterConfig(name: String, voiceId: String, serifColor: Option[String] = None)
 
 final case class Context(
     voiceConfigMap: Map[String, VoiceBackendConfig] = Map.empty,
@@ -12,6 +12,7 @@ final case class Context(
     backgroundImageUrl: Option[String] = None,
     spokenByCharacterId: Option[String] = None,
     speed: Option[String] = Some("1.0"),
+    serifColor: Option[String] = None, // どう使うかはテンプレート依存
     // TODO: BGM, fontColor, etc.
 )
 
@@ -28,14 +29,20 @@ object Context {
 
   // Context is a Monoid
   implicit val monoidForContext = new Monoid[Context] {
-    def combine(x: Context, y: Context): Context = Context(
-      voiceConfigMap = x.voiceConfigMap ++ y.voiceConfigMap,
-      characterConfigMap = x.characterConfigMap ++ y.characterConfigMap,
-      backgroundImageUrl =
-        y.backgroundImageUrl orElse x.backgroundImageUrl, // 後勝ち
-      spokenByCharacterId = y.spokenByCharacterId orElse x.spokenByCharacterId, // 後勝ち
-      speed = y.speed orElse x.speed // 後勝ち
-    )
+    def combine(x: Context, y: Context): Context =  {
+      val spokenByCharacterId = y.spokenByCharacterId |+| x.spokenByCharacterId
+      val characterConfigMap = x.characterConfigMap ++ y.characterConfigMap
+      val serifColor = y.serifColor orElse x.serifColor orElse spokenByCharacterId.flatMap(characterConfigMap.get).flatMap(_.serifColor)
+      Context(
+        voiceConfigMap = x.voiceConfigMap ++ y.voiceConfigMap,
+        characterConfigMap = characterConfigMap,
+        backgroundImageUrl =
+          y.backgroundImageUrl orElse x.backgroundImageUrl, // 後勝ち
+        spokenByCharacterId = spokenByCharacterId,
+        speed = y.speed orElse x.speed, // 後勝ち
+        serifColor = serifColor,
+      )
+    }
     def empty: Context = Context.empty
   }
 
@@ -56,9 +63,10 @@ object Context {
     Context(
       voiceConfigMap = empty.voiceConfigMap, // TODO
       characterConfigMap = empty.characterConfigMap, // TODO
-      backgroundImageUrl = firstAttrTextOf(e, "backgroundImage"),
+      backgroundImageUrl = firstAttrTextOf(e, "backgroundImage"), // TODO: no camelCase
       spokenByCharacterId = firstAttrTextOf(e, "by"),
       speed = firstAttrTextOf(e, "speed"),
+      serifColor = firstAttrTextOf(e, "serif-color"),
     )
   }
 
