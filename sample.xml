@@ -13,13 +13,10 @@
     <voiceconfig id="tsumugi" backend="voicevox">
       <voicevoxconfig id="8" />
     </voiceconfig>
-    <characterconfig name="char1" voice-id="metan" serif-color="#E14D2A" />
-    <characterconfig name="char2" voice-id="zundamon" serif-color="#379237" />
-    <characterconfig name="char2_hiso" voice-id="zundamon-hisohiso" />
-    <characterconfig name="char3" voice-id="tsumugi" />
-    <assets>
-      <face id="zunda1" file="zunda1.png" />
-    </assets>
+    <characterconfig name="char1" voice-id="metan" serif-color="#E14D2A" tachie-url="../../assets/metan.png" />
+    <characterconfig name="char2" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda.png" />
+    <characterconfig name="char2_hiso" voice-id="zundamon-hisohiso" tachie-url="../../assets/zunda.png" />
+    <characterconfig name="char3" voice-id="tsumugi" tachie-url="../../assets/tsumugi.png" />
   </meta>
   <dialogue backgroundImage="">
   <!-- TODO: assetのパスをhtmlからのパスではなくxmlからのパスにする、asset: schemeの導入 -->
