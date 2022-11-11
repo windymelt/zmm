@@ -4,7 +4,12 @@ sealed trait VoiceBackendConfig
 final case class VoiceVoxBackendConfig(speakerId: String)
     extends VoiceBackendConfig
 
-final case class CharacterConfig(name: String, voiceId: String, serifColor: Option[String] = None)
+final case class CharacterConfig(
+  name: String,
+  voiceId: String,
+  serifColor: Option[String] = None,
+  tachieUrl: Option[String] = None, // セリフカラー同様、セリフによって上書きされうる
+)
 
 final case class Context(
     voiceConfigMap: Map[String, VoiceBackendConfig] = Map.empty,
@@ -13,6 +18,7 @@ final case class Context(
     spokenByCharacterId: Option[String] = None,
     speed: Option[String] = Some("1.0"),
     serifColor: Option[String] = None, // どう使うかはテンプレート依存
+    tachieUrl: Option[String] = None,
     // TODO: BGM, fontColor, etc.
 )
 
@@ -33,6 +39,7 @@ object Context {
       val spokenByCharacterId = y.spokenByCharacterId |+| x.spokenByCharacterId
       val characterConfigMap = x.characterConfigMap ++ y.characterConfigMap
       val serifColor = y.serifColor orElse x.serifColor orElse spokenByCharacterId.flatMap(characterConfigMap.get).flatMap(_.serifColor)
+      val tachieUrl = y.tachieUrl orElse x.tachieUrl orElse spokenByCharacterId.flatMap(characterConfigMap.get).flatMap(_.tachieUrl)
       Context(
         voiceConfigMap = x.voiceConfigMap ++ y.voiceConfigMap,
         characterConfigMap = characterConfigMap,
@@ -41,6 +48,7 @@ object Context {
         spokenByCharacterId = spokenByCharacterId,
         speed = y.speed orElse x.speed, // 後勝ち
         serifColor = serifColor,
+        tachieUrl = tachieUrl,
       )
     }
     def empty: Context = Context.empty
@@ -67,6 +75,7 @@ object Context {
       spokenByCharacterId = firstAttrTextOf(e, "by"),
       speed = firstAttrTextOf(e, "speed"),
       serifColor = firstAttrTextOf(e, "serif-color"),
+      tachieUrl = firstAttrTextOf(e, "tachie-url")
     )
   }
 
