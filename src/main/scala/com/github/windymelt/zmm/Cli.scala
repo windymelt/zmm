@@ -126,7 +126,8 @@ final class Cli
     val characterConfigList = elem \ "meta" \ "characterconfig"
     val characterConfigMap = characterConfigList.map { cc =>
       val name = cc \@ "name"
-      name -> domain.model.CharacterConfig(name, cc \@ "voice-id")
+      val defaultSerifColor = Some(cc \@ "serif-color").filterNot(_.isEmpty())
+      name -> domain.model.CharacterConfig(name, cc \@ "voice-id", defaultSerifColor)
     }.toMap
 
     val defaultBackgroundImage =

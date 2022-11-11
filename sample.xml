@@ -13,16 +13,16 @@
     <voiceconfig id="tsumugi" backend="voicevox">
       <voicevoxconfig id="8" />
     </voiceconfig>
-    <characterconfig name="char1" voice-id="metan" />
-    <characterconfig name="char2" voice-id="zundamon" />
+    <characterconfig name="char1" voice-id="metan" serif-color="#E14D2A" />
+    <characterconfig name="char2" voice-id="zundamon" serif-color="#379237" />
     <characterconfig name="char2_hiso" voice-id="zundamon-hisohiso" />
     <characterconfig name="char3" voice-id="tsumugi" />
     <assets>
       <face id="zunda1" file="zunda1.png" />
     </assets>
   </meta>
-  <scenary bg="black" />
   <dialogue backgroundImage="">
+  <!-- TODO: assetのパスをhtmlからのパスではなくxmlからのパスにする、asset: schemeの導入 -->
     <say by="char1">このXMLファイルは、zmmの動作を説明するためのサンプルです。</say>
     <say by="char1">キャラクター1の音声です。</say>
     <say by="char2">そして、キャラクター2の音声です。</say>
@@ -30,5 +30,7 @@
     登場するキャラクターの音声を切り替えることができます。すごいね。</say>
     <say by="char1" speed="1.2">スピード属性を使うことにより、その箇所の読み上げ速度を上げることができます。</say>
     <say by="char2_hiso">キャラクターに用意されているひそひそ声で読み上げることも可能なのだ。</say>
+    <say by="char2">セリフの色は、キャラクターコンフィグで設定することで、そのキャラクターのすべてのセリフに適用されるのだ。</say>
+    <say by="char2" serif-color="#DD5500">このように、個々の要素にパラメータを指定することでもセリフの色をコントロールできるのだ。</say>
   </dialogue>
 </content>
