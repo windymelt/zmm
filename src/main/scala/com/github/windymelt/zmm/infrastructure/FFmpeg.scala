@@ -80,19 +80,15 @@ trait FFmpegComponent {
           _ <- writeCutfile
           _ <- IO.delay {
             // TODO: move to infra layer
-            os.proc("ffmpeg", "-protocol_whitelist", "file", "-y", "-f", "concat", "-safe", "0", "-i", "artifacts/cutFile.txt", "artifacts/scenes.avi")
+            os.proc("ffmpeg", "-protocol_whitelist", "file", "-y", "-f", "concat", "-safe", "0", "-i", "artifacts/cutFile.txt", "-pix_fmt", "yuv420p", "-c:v", "libx264", "artifacts/scenes.mp4")
             .call(stdout = stdout, stderr = stdout, cwd = os.pwd)
         }
-        } yield os.pwd / os.RelPath("./artifacts/scenes.avi")
+        } yield os.pwd / os.RelPath("./artifacts/scenes.mp4")
     }
 
     def zipVideoWithAudio(video: os.Path, audio: os.Path): IO[os.Path] = for {
       _ <- IO.delay {
-        os.proc("ffmpeg", "-y", "-r", "30", "-i", video, "-i", audio, "-c:v", "copy", "-c:a", "aac", "output.avi")
-        .call(stdout = stdout, stderr = stdout, cwd = os.pwd)
-      }
-      _ <- IO.delay {
-        os.proc("ffmpeg", "-y", "-i", "output.avi", "output.mp4")
+        os.proc("ffmpeg", "-y", "-r", "30", "-i", video, "-i", audio, "-c:v", "copy", "-c:a", "aac", "output.mp4")
         .call(stdout = stdout, stderr = stdout, cwd = os.pwd)
       }
     } yield os.pwd / os.RelPath("output.mp4")
