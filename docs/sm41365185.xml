@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<content version="0.0">
+  <meta>
+    <voiceconfig id="metan" backend="voicevox">
+      <voicevoxconfig id="2" />
+    </voiceconfig>
+    <voiceconfig id="zundamon" backend="voicevox">
+      <voicevoxconfig id="3" />
+    </voiceconfig>
+    <voiceconfig id="zundamon-hisohiso" backend="voicevox">
+      <voicevoxconfig id="22" />
+    </voiceconfig>
+    <voiceconfig id="tsumugi" backend="voicevox">
+      <voicevoxconfig id="8" />
+    </voiceconfig>
+    <characterconfig name="char1" voice-id="metan" serif-color="#E14D2A" tachie-url="../../assets/metan.png" />
+    <characterconfig name="char2" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda.png" />
+    <characterconfig name="char2_hiso" voice-id="zundamon-hisohiso" tachie-url="../../assets/zunda.png" />
+    <characterconfig name="char3" voice-id="tsumugi" serif-color="#FFA500" tachie-url="../../assets/tsumugi.png" />
+  </meta>
+  <dialogue backgroundImage="../../assets/zmm_ogp.jpeg">
+    <!-- TODO: assetのパスをhtmlからのパスではなくxmlからのパスにする、asset: schemeの導入 -->
+    <say by="char2">zmm開発日誌その2、はーじまーるよー</say>
+    <say by="char2" speed="1.1">この動画では、動画生成ツールzmmの開発の進捗をちびちび報告していくのだ</say>
+    <say by="char2" speed="1.1">ちなみにこの動画自体もzmmで生成されているのだ</say>
+    <say by="char3">ここまでがテンプレだね。</say>
+    <say by="char3">前回と比べて大幅に機能が増えたね！</say>
+    <say by="char2">そう、見ての通り、キャラクターの立ち絵を設定できるようになったり・・・</say>
+    <say
+        by="char2">喋っているキャラクターに応じてセリフの色を自動で変えられるようになったりしているのだ</say>
+    <say by="char3" serif-color="#E14D2A">しかも、
+    このように個々のセリフ単位でも色を設定できるようになったんだよね</say>
+    <say by="char2">そうなのだ</say>
+    <say by="char2">立ち絵やセリフの色、背景などの情報を表現するために、
+    コンテキストという統一的な仕組みを用意したのだ</say>
+    <say by="char2">この枠組みによって、これからは機能を素早く作れるようになるのだ</say>
+    <say by="char3">これからはどうするの？</say>
+    <say by="char2">これからはリリースに向けた作業と機能追加との二本立てで作業していくのだ</say>
+    <scene backgroundImage="../../assets/using.png">
+        <say by="char2">まずはリリースに向けた作業。</say>
+        <say by="char2">投稿者のような専門的な知識を持つエンジニアでなくてもzmmが使えるようにするために、</say>
+        <say by="char2">ワンクリックでダウンロードできて、なるべく楽に動作させられるような仕組みを作るのだ</say>
+        <say by="char2">配布形式はちょっと考えているところなのだ</say>
+        <say by="char3">ダウンロードしてすぐに動くほうがいいよね</say>
+        <say by="char2">次に機能追加の作業。</say>
+        <scene backgroundImage="../../assets/text.png">
+            <say by="char2">この動画を見れば分かる通り、今のところセリフ以外の文字は背景画像として表示しているのだ</say>
+            <say by="char2">でもわざわざ画像を作るのは大変なので文章を直接表示して説明できるようにしたいのだ</say>
+        </scene>
+        <say by="char2">他にもBGM機能やテンプレートの充実など、やってみたいことは沢山あるのだ</say>
+    </scene>
+    <scene backgroundImage="../../assets/open.png">
+        <say by="char2">zmmはオープンソースなので、誰でも開発に参加できるようにしたいのだ</say>
+        <say
+            by="char2">オープンソースの強みを生かしてどんどん良いソフトウェアにしていきたいと考えているのだ</say>
+    </scene>
+
+    <say by="char2">さて、前回の動画についたコメントにお返事していくのだ</say>
+    <say by="char1">「動画を作るのに何使ってるか気になる、やっぱりffmpeg？」</say>
+    <say by="char3">動画を生成するまでにはいくつかのステップを踏んでいるよ</say>
+    <say by="char3">まず、セリフなどの定義をもとにペライチのHTMLを作成するよ</say>
+    <say by="char3">そして、これをGoogle Chromeのオープンソース版「Chromium」を使って画像に変換するよ</say>
+    <say by="char3">最後にffmpegというツールを使ってセリフ音声と合成しているよ</say>
+    <say by="char1">「scala製かー」</say>
+    <scene backgroundImage="../../assets/scala.png">
+        <say by="char3">外部プログラムに頼れる箇所は頼りつつ、コードはScalaで書いているよ</say>
+        <say by="char3">Scalaは表現力の高い言語で、
+        ライブラリも充実しているからデータをいじりまわすのに好都合なんだよね</say>
+    </scene>
+    <say by="char2">コメント返しは以上なのだ</say>
+    <say by="char2">広告してくださった「ずん子」様、「秋田の子供」様、「キャッチ22」様、
+    ありがとうございます！</say>
+    <say by="char2">そしていいねしてくださった皆様、ありがとうございます！</say>
+    <say by="char3">今後も投稿を続けていくと思うので、投稿者をフォローしてくれると嬉しいな</say>
+    <say by="char2">それでは、ご視聴ありがとうございました！</say>
+  </dialogue>
+</content>
