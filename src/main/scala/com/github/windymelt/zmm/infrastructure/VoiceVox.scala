@@ -78,6 +78,24 @@ trait VoiceVoxComponent {
       IO.pure(aq.hcursor.downField("speedScale").withFocus(_ => speed.asJson).top.get)
     }
 
+    def registerDict(word: String, pronounce: String, lowerPoint: Int): IO[Unit] = client.use { c =>
+      val uri = Uri
+        .fromString("http://localhost:50021/user_dict_word")
+        .map(
+          _.copy(
+            query = org.http4s.Query.fromMap(Map("surface" -> Seq(word), "pronounciation" -> Seq(pronounce), "accent_type" -> Seq(lowerPoint.toString)))
+          )
+        )
+
+      val req = Request[IO](
+        Method.POST,
+        uri = uri.right.get,
+        headers = Headers("Content-Type" -> "application/json"),
+      )
+
+      IO.unit
+    }
+
     private lazy val client = {
       import concurrent.duration._
       import scala.language.postfixOps

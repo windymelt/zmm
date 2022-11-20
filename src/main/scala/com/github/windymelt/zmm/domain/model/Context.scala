@@ -19,6 +19,7 @@ final case class Context(
     speed: Option[String] = Some("1.0"),
     serifColor: Option[String] = None, // どう使うかはテンプレート依存
     tachieUrl: Option[String] = None,
+    dict: Seq[(String, String, Int)] = Seq.empty,
     // TODO: BGM, fontColor, etc.
 )
 
@@ -49,6 +50,7 @@ object Context {
         speed = y.speed orElse x.speed, // 後勝ち
         serifColor = serifColor,
         tachieUrl = tachieUrl,
+        dict = y.dict |+| x.dict
       )
     }
     def empty: Context = Context.empty

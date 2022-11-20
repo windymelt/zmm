@@ -17,6 +17,7 @@
     <characterconfig name="char2" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda.png" />
     <characterconfig name="char2_hiso" voice-id="zundamon-hisohiso" tachie-url="../../assets/zunda.png" />
     <characterconfig name="char3" voice-id="tsumugi" tachie-url="../../assets/tsumugi.png" />
+    <dict pronounce="ゼットエムエ_ム">zmm</dict>
   </meta>
   <dialogue backgroundImage="">
   <!-- TODO: assetのパスをhtmlからのパスではなくxmlからのパスにする、asset: schemeの導入 -->
