@@ -14,6 +14,7 @@ trait VoiceVoxComponent {
     def synthesis(aq: AudioQuery, speaker: String): IO[fs2.Stream[IO, Byte]]
     // misc.
     def controlSpeed(aq: AudioQuery, speed: String): IO[AudioQuery]
+    def registerDict(word: String, pronounce: String, lowerPoint: Int): IO[Unit]
   }
 }
 

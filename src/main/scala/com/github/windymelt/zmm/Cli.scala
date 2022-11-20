@@ -40,6 +40,15 @@ final class Cli
        defaultCtx <- prepareDefaultContext(x)
        //        _ <- IO.println(ctx)
        sayCtxPairs <- IO.pure(Context.fromNode((x \ "dialogue").head, defaultCtx))
+       _ <- {
+         // apply dictionary
+         import cats.implicits._
+         import cats.effect.implicits._
+         val registerList = defaultCtx.dict.map { d =>
+           voiceVox.registerDict(d._1, d._2, d._3)
+         }
+         registerList.parSequence
+       }
        pathAndDurations <- {
          import cats.implicits._
          import cats.effect.implicits._
@@ -137,7 +146,13 @@ final class Cli
         .headOption
         .flatMap(_.attribute("url").headOption.map(_.text))
 
-    IO.pure(domain.model.Context(voiceConfigMap, characterConfigMap, defaultBackgroundImage))
+    // 発音調整などに使う文字列辞書。今のところVOICEVOXの発音辞書に使っている
+    // (word, pronounce, accent lower point)
+    val dict: Seq[(String, String, Int)] =
+      (elem \ "meta" \ "dict")
+        .flatMap(es => es.map(e => (e.text, (e \@ "pronounce" filterNot(_ == '_')), (e \@ "pronounce" indexOf('_')))))
+
+    IO.pure(domain.model.Context(voiceConfigMap, characterConfigMap, defaultBackgroundImage, dict = dict))
   }
 
   private def buildAudioQuery(
