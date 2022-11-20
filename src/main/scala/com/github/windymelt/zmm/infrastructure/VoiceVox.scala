@@ -83,7 +83,7 @@ trait VoiceVoxComponent {
         .fromString("http://localhost:50021/user_dict_word")
         .map(
           _.copy(
-            query = org.http4s.Query.fromMap(Map("surface" -> Seq(word), "pronounciation" -> Seq(pronounce), "accent_type" -> Seq(lowerPoint.toString)))
+            query = org.http4s.Query.fromMap(Map("surface" -> Seq(word), "pronunciation" -> Seq(pronounce), "accent_type" -> Seq(lowerPoint.toString)))
           )
         )
 
@@ -93,7 +93,7 @@ trait VoiceVoxComponent {
         headers = Headers("Content-Type" -> "application/json"),
       )
 
-      IO.unit
+      c.successful(req) *> IO.unit
     }
 
     private lazy val client = {
