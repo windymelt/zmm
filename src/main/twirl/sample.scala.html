@@ -1,6 +1,7 @@
 @(serif: String, ctx: com.github.windymelt.zmm.domain.model.Context)
 <html>
     <body style="background-color: darkblue; @ctx.backgroundImageUrl.map(url => s"background-image: url('${url}');" ).getOrElse("") background-size: 100%;">
+        <div style="position: fixed; left: 10%; right: 20%; top: 10%; font-size: 64pt; font-family: Corporate Logo ver3; color: white; -webkit-text-stroke: 0.05em black; text-stroke: 0.05em black;">@{ctx.additionalTemplateVariables.get("motif")}</div>
         <img alt="zunda" src="@ctx.tachieUrl.getOrElse("")" style="position: fixed; height: 80%; bottom:0px; right: 0%;" />
         <div style="background-color: rgba(0,0,0,0.5); position: fixed; left: 0px; bottom: 0px; height: 40%; width: 100%; font-size: 64pt;">
             <div style="padding:0 1em 0 1em; font-family: Corporate Logo ver3; font-weight: 800; color: white; -webkit-text-stroke: 0.05em @{ctx.serifColor.getOrElse("black")}; text-stroke: 0.05em @{ctx.serifColor.getOrElse("black")};">@serif</div>
