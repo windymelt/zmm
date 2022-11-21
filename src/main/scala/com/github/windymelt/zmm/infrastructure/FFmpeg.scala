@@ -86,6 +86,26 @@ trait FFmpegComponent {
         } yield os.pwd / os.RelPath("./artifacts/scenes.mp4")
     }
 
+    def zipVideoWithAudioWithDuration(videoPath: os.Path, audioDurationPair: Seq[(Option[os.Path], FiniteDuration)]): IO[os.Path] = {
+      // 一度オーディオをDurationに従って結合し、これと動画を合成する。単に上書きすると元の音声が消えてしまうのでフィルタ合成する。
+      val writeCutfile = {
+        val cutFileContent = audioDurationPair flatMap { case (pOpt, dur) => pOpt.map(p => s"file ${p}\noutpoint ${dur.toUnit(concurrent.duration.SECONDS)}") } mkString ("\n")
+        self.writeStreamToFile(fs2.Stream[IO, Byte](cutFileContent.getBytes():_*), "./artifacts/bgmCutFile.txt")
+      }
+      for {
+        _ <- writeCutfile
+        bgm <- IO.delay {
+          os.proc("ffmpeg", "-protocol_whitelist", "file", "-y", "-f", "concat", "-safe", "0", "-i", "artifacts/bgmCutFile.txt", "artifacts/concatenatedBGM.wav")
+            .call(stdout = stdout, stderr = stdout, cwd = os.pwd)
+          os.pwd / os.RelPath("artifacts/concatenatedBGM.wav")
+        }
+        _ <- IO.delay {
+          os.proc("ffmpeg", "-y", "-i", videoPath, "-i", bgm, "-filter_complex", "[0:a][1:a]amerge=inputs=2[a]", "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-ac", "2", "output_with_bgm.mp4")
+          .call(stdout = stdout, stderr = stdout, cwd = os.pwd)
+        }
+      } yield os.pwd / os.RelPath("output_with_bgm.mp4")
+    }
+
     def zipVideoWithAudio(video: os.Path, audio: os.Path): IO[os.Path] = for {
       _ <- IO.delay {
         os.proc("ffmpeg", "-y", "-r", "30", "-i", video, "-i", audio, "-c:v", "copy", "-c:a", "aac", "output.mp4")
