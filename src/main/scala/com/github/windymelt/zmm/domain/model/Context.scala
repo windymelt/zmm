@@ -20,6 +20,7 @@ final case class Context(
     serifColor: Option[String] = None, // どう使うかはテンプレート依存
     tachieUrl: Option[String] = None,
     dict: Seq[(String, String, Int)] = Seq.empty,
+    additionalTemplateVariables: Map[String, String] = Map.empty,
     // TODO: BGM, fontColor, etc.
 )
 
@@ -50,7 +51,8 @@ object Context {
         speed = y.speed orElse x.speed, // 後勝ち
         serifColor = serifColor,
         tachieUrl = tachieUrl,
-        dict = y.dict |+| x.dict
+        dict = y.dict |+| x.dict,
+        additionalTemplateVariables = x.additionalTemplateVariables ++ y.additionalTemplateVariables,
       )
     }
     def empty: Context = Context.empty
@@ -77,7 +79,8 @@ object Context {
       spokenByCharacterId = firstAttrTextOf(e, "by"),
       speed = firstAttrTextOf(e, "speed"),
       serifColor = firstAttrTextOf(e, "serif-color"),
-      tachieUrl = firstAttrTextOf(e, "tachie-url")
+      tachieUrl = firstAttrTextOf(e, "tachie-url"),
+      additionalTemplateVariables = firstAttrTextOf(e, "motif").map("motif" -> _).toMap,
     )
   }
 

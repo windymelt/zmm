@@ -18,10 +18,11 @@
     <characterconfig name="char2_hiso" voice-id="zundamon-hisohiso" tachie-url="../../assets/zunda.png" />
     <characterconfig name="char3" voice-id="tsumugi" tachie-url="../../assets/tsumugi.png" />
     <dict pronounce="ゼットエムエ_ム">zmm</dict>
+    <dict pronounce="モチー_フ">motif</dict>
   </meta>
   <dialogue backgroundImage="">
   <!-- TODO: assetのパスをhtmlからのパスではなくxmlからのパスにする、asset: schemeの導入 -->
-    <say by="char1">このXMLファイルは、zmmの動作を説明するためのサンプルです。</say>
+    <say by="char1" motif="ここには解説を表示できます">このXMLファイルは、zmmの動作を説明するためのサンプルです。</say>
     <say by="char1">キャラクター1の音声です。</say>
     <say by="char2">そして、キャラクター2の音声です。</say>
     <say by="char3">このように、XMLタグの属性によって、
@@ -29,6 +30,8 @@
     <say by="char1" speed="1.2">スピード属性を使うことにより、その箇所の読み上げ速度を上げることができます。</say>
     <say by="char2_hiso">キャラクターに用意されているひそひそ声で読み上げることも可能なのだ。</say>
     <say by="char2">セリフの色は、キャラクターコンフィグで設定することで、そのキャラクターのすべてのセリフに適用されるのだ。</say>
-    <say by="char2" serif-color="#DD5500">このように、個々の要素にパラメータを指定することでもセリフの色をコントロールできるのだ。</say>
+    <say by="char2" serif-color="#DD5500">このように、
+    個々の要素にパラメータを指定することでもセリフの色をコントロールできるのだ。</say>
+    <say by="char2" motif="motif=...と書くことで補足情報を表示できるようにした">motif属性を使うことにより、補足情報を表示できるのだ。</say>
   </dialogue>
 </content>
