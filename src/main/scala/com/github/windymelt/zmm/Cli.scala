@@ -6,6 +6,7 @@ import cats.effect.ExitCode
 import java.io.OutputStream
 import org.http4s.syntax.header
 import com.github.windymelt.zmm.domain.model.Context
+import scala.concurrent.duration.FiniteDuration
 
 final class Cli
     extends domain.repository.FFmpegComponent
@@ -74,7 +75,29 @@ final class Cli
        // - wavのデータをもとに尺情報を組み立て、画像を一連のaviにしてからwavと合わせる
        // いったん個々の動画に変換する？
        audio <- backgroundIndicator("Concatenating wav files").use(_ => ffmpeg.concatenateWavFiles(pathAndDurations.map(_._1.toString)))
-       _ <- backgroundIndicator("Zipping silent video and audio").use { _ => ffmpeg.zipVideoWithAudio(video, audio) }
+       zippedVideo <- backgroundIndicator("Zipping silent video and audio").use { _ => ffmpeg.zipVideoWithAudio(video, audio) }
+       _ <- backgroundIndicator("Applying BGM").use { _ =>
+         // BGMを合成する。BGMはコンテキストで割り当てる。sayCtxPairsでsayごとにコンテキストが確定するので、同じBGMであれば結合しつつ最終的なDurationを計算する。
+         // たとえば、BGMa 5sec BGMa 5sec BGMb 10sec であるときは、 BGMa 10sec BGMb 10secに簡約される。
+         val bgmWithDuration: Seq[(Option[os.Path], FiniteDuration)] = sayCtxPairs.map(p => p._2.bgm.map(os.pwd / os.RelPath(_))).zip(pathAndDurations.map(_._2))
+
+         import cats.Monoid
+         import cats.implicits._
+         type Pair = (Option[os.Path], FiniteDuration)
+         val f = (x: Pair) => (y: Pair) => x._1 -> y._1 match {
+           case k -> l if k == l => Seq(k -> (x._2 |+| y._2))
+           case _ -> _ => Seq(x, y)
+         }
+
+         val reductedBgmWithDuration = bgmWithDuration.foldLeft[Seq[Pair]](Seq(None -> FiniteDuration(0, "seconds"))) { case (x, y) =>
+           x.take(x.length - 1) ++ f(x.last)(y)
+         }.drop(1)
+
+         reductedBgmWithDuration.size match {
+           case 0 => IO.unit
+           case _ => ffmpeg.zipVideoWithAudioWithDuration(zippedVideo, reductedBgmWithDuration)
+         }
+       }
        _ <- IO.println("\nDone!")
      } yield ()
 }

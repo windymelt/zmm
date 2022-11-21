@@ -21,6 +21,7 @@ final case class Context(
     tachieUrl: Option[String] = None,
     dict: Seq[(String, String, Int)] = Seq.empty,
     additionalTemplateVariables: Map[String, String] = Map.empty,
+    bgm: Option[String] = None,
     // TODO: BGM, fontColor, etc.
 )
 
@@ -53,6 +54,7 @@ object Context {
         tachieUrl = tachieUrl,
         dict = y.dict |+| x.dict,
         additionalTemplateVariables = x.additionalTemplateVariables ++ y.additionalTemplateVariables,
+        bgm = y.bgm orElse x.bgm,
       )
     }
     def empty: Context = Context.empty
@@ -81,6 +83,7 @@ object Context {
       serifColor = firstAttrTextOf(e, "serif-color"),
       tachieUrl = firstAttrTextOf(e, "tachie-url"),
       additionalTemplateVariables = firstAttrTextOf(e, "motif").map("motif" -> _).toMap,
+      bgm = firstAttrTextOf(e, "bgm"),
     )
   }
 
