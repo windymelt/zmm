@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<content version="0.0">
+  <meta>
+    <voiceconfig id="metan" backend="voicevox">
+      <voicevoxconfig id="2" />
+    </voiceconfig>
+    <voiceconfig id="zundamon" backend="voicevox">
+      <voicevoxconfig id="3" />
+    </voiceconfig>
+    <voiceconfig id="zundamon-hisohiso" backend="voicevox">
+      <voicevoxconfig id="22" />
+    </voiceconfig>
+    <voiceconfig id="tsumugi" backend="voicevox">
+      <voicevoxconfig id="8" />
+    </voiceconfig>
+    <characterconfig name="char1" voice-id="metan" serif-color="#E14D2A" tachie-url="../../assets/metan.png" />
+    <characterconfig name="char2" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda.png" />
+    <characterconfig name="char2_hiso" voice-id="zundamon-hisohiso" tachie-url="../../assets/zunda.png" />
+    <characterconfig name="char3" voice-id="tsumugi" tachie-url="../../assets/tsumugi.png" />
+    <dict pronounce="ゼットエムエ_ム">zmm</dict>
+    <dict pronounce="モチー_フ">motif</dict>
+  </meta>
+  <dialogue backgroundImage="../../assets/zmm_ogp.jpeg" bgm="assets/nc282335_20%.mp3">
+  <!-- TODO: assetのパスをhtmlからのパスではなくxmlからのパスにする、asset: schemeの導入 -->
+    <say by="char2">zmm開発日誌その3、はーじまーるよー</say>
+    <say by="char2" speed="1.1">この動画では、動画生成ツールzmmの開発の進捗をちびちび報告していくのだ</say>
+    <say by="char2" speed="1.1">ちなみにこの動画自体もzmmで生成されているのだ</say>
+    <say by="char3">ここまでがテンプレだね。</say>
+    <say by="char3" motif="モチーフ機能とBGM">今回増えた機能はモチーフ機能とBGMの2つだね</say>
+    <say by="char2" motif="モチーフ機能とBGM">そうなのだ</say>
+    <say by="char2"
+         motif="モチーフ機能">モチーフ機能とは今まさに画面に表示されている補足情報を表示する機能のことなのだ</say>
+    <say by="char2"
+         motif="モチーフ機能">各発言でmotif="補足情報"という属性を指定することでこのような補足情報を表示できるようになったのだ</say>
+    <say by="char2"
+         motif="モチーフ機能">まだあまり洗練されていない機能なので箇条書きといった高度な処理はできないのだ</say>
+    <say by="char2"
+         motif="モチーフ機能">とはいえこの機能が無いとセリフで全てを解説しなければならなかったり、
+    背景画像を毎回作らないといけないので困ってしまうのだ</say>
+    <say by="char2"
+         motif="モチーフ機能">そこでとりあえず80%クオリティで使えるようにしたのだ</say>
+    <say by="char3" motif="BGM">BGM機能も追加されたね</say>
+    <say by="char2" motif="BGM">ついに投稿者を苦しめていた面倒な作業から解放されたのだ・・・</say>
+    <say by="char2"
+         motif="BGM">bgm="BGMファイルへのパス"という属性を指定することでその箇所のBGMを指定できるようになったのだ</say>
+    <say by="char2" motif="BGM" bgm="assets/n26_20%.mp3">ちなみにこのように発言単位でBGMを差し替えることもできるので便利に使ってほしいのだ</say>
+    <say by="char1">今回の進捗はここまでです。いいねしてくださった皆様、ありがとうございます！</say>
+    <say by="char3">今後も投稿を続けていくと思うので、投稿者をフォローしてくれると嬉しいな</say>
+    <say by="char2">それでは、ご視聴ありがとうございました！</say>
+  </dialogue>
+</content>
