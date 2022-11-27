@@ -41,15 +41,7 @@ final class Cli
        defaultCtx <- prepareDefaultContext(x)
        //        _ <- IO.println(ctx)
        sayCtxPairs <- IO.pure(Context.fromNode((x \ "dialogue").head, defaultCtx))
-       _ <- {
-         // apply dictionary
-         import cats.implicits._
-         import cats.effect.implicits._
-         val registerList = defaultCtx.dict.map { d =>
-           voiceVox.registerDict(d._1, d._2, d._3)
-         }
-         registerList.parSequence
-       }
+       _ <- applyDictionary(defaultCtx)
        pathAndDurations <- {
          import cats.implicits._
          import cats.effect.implicits._
@@ -82,6 +74,20 @@ final class Cli
   private def showLogo: IO[Unit] =
     IO.println(withColor(scala.io.AnsiColor.GREEN ++ scala.io.AnsiColor.BOLD)(zmmLogo)) >>
     IO.println(withColor(scala.io.AnsiColor.GREEN)(s"${BuildInfo.version}"))
+
+  /**
+    * 辞書要素を反映させる。
+    *
+    * 今のところVOICEVOX用の発音辞書に登録を行うだけだが、今後の開発によってはその他の音声合成ソフトウェアの辞書登録に使ってよい。
+    *
+    * @param ctx 辞書を取り出す元となるコンテキスト
+    * @return 有用な情報は返されない
+    */
+  private def applyDictionary(ctx: Context): IO[Seq[Unit]] = {
+    import cats.syntax.parallel._
+    val registerList = ctx.dict.map { d => voiceVox.registerDict(d._1, d._2, d._3) }
+    registerList.parSequence
+  }
 
   private def generateSay(
       sayElem: domain.model.Say,
