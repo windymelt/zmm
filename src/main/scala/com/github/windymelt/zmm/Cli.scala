@@ -39,9 +39,9 @@ final class Cli
        x <- content
        _ <- contentSanityCheck(x)
        defaultCtx <- prepareDefaultContext(x)
+       _ <- applyDictionary(defaultCtx)
        //        _ <- IO.println(ctx)
        sayCtxPairs <- IO.pure(Context.fromNode((x \ "dialogue").head, defaultCtx))
-       _ <- applyDictionary(defaultCtx)
        pathAndDurations <- {
          import cats.implicits._
          import cats.effect.implicits._
