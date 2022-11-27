@@ -56,20 +56,7 @@ final class Cli
          val saySeq = sayCtxPairs map { case (s, ctx) => generateSay(s, voiceVox, ctx) }
          saySeq.parSequence
        }
-       video <- {
-         import cats.implicits._
-         import cats.effect.implicits._
-         val saySeq = sayCtxPairs map { case (s, ctx) =>
-           for {
-             stream <- buildHtmlFile(s.text, ctx).map(s => fs2.Stream[IO, Byte](s.getBytes(): _*))
-             sha1Hex <- sha1HexCode(s.text.getBytes())
-             htmlFile <- writeStreamToFile(stream, s"./artifacts/html/${sha1Hex}.html")
-             screenShotFile <- screenShot.takeScreenShot(os.pwd / os.RelPath(htmlFile.toString))
-           } yield screenShotFile
-         }
-         val sceneImages = backgroundIndicator("Generating scenary image").use(_ => saySeq.parSequence)
-         sceneImages.flatMap(imgs => ffmpeg.concatenateImagesWithDuration(imgs.zip(pathAndDurations.map(_._2))))
-       }
+       video <- generateVideo(sayCtxPairs, pathAndDurations)
        // wavのデータをもとに尺情報を組み立て、画像を一連のaviにしてからwavと合わせる
        audio <- backgroundIndicator("Concatenating wav files").use(_ => ffmpeg.concatenateWavFiles(pathAndDurations.map(_._1.toString)))
        zippedVideo <- backgroundIndicator("Zipping silent video and audio").use { _ => ffmpeg.zipVideoWithAudio(video, audio) }
@@ -160,6 +147,24 @@ final class Cli
 
     IO.pure(domain.model.Context(voiceConfigMap, characterConfigMap, defaultBackgroundImage, dict = dict))
   }
+
+  private def generateVideo(
+    sayCtxPairs: Seq[(domain.model.Say, Context)],
+    pathAndDurations: Seq[(fs2.io.file.Path, FiniteDuration)],
+  ): IO[os.Path] = {
+    import cats.implicits._
+    import cats.effect.implicits._
+    val saySeq = sayCtxPairs map { case (s, ctx) =>
+      for {
+        stream <- buildHtmlFile(s.text, ctx).map(s => fs2.Stream[IO, Byte](s.getBytes(): _*))
+        sha1Hex <- sha1HexCode(s.text.getBytes())
+        htmlFile <- writeStreamToFile(stream, s"./artifacts/html/${sha1Hex}.html")
+        screenShotFile <- screenShot.takeScreenShot(os.pwd / os.RelPath(htmlFile.toString))
+      } yield screenShotFile
+    }
+    val sceneImages = backgroundIndicator("Generating scenary image").use(_ => saySeq.parSequence)
+    sceneImages.flatMap(imgs => ffmpeg.concatenateImagesWithDuration(imgs.zip(pathAndDurations.map(_._2))))
+}
 
   private def buildAudioQuery(
       text: String,
