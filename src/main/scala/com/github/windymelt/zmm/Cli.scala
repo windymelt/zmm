@@ -93,10 +93,6 @@ final class Cli
     IO.println(withColor(scala.io.AnsiColor.GREEN ++ scala.io.AnsiColor.BOLD)(zmmLogo)) >>
     IO.println(withColor(scala.io.AnsiColor.GREEN)(s"${BuildInfo.version}"))
 
-  // TODO: sayやsceneごとにコンテキストを更新していくための処理
-  private def composeContext(baseCtx: Context)(overlayCtx: Context): IO[Context] = ???
-  private def extractContextFromNode(node: scala.xml.Node): IO[Context] = ???
-
   private def generateSay(
       sayElem: domain.model.Say,
       voiceVox: VoiceVox,
