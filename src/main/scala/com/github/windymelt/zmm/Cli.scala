@@ -56,9 +56,12 @@ final class Cli
          val saySeq = sayCtxPairs map { case (s, ctx) => generateSay(s, voiceVox, ctx) }
          saySeq.parSequence
        }
-       video <- generateVideo(sayCtxPairs, pathAndDurations)
-       // wavのデータをもとに尺情報を組み立て、画像を一連のaviにしてからwavと合わせる
-       audio <- backgroundIndicator("Concatenating wav files").use(_ => ffmpeg.concatenateWavFiles(pathAndDurations.map(_._1.toString)))
+       // この時点でvideoとaudioとの間に依存がないので並列実行する
+       // BUG: SI-5589 により、タプルにバインドできない
+       va <- backgroundIndicator("Generating video and concatenated audio").use { _ =>
+         generateVideo(sayCtxPairs, pathAndDurations) product ffmpeg.concatenateWavFiles(pathAndDurations.map(_._1.toString))
+       }
+       val (video, audio) = va
        zippedVideo <- backgroundIndicator("Zipping silent video and audio").use { _ => ffmpeg.zipVideoWithAudio(video, audio) }
        _ <- backgroundIndicator("Applying BGM").use { _ =>
          // BGMを合成する。BGMはコンテキストで割り当てる。sayCtxPairsでsayごとにコンテキストが確定するので、同じBGMであれば結合しつつ最終的なDurationを計算する。
