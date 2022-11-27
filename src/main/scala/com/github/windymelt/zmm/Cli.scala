@@ -70,10 +70,7 @@ final class Cli
          val sceneImages = backgroundIndicator("Generating scenary image").use(_ => saySeq.parSequence)
          sceneImages.flatMap(imgs => ffmpeg.concatenateImagesWithDuration(imgs.zip(pathAndDurations.map(_._2))))
        }
-       // 実装上の選択肢:
-       // - 画像をwavと組み合わせてaviにしてから結合する
-       // - wavのデータをもとに尺情報を組み立て、画像を一連のaviにしてからwavと合わせる
-       // いったん個々の動画に変換する？
+       // wavのデータをもとに尺情報を組み立て、画像を一連のaviにしてからwavと合わせる
        audio <- backgroundIndicator("Concatenating wav files").use(_ => ffmpeg.concatenateWavFiles(pathAndDurations.map(_._1.toString)))
        zippedVideo <- backgroundIndicator("Zipping silent video and audio").use { _ => ffmpeg.zipVideoWithAudio(video, audio) }
        _ <- backgroundIndicator("Applying BGM").use { _ =>
@@ -81,17 +78,7 @@ final class Cli
          // たとえば、BGMa 5sec BGMa 5sec BGMb 10sec であるときは、 BGMa 10sec BGMb 10secに簡約される。
          val bgmWithDuration: Seq[(Option[os.Path], FiniteDuration)] = sayCtxPairs.map(p => p._2.bgm.map(os.pwd / os.RelPath(_))).zip(pathAndDurations.map(_._2))
 
-         import cats.Monoid
-         import cats.implicits._
-         type Pair = (Option[os.Path], FiniteDuration)
-         val f = (x: Pair) => (y: Pair) => x._1 -> y._1 match {
-           case k -> l if k == l => Seq(k -> (x._2 |+| y._2))
-           case _ -> _ => Seq(x, y)
-         }
-
-         val reductedBgmWithDuration = bgmWithDuration.foldLeft[Seq[Pair]](Seq(None -> FiniteDuration(0, "seconds"))) { case (x, y) =>
-           x.take(x.length - 1) ++ f(x.last)(y)
-         }.drop(1)
+         val reductedBgmWithDuration = groupReduction(bgmWithDuration)
 
          reductedBgmWithDuration.size match {
            case 0 => IO.unit
