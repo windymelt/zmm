@@ -39,39 +39,20 @@ final class Cli
        x <- content
        _ <- contentSanityCheck(x)
        defaultCtx <- prepareDefaultContext(x)
+       _ <- applyDictionary(defaultCtx)
        //        _ <- IO.println(ctx)
        sayCtxPairs <- IO.pure(Context.fromNode((x \ "dialogue").head, defaultCtx))
-       _ <- {
-         // apply dictionary
-         import cats.implicits._
-         import cats.effect.implicits._
-         val registerList = defaultCtx.dict.map { d =>
-           voiceVox.registerDict(d._1, d._2, d._3)
-         }
-         registerList.parSequence
-       }
        pathAndDurations <- {
-         import cats.implicits._
-         import cats.effect.implicits._
+         import cats.syntax.parallel._
          val saySeq = sayCtxPairs map { case (s, ctx) => generateSay(s, voiceVox, ctx) }
          saySeq.parSequence
        }
-       video <- {
-         import cats.implicits._
-         import cats.effect.implicits._
-         val saySeq = sayCtxPairs map { case (s, ctx) =>
-           for {
-             stream <- buildHtmlFile(s.text, ctx).map(s => fs2.Stream[IO, Byte](s.getBytes(): _*))
-             sha1Hex <- sha1HexCode(s.text.getBytes())
-             htmlFile <- writeStreamToFile(stream, s"./artifacts/html/${sha1Hex}.html")
-             screenShotFile <- screenShot.takeScreenShot(os.pwd / os.RelPath(htmlFile.toString))
-           } yield screenShotFile
-         }
-         val sceneImages = backgroundIndicator("Generating scenary image").use(_ => saySeq.parSequence)
-         sceneImages.flatMap(imgs => ffmpeg.concatenateImagesWithDuration(imgs.zip(pathAndDurations.map(_._2))))
+       // この時点でvideoとaudioとの間に依存がないので並列実行する
+       // BUG: SI-5589 により、タプルにバインドできない
+       va <- backgroundIndicator("Generating video and concatenated audio").use { _ =>
+         generateVideo(sayCtxPairs, pathAndDurations) product ffmpeg.concatenateWavFiles(pathAndDurations.map(_._1.toString))
        }
-       // wavのデータをもとに尺情報を組み立て、画像を一連のaviにしてからwavと合わせる
-       audio <- backgroundIndicator("Concatenating wav files").use(_ => ffmpeg.concatenateWavFiles(pathAndDurations.map(_._1.toString)))
+       val (video, audio) = va
        zippedVideo <- backgroundIndicator("Zipping silent video and audio").use { _ => ffmpeg.zipVideoWithAudio(video, audio) }
        _ <- backgroundIndicator("Applying BGM").use { _ =>
          // BGMを合成する。BGMはコンテキストで割り当てる。sayCtxPairsでsayごとにコンテキストが確定するので、同じBGMであれば結合しつつ最終的なDurationを計算する。
@@ -93,9 +74,19 @@ final class Cli
     IO.println(withColor(scala.io.AnsiColor.GREEN ++ scala.io.AnsiColor.BOLD)(zmmLogo)) >>
     IO.println(withColor(scala.io.AnsiColor.GREEN)(s"${BuildInfo.version}"))
 
-  // TODO: sayやsceneごとにコンテキストを更新していくための処理
-  private def composeContext(baseCtx: Context)(overlayCtx: Context): IO[Context] = ???
-  private def extractContextFromNode(node: scala.xml.Node): IO[Context] = ???
+  /**
+    * 辞書要素を反映させる。
+    *
+    * 今のところVOICEVOX用の発音辞書に登録を行うだけだが、今後の開発によってはその他の音声合成ソフトウェアの辞書登録に使ってよい。
+    *
+    * @param ctx 辞書を取り出す元となるコンテキスト
+    * @return 有用な情報は返されない
+    */
+  private def applyDictionary(ctx: Context): IO[Seq[Unit]] = {
+    import cats.syntax.parallel._
+    val registerList = ctx.dict.map { d => voiceVox.registerDict(d._1, d._2, d._3) }
+    registerList.parSequence
+  }
 
   private def generateSay(
       sayElem: domain.model.Say,
@@ -164,6 +155,23 @@ final class Cli
 
     IO.pure(domain.model.Context(voiceConfigMap, characterConfigMap, defaultBackgroundImage, dict = dict))
   }
+
+  private def generateVideo(
+    sayCtxPairs: Seq[(domain.model.Say, Context)],
+    pathAndDurations: Seq[(fs2.io.file.Path, FiniteDuration)],
+  ): IO[os.Path] = {
+    import cats.syntax.parallel._
+    val saySeq = sayCtxPairs map { case (s, ctx) =>
+      for {
+        stream <- buildHtmlFile(s.text, ctx).map(s => fs2.Stream[IO, Byte](s.getBytes(): _*))
+        sha1Hex <- sha1HexCode(s.text.getBytes())
+        htmlFile <- writeStreamToFile(stream, s"./artifacts/html/${sha1Hex}.html")
+        screenShotFile <- screenShot.takeScreenShot(os.pwd / os.RelPath(htmlFile.toString))
+      } yield screenShotFile
+    }
+    val sceneImages = backgroundIndicator("Generating scenary image").use(_ => saySeq.parSequence)
+    sceneImages.flatMap(imgs => ffmpeg.concatenateImagesWithDuration(imgs.zip(pathAndDurations.map(_._2))))
+}
 
   private def buildAudioQuery(
       text: String,
