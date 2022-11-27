@@ -43,8 +43,7 @@ final class Cli
        //        _ <- IO.println(ctx)
        sayCtxPairs <- IO.pure(Context.fromNode((x \ "dialogue").head, defaultCtx))
        pathAndDurations <- {
-         import cats.implicits._
-         import cats.effect.implicits._
+         import cats.syntax.parallel._
          val saySeq = sayCtxPairs map { case (s, ctx) => generateSay(s, voiceVox, ctx) }
          saySeq.parSequence
        }
@@ -161,8 +160,7 @@ final class Cli
     sayCtxPairs: Seq[(domain.model.Say, Context)],
     pathAndDurations: Seq[(fs2.io.file.Path, FiniteDuration)],
   ): IO[os.Path] = {
-    import cats.implicits._
-    import cats.effect.implicits._
+    import cats.syntax.parallel._
     val saySeq = sayCtxPairs map { case (s, ctx) =>
       for {
         stream <- buildHtmlFile(s.text, ctx).map(s => fs2.Stream[IO, Byte](s.getBytes(): _*))
