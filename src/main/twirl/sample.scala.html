@@ -1,18 +1,16 @@
 @(serif: String, ctx: com.github.windymelt.zmm.domain.model.Context)
 <html>
     <body style="background-color: darkblue; @ctx.backgroundImageUrl.map(url => s"background-image: url('${url}');" ).getOrElse("") background-size: 100%;">
-<link rel="stylesheet"
-      href="../../default.min.css">
-<script src="../../highlight.min.js"></script>
-<script>hljs.highlightAll();</script>
-        <div style="position: fixed; left: 10%; right: 20%; top: 10%; font-size: 64pt; font-family: Corporate Logo ver3; color: white; -webkit-text-stroke: 0.05em black; text-stroke: 0.05em black;">@{ctx.additionalTemplateVariables.get("motif")}</div>
-        <div style="position: fixed; left: 10%; right: 20%; top: 10%; font-size: 16pt;">
+    <link rel="stylesheet"
+          href="../../default.min.css">
+    <script src="../../highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <div style="position: fixed; left: 10%; right: 20%; top: 10%; font-size: 64pt; font-family: Corporate Logo ver3; color: white; -webkit-text-stroke: 0.05em black; text-stroke: 0.05em black;">@{ctx.atv.get("motif")}</div>
+        <div style="@{ctx.atv.get("code").map(_ => "").getOrElse("display: none; ")}position: fixed; left: 2%; right: 20%; top: 2%; font-size: 20pt;">
             <pre>
-                <code class="language-scala">
-enum Option[+T]:
-  case Some(x: T) extends Option[T]
-  case None       extends Option[Nothing]
-                </code>
+            @defining(ctx.codes.get(ctx.atv.get("code").getOrElse("")).getOrElse("" -> None)) { c =>
+                <code class="@{c._2.map(l => s"lang-$l").getOrElse("")}">@c._1</code>
+            }
             </pre>
         </div>
         <img alt="zunda" src="@ctx.tachieUrl.getOrElse("")" style="position: fixed; height: 80%; bottom:0px; right: 0%;" />

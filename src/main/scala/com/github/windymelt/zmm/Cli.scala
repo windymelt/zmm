@@ -153,7 +153,14 @@ final class Cli
       (elem \ "meta" \ "dict")
         .flatMap(es => es.map(e => (e.text, (e \@ "pronounce" filterNot(_ == '_')), (e \@ "pronounce" indexOf('_')))))
 
-    IO.pure(domain.model.Context(voiceConfigMap, characterConfigMap, defaultBackgroundImage, dict = dict))
+    val codes: Map[String, (String, Option[String])] = (elem \ "predef" \ "code").flatMap(es => es.map { e =>
+      val code = e.text.stripLeading()
+      val id = e \@ "id"
+      val lang = Some(e \@ "lang").filterNot(_.isEmpty())
+      id -> (code, lang)
+    } ).toMap
+
+    IO.pure(domain.model.Context(voiceConfigMap, characterConfigMap, defaultBackgroundImage, dict = dict, codes = codes))
   }
 
   private def generateVideo(
