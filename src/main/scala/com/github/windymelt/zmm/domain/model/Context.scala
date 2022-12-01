@@ -11,6 +11,16 @@ final case class CharacterConfig(
   tachieUrl: Option[String] = None, // セリフカラー同様、セリフによって上書きされうる
 )
 
+/*
+ Contextの4要素:
+ - Context class
+ - Contextを合成するためのMonoid instance
+ - Elem -> Contextする写像
+ - 初期値をroot Elem -> Contextで決定する写像
+ これがフィールドごとに一列になっていると便利なのだけれど動的にクラスを組み立てることは(Shapelessなどを使わないかぎり)不可能なので、
+ 下3つを直列記述するbuilderを作ることを今後のTODOとしたい
+ */
+
 final case class Context(
     voiceConfigMap: Map[String, VoiceBackendConfig] = Map.empty,
     characterConfigMap: Map[String, CharacterConfig] = Map.empty,
@@ -22,8 +32,11 @@ final case class Context(
     dict: Seq[(String, String, Int)] = Seq.empty,
     additionalTemplateVariables: Map[String, String] = Map.empty,
     bgm: Option[String] = None,
+    codes: Map[String, (String, Option[String])] = Map.empty, // id -> (code, lang?)
     // TODO: BGM, fontColor, etc.
-)
+) {
+  def atv = additionalTemplateVariables // alias for template
+}
 
 // TODO: 後で動かす
 sealed trait DialogueTree
@@ -55,6 +68,7 @@ object Context {
         dict = y.dict |+| x.dict,
         additionalTemplateVariables = x.additionalTemplateVariables ++ y.additionalTemplateVariables,
         bgm = y.bgm orElse x.bgm,
+        codes = x.codes |+| y.codes, // Map の Monoid性を応用すると、同一idで書かれたコードは結合されるという好ましい特性が表われるのでこうしている。additionalTemplateVariablesに畳んでもいいかもしれない。現在のコードはadditionalTemplateVariablesに入れている
       )
     }
     def empty: Context = Context.empty
@@ -74,6 +88,11 @@ object Context {
   private def firstAttrTextOf(e: Elem, a: String): Option[String] = e.attribute(a).headOption.flatMap(_.headOption).map(_.text)
 
   private def extract(e: Elem): Context = {
+    val atvs = {
+      val motif = firstAttrTextOf(e, "motif").map("motif" -> _)
+      val code = firstAttrTextOf(e,"code").map("code" -> _)
+      Seq(motif, code).flatten.toMap
+    }
     Context(
       voiceConfigMap = empty.voiceConfigMap, // TODO
       characterConfigMap = empty.characterConfigMap, // TODO
@@ -82,7 +101,7 @@ object Context {
       speed = firstAttrTextOf(e, "speed"),
       serifColor = firstAttrTextOf(e, "serif-color"),
       tachieUrl = firstAttrTextOf(e, "tachie-url"),
-      additionalTemplateVariables = firstAttrTextOf(e, "motif").map("motif" -> _).toMap,
+      additionalTemplateVariables = atvs,
       bgm = firstAttrTextOf(e, "bgm"),
     )
   }
