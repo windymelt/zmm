@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<content version="0.0">
+  <meta>
+    <voiceconfig id="metan" backend="voicevox">
+      <voicevoxconfig id="2" />
+    </voiceconfig>
+    <voiceconfig id="zundamon" backend="voicevox">
+      <voicevoxconfig id="3" />
+    </voiceconfig>
+    <voiceconfig id="zundamon-hisohiso" backend="voicevox">
+      <voicevoxconfig id="22" />
+    </voiceconfig>
+    <voiceconfig id="tsumugi" backend="voicevox">
+      <voicevoxconfig id="8" />
+    </voiceconfig>
+    <characterconfig name="m" voice-id="metan" serif-color="#E14D2A" tachie-url="../../assets/metan.png" />
+    <characterconfig name="z" voice-id="zundamon" serif-color="#379237"
+                     tachie-url="../../assets/zunda.png" />
+    <!-- PSDTool便利すぎ〜〜 -->
+    <characterconfig name="z;" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda0001.png" />
+    <characterconfig name="z^" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda0002.png" />
+    <characterconfig name="z_" voice-id="zundamon-hisohiso" tachie-url="../../assets/zunda.png" />
+    <characterconfig name="t" voice-id="tsumugi" tachie-url="../../assets/tsumugi.png" />
+    <characterconfig name="t^" voice-id="tsumugi" tachie-url="../../assets/tsumugi0000.png" />
+    <dict pronounce="ゼットエムエ_ム">zmm</dict>
+    <dict pronounce="モチー_フ">motif</dict>
+    <dict pronounce="コー_ド">code</dict>
+    <dict pronounce="プリデ_フ">predef</dict>
+  </meta>
+  <predef>
+    <code id="code1" lang="scala">
+      <![CDATA[
+// !!! 一時停止しながら見てね !!!
+// こんな感じでソースコードを埋め込めます
+// 実際のzmmのソースコードから抜粋しています
+def groupReduction[E : Eq, S : Semigroup](xs: Seq[(E, S)]): Seq[(E, S)] = {
+  import cats.syntax.eq._
+  import cats.syntax.apply._
+  xs.view.map(_.swap).foldRight(Seq.empty[(S, E)]) {
+    case (head, second +: acc) if head._2 === second._2 => (head <* second) +: acc
+    case (em, acc) => em +: acc
+  }.map(_.swap)
+}
+      ]]>
+    </code>
+    <code id="code2" lang="xml"><!-- XMLにXMLを埋め込むためにすさまじい表現になっている・・・ -->
+      <![CDATA[
+<predef>
+<code id="コードを識別するID" lang="scala">
+]]><![CDATA[<![CDATA[
+ここにソースコードを貼り付ける
+]]]]><![CDATA[>
+</code>
+<!-- 識別IDが重複しなければいくらでも埋め込める -->
+<code id="...">...</code>
+<code id="...">...</code>
+</predef>
+      ]]>
+    </code>
+    <code id="code3" lang="xml">
+      <![CDATA[
+<say by="zunda" code="コードを識別するID">ソースコードなのだ〜</say>
+      ]]>
+    </code>
+  </predef>
+  <dialogue backgroundImage="../../assets/6495733.jpeg" bgm="assets/nc282335_15%.mp3">
+  <!-- TODO: assetのパスをhtmlからのパスではなくxmlからのパスにする、asset: schemeの導入 -->
+    <say by="z">zmm開発日誌その3、はーじまーるよー</say>
+    <say by="z" speed="1.1">この動画では、動画生成ツールzmmの開発の進捗をちびちび報告していくのだ</say>
+    <say by="z" speed="1.1">ちなみにこの動画自体もzmmで生成されているのだ</say>
+    <say by="t">ここまでがテンプレだね。</say>
+    <say by="t">今回増えた機能はソースコードを表示する機能だね</say>
+    <say by="z">そうなのだ</say>
+    <say by="z">画面にプログラミング言語のソースコードを表示できるようになったのだ</say>
+    <say by="z">これまで動画にソースコードを表示するのはとても手間暇かかる作業だったのだ</say>
+
+    <scene code="code1">
+    <say by="z">zmmを使うとソースコードをXMLファイル中に埋め込むだけでこのように画面に表示できるし、</say>
+    <say by="z">ほぼ自動でシンタックスハイライト、つまりプログラムの構文の強調表示もしてくれるのだ</say>
+    <say by="m">あ、ここからどんどんソースコードが表示されるので適宜一時停止しながら確認してくださいね</say>
+    </scene>
+    <scene code="code2">
+    <say by="t">コードを貼り付けるときは3つの事をおこなってね</say>
+    <say by="t">まずはXMLファイルのpredefという要素の中にcode要素としてソースコードをペーストすること</say>
+    <say by="t">そしてid属性を使って後からソースコードを参照するための名前を与えること</say>
+    </scene>
+    <scene code="code3">
+    <say by="t">最後に実際にコードを表示したい場所でcode属性を使ってコードを呼び出すこと</say>
+    <say by="t">この3つだよ</say>
+    </scene>
+    <scene code="code2">
+    <say by="t">ちなみにプログラミング言語は自動判定されるけれど、</say>
+    <say by="t">うまくいかないときはcode要素にlang属性をオプションで追加するとその言語で表示してくれるよ</say>
+    </scene>
+    <say by="z;">これまでは大変だった動画上のソースコードの表示が簡単にできるようになって投稿者も一人で感激しているのだ</say>
+    <say by="t^">自分で作ったソフトウェアに機能がどんどん増えていくのは楽しいよね</say>
+    <say by="z">この調子で、次回は数式を表示できるようにすることを目標にしようと思うのだ</say>
+    <say by="z">投稿者は趣味で圏論を勉強しているので、可換図を含んだ数式が表示されるとお得と勝手に思っているのだ</say>
+    <say by="z">あまり難しくないと思っているので期待していてほしいのだ</say>
+    <say by="z">また、ファイルを直接XMLに埋め込むのではなく他のファイルから読み込む方式も検討しているのだ</say>
+    <say by="m">今回の進捗はここまでです。これまでいいね・広告してくださった皆様、ありがとうございます！</say>
+    <say by="t">今後も投稿を続けていくと思うので、投稿者をフォローしてくれると嬉しいな</say>
+    <say by="z^">それでは、ご視聴ありがとうございました！</say>
+  </dialogue>
+</content>
