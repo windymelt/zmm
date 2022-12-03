@@ -1,12 +1,33 @@
 @(serif: String, ctx: com.github.windymelt.zmm.domain.model.Context)
 <html>
     <body style="background-color: darkblue; @ctx.backgroundImageUrl.map(url => s"background-image: url('${url}');" ).getOrElse("") background-size: 100%;">
+    <!-- Highlight.js -->
     <link rel="stylesheet"
           href="../../default.min.css">
     <script src="../../highlight.min.js"></script>
     <script>hljs.highlightAll();</script>
+    <!-- Mathjax: TODO: あとでjsを埋め込む -->
+    <script>
+    MathJax = {
+        tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['\\[', '\\]']]
+        },
+        svg: {
+            fontCache: 'global',
+            scale: 1
+        }
+    };
+    </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src=@{"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"} ></script>
     <div style="position: fixed; left: 10%; right: 20%; top: 10%; font-size: 64pt; font-family: Corporate Logo ver3; color: white; -webkit-text-stroke: 0.05em black; text-stroke: 0.05em black;">@{ctx.atv.get("motif")}</div>
         <div style="@{ctx.atv.get("code").map(_ => "").getOrElse("display: none; ")}position: fixed; left: 2%; right: 20%; top: 2%; font-size: 20pt;">
+            $f(x) = x^2 + \frac{e}{x}$
+            and
+            \[
+            E = mc^2
+            \]
             <pre>
             @defining(ctx.codes.get(ctx.atv.get("code").getOrElse("")).getOrElse("" -> None)) { c =>
                 <code class="@{c._2.map(l => s"lang-$l").getOrElse("")}">@c._1</code>
