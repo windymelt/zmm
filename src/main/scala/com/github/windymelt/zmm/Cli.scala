@@ -161,7 +161,14 @@ final class Cli
       id -> (code, lang)
     } ).toMap
 
-    IO.pure(domain.model.Context(voiceConfigMap, characterConfigMap, defaultBackgroundImage, dict = dict, codes = codes))
+    val maths: Map[String, String] = (elem \ "predef" \ "math").flatMap(es => es.map { e =>
+      val math = e.text.stripLeading()
+      val id = e \@ "id"
+
+      id -> math
+    } ).toMap
+
+    IO.pure(domain.model.Context(voiceConfigMap, characterConfigMap, defaultBackgroundImage, dict = dict, codes = codes, maths = maths))
   }
 
   private def generateVideo(

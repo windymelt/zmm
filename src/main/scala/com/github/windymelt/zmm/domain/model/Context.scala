@@ -33,6 +33,7 @@ final case class Context(
     additionalTemplateVariables: Map[String, String] = Map.empty,
     bgm: Option[String] = None,
     codes: Map[String, (String, Option[String])] = Map.empty, // id -> (code, lang?)
+    maths: Map[String, String] = Map.empty, // id -> LaTeX string
     sic: Option[String] = None, // 代替読みを設定できる(数式などで使う)
     // TODO: BGM, fontColor, etc.
 ) {
@@ -70,6 +71,7 @@ object Context {
         additionalTemplateVariables = x.additionalTemplateVariables ++ y.additionalTemplateVariables,
         bgm = y.bgm orElse x.bgm,
         codes = x.codes |+| y.codes, // Map の Monoid性を応用すると、同一idで書かれたコードは結合されるという好ましい特性が表われるのでこうしている。additionalTemplateVariablesに畳んでもいいかもしれない。現在のコードはadditionalTemplateVariablesに入れている
+        maths = x.maths |+| y.maths,
         sic = y.sic orElse x.sic,
       )
     }
@@ -93,7 +95,8 @@ object Context {
     val atvs = {
       val motif = firstAttrTextOf(e, "motif").map("motif" -> _)
       val code = firstAttrTextOf(e,"code").map("code" -> _)
-      Seq(motif, code).flatten.toMap
+      val math = firstAttrTextOf(e,"math").map("math" -> _)
+      Seq(motif, code, math).flatten.toMap
     }
     Context(
       voiceConfigMap = empty.voiceConfigMap, // TODO
