@@ -93,9 +93,10 @@ final class Cli
       voiceVox: VoiceVox,
       ctx: Context
   ): IO[(fs2.io.file.Path, scala.concurrent.duration.FiniteDuration)] = for {
+    actualPronunciation <- IO.pure(ctx.sic.getOrElse(sayElem.text)) // sicがない場合は元々のセリフを使う
     aq <- backgroundIndicator("Building Audio Query").use { _ =>
       // by属性がないことはないやろという想定でgetしている
-      buildAudioQuery(sayElem.text, ctx.spokenByCharacterId.get, voiceVox, ctx)
+      buildAudioQuery(actualPronunciation, ctx.spokenByCharacterId.get, voiceVox, ctx)
     }
 //    _ <- IO.println(aq)
     fixedAq <- ctx.speed map (sp =>
@@ -160,7 +161,14 @@ final class Cli
       id -> (code, lang)
     } ).toMap
 
-    IO.pure(domain.model.Context(voiceConfigMap, characterConfigMap, defaultBackgroundImage, dict = dict, codes = codes))
+    val maths: Map[String, String] = (elem \ "predef" \ "math").flatMap(es => es.map { e =>
+      val math = e.text.stripLeading()
+      val id = e \@ "id"
+
+      id -> math
+    } ).toMap
+
+    IO.pure(domain.model.Context(voiceConfigMap, characterConfigMap, defaultBackgroundImage, dict = dict, codes = codes, maths = maths))
   }
 
   private def generateVideo(

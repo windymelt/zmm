@@ -99,7 +99,7 @@ trait VoiceVoxComponent {
     private lazy val client = {
       import concurrent.duration._
       import scala.language.postfixOps
-      EmberClientBuilder.default[IO].withTimeout(5 minutes).withIdleConnectionTime(5 minutes).build
+      EmberClientBuilder.default[IO].withTimeout(10 minutes).withIdleConnectionTime(10 minutes).build
     }
   }
 }
