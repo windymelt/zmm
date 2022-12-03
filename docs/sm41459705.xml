@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<content version="0.0">
+  <meta>
+    <voiceconfig id="metan" backend="voicevox">
+      <voicevoxconfig id="2" />
+    </voiceconfig>
+    <voiceconfig id="zundamon" backend="voicevox">
+      <voicevoxconfig id="3" />
+    </voiceconfig>
+    <voiceconfig id="zundamon-hisohiso" backend="voicevox">
+      <voicevoxconfig id="22" />
+    </voiceconfig>
+    <voiceconfig id="tsumugi" backend="voicevox">
+      <voicevoxconfig id="8" />
+    </voiceconfig>
+    <characterconfig name="m" voice-id="metan" serif-color="#E14D2A" tachie-url="../../assets/metan.png" />
+    <characterconfig name="z" voice-id="zundamon" serif-color="#379237"
+                     tachie-url="../../assets/zunda.png" />
+    <!-- PSDTool便利すぎ〜〜 -->
+    <characterconfig name="z;" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda0001.png" />
+    <characterconfig name="z^" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda0002.png" />
+    <characterconfig name="z!" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda0003.png" />
+    <characterconfig name="z_" voice-id="zundamon-hisohiso" tachie-url="../../assets/zunda.png" />
+    <characterconfig name="t" voice-id="tsumugi" tachie-url="../../assets/tsumugi.png" />
+    <characterconfig name="t^" voice-id="tsumugi" tachie-url="../../assets/tsumugi0000.png" />
+    <characterconfig name="t!" voice-id="tsumugi" tachie-url="../../assets/tsumugi0001.png" />
+    <dict pronounce="ゼットエムエ_ム">zmm</dict>
+    <dict pronounce="モチー_フ">motif</dict>
+    <dict pronounce="コー_ド">code</dict>
+    <dict pronounce="プリデ_フ">predef</dict>
+    <dict pronounce="タンイ_ゲン">単位元</dict>
+    <dict pronounce="マスジャック_ス">mathjax</dict>
+    <dict pronounce="ラ_テック">latex</dict>
+    <dict pronounce="ヌル_ポ">nullpo</dict>
+    <dict pronounce="ヒイテミヨ_ウ">hiitemiyou</dict>
+  </meta>
+  <predef>
+    <code id="code1" lang="xml">
+      <![CDATA[
+<say by="zunda">$K - \frac{1}{2}mv^2$ なのだ</say>
+<!-- または・・・ -->
+<say by="zunda">\(K - \frac{1}{2}mv^2\) なのだ</say>
+      ]]>
+    </code>
+    <math id="axiom1">
+      <![CDATA[
+      \require{boldsymbol}
+      \begin{prooftree}
+      \AxiomC{$\boldsymbol\Gamma \vdash e_1 : \boldsymbol S \rightarrow \boldsymbol T$}
+      \AxiomC{$\boldsymbol\Gamma \vdash e_2 : \boldsymbol S$}
+      \BinaryInfC{$\boldsymbol\Gamma \vdash e_1 e_2 : \boldsymbol T$}
+      \end{prooftree}
+      ]]>
+    </math>
+    <code id="comment">{"comment": "毎秒投稿しろ"}</code>
+  </predef>
+  <dialogue backgroundImage="../../assets/6495733.jpeg" bgm="assets/nc282335_15%_twice.mp3">
+  <!-- TODO: assetのパスをhtmlからのパスではなくxmlからのパスにする、asset: schemeの導入 -->
+    <say by="z">zmm開発日誌その5、はーじまーるよー</say>
+    <say by="z" speed="1.1">この動画では、動画生成ツールzmmの開発の進捗をちびちび報告していくのだ</say>
+    <say by="z" speed="1.1">ちなみにこの動画自体もzmmで生成されているのだ</say>
+    <say by="t">ここまでがテンプレだね。</say>
+    <say by="m">ご意見感想は動画を作るモチベーションなので、どしどしコメントに書いてくださいね</say>
+    <scene speed="1.1">
+        <say by="t">そういえば「どしどし」って意見かハガキを送るときにしか使わなくない？</say>
+        <say by="z">そもそも最近はハガキを見ることすら少なくなってきているのだ</say>
+        <say by="z">最近はハガキの値段が微妙に上がって計算が面倒なのだ</say>
+    </scene>
+    <say by="t">無理矢理話を繋げるけど、今回増えた機能は数式を表示する機能だね</say>
+    <say by="m">だいぶ無茶しましたね</say>
+    <say by="z">そ、そうなのだ</say>
+    <say by="z" sic="ケー イコール 二分の一 エムブイ二乗なのだ">$K = \frac{1}{2}mv^2$ なのだ</say>
+    <say by="t!">ず・・・ずんちゃん・・・？</say>
+    <scene by="z!" speed="1.3">
+        <say sic="集合Sとその上の二項演算 ドット エスエス アロー エスが与えられ、以下の条件">
+        集合 $S$ とその上の二項演算 $\bullet: S \times S \rightarrow S$ が与えられ、以下の条件</say>
+        <say sic="結合法則 Sの任意のげん abcに対して、 カッコaドットb コッカドットcイコールaドットカッコbドットc">
+        結合法則: $S$ の任意の元 $a, b, c$ に対して、 $(a \bullet b) \bullet c = a \bullet (b \bullet c)$.</say>
+        <say sic="単位元の存在 Sのげん eが存在して、Sの任意のげんaに対してeドットaイコールaドットeイコールa">
+        単位元の存在: $S$ の元 $e$ が存在して、$S$ の任意の元 $a$ に対して $e \bullet a = a \bullet e = a$.</say>
+        <say sic="を満たすならば、組 S ドット e をモノイドというのだ。まぎれのおそれのない場合、
+                        ついS ドット">
+        を満たすならば、組 $(S, \bullet, e)$ をモノイドというのだ。まぎれの虞のない場合、対 $(S, \bullet)$</say>
+        <say>あるいは単に $S$ のみでも表すのだ。</say>
+    </scene>
+    <say by="t!">どうしよう、ずんちゃんが壊れちゃった・・・どこか頭とか、ぶつけちゃったのかな・・・</say>
+    <say by="m">ずんだもんは数式を表示できるように頑張ってくれたんですよ</say>
+    <say by="z!">そ・・・そうなのだ</say>
+    <scene code="code1">
+        <say by="z">XMLファイル中に直接数式を書き込むことでそのままその式を表示できるようにしたのだ</say>
+        <say by="z">ドル記号でくくった箇所、もしくはバックスラッシュを前置したカッコのペアでくくった場所が数式として表示されるのだ</say>
+        <say by="z">式の記法は$\LaTeX$という広く使われている書式を採用したのだ</say>
+        <say by="z">$\LaTeX$はあらゆる大学で使われている組版ソフトウェアで、数学に関わっている人ならばだいたい誰でも知っている有名ソフトウェアなのだ</say>
+        <say by="m" sic="投稿者もカッコ付けてこれで卒論を書いたそうですよ">投稿者もカッコ付けてこれで卒論を書いたそうですよ(文系だったのに)</say>
+        <say by="t">ちなみにちょっと専門的な話をするとMathjaxというソフトウェアを用いて数式をレンダーしているよ</say>
+    </scene>
+    <scene math="axiom1">
+      <say by="z">これに加えて、前回のコード表示機能と同様に、数式を板書的に示せるようにしたのだ</say>
+      <say by="t">これは単純型付きラムダ計算の型付け規則のうちの一つだね</say>
+      <say by="m">投稿者は自分で作っておいてめちゃくちゃ便利だと感激しているみたいです、よかったですね</say>
+      <say by="z^">ニッチな自然科学クラスタに使ってほしいのだ</say>
+      <say by="m">インターネットに何人いるんですかねそれ・・・</say>
+    </scene>
+    <say by="t">コメントにもお返事しちゃうよ</say>
+    <scene code="comment">
+        <say by="m">「毎秒投稿しろ」</say>
+        <say by="z!" speed="1.3">アッハイ</say>
+        <say by="t">今のペースだとだいたい週一くらいになるかな</say>
+        <say by="z">今のところ投稿者一人だけで開発しているのでこれ以上ペースを上げると過労死待ったなしなのだ</say>
+        <say by="z">仕事をしていないときは趣味のプログラミングをし、プログラミングをしていないときは仕事をしている気がするのだ</say>
+    </scene>
+    <say by="m">さて、今回の進捗はここまでです。これまでいいねしてくださった皆様、ありがとうございます！</say>
+    <say by="m">そして、広告してくださった「nullpo!」様、「hiitemiyou」様、「キャッチ22」様、ありがとうございます！</say>
+    <say by="t">今後も投稿を続けていくと思うので、投稿者をフォローしてくれると嬉しいな</say>
+    <say by="z^">それでは、ご視聴ありがとうございました！</say>
+  </dialogue>
+</content>
