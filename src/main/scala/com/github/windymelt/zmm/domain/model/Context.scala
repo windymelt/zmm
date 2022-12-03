@@ -33,6 +33,7 @@ final case class Context(
     additionalTemplateVariables: Map[String, String] = Map.empty,
     bgm: Option[String] = None,
     codes: Map[String, (String, Option[String])] = Map.empty, // id -> (code, lang?)
+    sic: Option[String] = None, // 代替読みを設定できる(数式などで使う)
     // TODO: BGM, fontColor, etc.
 ) {
   def atv = additionalTemplateVariables // alias for template
@@ -69,6 +70,7 @@ object Context {
         additionalTemplateVariables = x.additionalTemplateVariables ++ y.additionalTemplateVariables,
         bgm = y.bgm orElse x.bgm,
         codes = x.codes |+| y.codes, // Map の Monoid性を応用すると、同一idで書かれたコードは結合されるという好ましい特性が表われるのでこうしている。additionalTemplateVariablesに畳んでもいいかもしれない。現在のコードはadditionalTemplateVariablesに入れている
+        sic = y.sic orElse x.sic,
       )
     }
     def empty: Context = Context.empty
@@ -103,6 +105,7 @@ object Context {
       tachieUrl = firstAttrTextOf(e, "tachie-url"),
       additionalTemplateVariables = atvs,
       bgm = firstAttrTextOf(e, "bgm"),
+      sic = firstAttrTextOf(e, "sic"),
     )
   }
 
