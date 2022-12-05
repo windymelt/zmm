@@ -27,16 +27,17 @@ trait VoiceVoxComponent {
     * }}}
     */
   class ConcreteVoiceVox extends VoiceVox {
+    val voicevoxUri = sys.env.get("VOICEVOX_URI") getOrElse "http://localhost:50021" // TODO: remove unsafe
     def speakers(): IO[SpeakerInfo] = client.use {
       c =>
-      val req = Request[IO](uri = Uri.fromString("http://localhost:50021/speakers").right.get)
+      val req = Request[IO](uri = Uri.fromString(s"${voicevoxUri}/speakers").right.get)
       c.expect[SpeakerInfo](req)
     }
     // TODO: localhost:50021決め打ちをやめる
     def audioQuery(text: String, speaker: String): IO[AudioQuery] = client.use {
       c =>
         val uri = Uri
-          .fromString("http://localhost:50021/audio_query")
+          .fromString(s"${voicevoxUri}/audio_query")
           .map(
             _.copy(query =
               org.http4s.Query
@@ -54,7 +55,7 @@ trait VoiceVoxComponent {
     def synthesis(aq: AudioQuery, speaker: String): IO[fs2.Stream[IO, Byte]] =
       client.use { c =>
         val uri = Uri
-          .fromString("http://localhost:50021/synthesis")
+          .fromString(s"${voicevoxUri}/synthesis")
           .map(
             _.copy(
               query = org.http4s.Query.fromMap(Map("speaker" -> Seq(speaker)))
@@ -80,7 +81,7 @@ trait VoiceVoxComponent {
 
     def registerDict(word: String, pronounce: String, lowerPoint: Int): IO[Unit] = client.use { c =>
       val uri = Uri
-        .fromString("http://localhost:50021/user_dict_word")
+        .fromString(s"${voicevoxUri}/user_dict_word")
         .map(
           _.copy(
             query = org.http4s.Query.fromMap(Map("surface" -> Seq(word), "pronunciation" -> Seq(pronounce), "accent_type" -> Seq(lowerPoint.toString)))
