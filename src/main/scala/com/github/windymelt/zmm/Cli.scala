@@ -26,7 +26,8 @@ final class Cli
 
   def voiceVox: VoiceVox = new ConcreteVoiceVox()
   def ffmpeg = new ConcreteFFmpeg(ConcreteFFmpeg.Quiet)
-  def screenShot = new ChromeScreenShot("chromium", ChromeScreenShot.Quiet)
+  val chromiumNoSandBox = sys.env.get("CHROMIUM_NOSANDBOX").map(_ == "1").getOrElse(false)
+  def screenShot = new ChromeScreenShot("chromium", ChromeScreenShot.Quiet, chromiumNoSandBox)
 
   def generate(filePath: String): IO[Unit] = {
     val content = IO.delay(scala.xml.XML.loadFile(filePath))
@@ -61,8 +62,8 @@ final class Cli
 
          val reductedBgmWithDuration = groupReduction(bgmWithDuration)
 
-         reductedBgmWithDuration.size match {
-           case 0 => IO.unit
+         reductedBgmWithDuration.filter(_._1.isDefined).size match {
+           case 0 => IO.pure(os.move(zippedVideo, os.pwd / "output_with_bgm.mp4")) // Dirty fix. TODO: fix here
            case _ => ffmpeg.zipVideoWithAudioWithDuration(zippedVideo, reductedBgmWithDuration)
          }
        }
