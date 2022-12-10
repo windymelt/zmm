@@ -185,7 +185,7 @@ final class Cli
         screenShotFile <- screenShot.takeScreenShot(os.pwd / os.RelPath(htmlFile.toString))
       } yield screenShotFile
     }
-    val sceneImages = backgroundIndicator("Generating scenary image").use(_ => saySeq.parSequence)
+    val sceneImages = saySeq.grouped(10).map(_.parSequence).toSeq.reduceRight[IO[Seq[Path]]] { case (acc, io) => acc.flatMap(acc => io.map(acc ++ _))}
     sceneImages.flatMap(imgs => ffmpeg.concatenateImagesWithDuration(imgs.zip(pathAndDurations.map(_._2))))
 }
 
