@@ -83,10 +83,10 @@ final class Cli
     * @param ctx 辞書を取り出す元となるコンテキスト
     * @return 有用な情報は返されない
     */
-  private def applyDictionary(ctx: Context): IO[Seq[Unit]] = {
+  private def applyDictionary(ctx: Context): IO[Unit] = {
     import cats.syntax.parallel._
     val registerList = ctx.dict.map { d => voiceVox.registerDict(d._1, d._2, d._3) }
-    registerList.parSequence
+    registerList.reduceLeft[IO[Unit]] { case (acc, i) => i >> acc }
   }
 
   private def generateSay(
