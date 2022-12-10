@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<content version="0.0">
+  <meta>
+    <voiceconfig id="metan" backend="voicevox">
+      <voicevoxconfig id="2" />
+    </voiceconfig>
+    <voiceconfig id="zundamon" backend="voicevox">
+      <voicevoxconfig id="3" />
+    </voiceconfig>
+    <voiceconfig id="zundamon-hisohiso" backend="voicevox">
+      <voicevoxconfig id="22" />
+    </voiceconfig>
+    <voiceconfig id="tsumugi" backend="voicevox">
+      <voicevoxconfig id="8" />
+    </voiceconfig>
+    <voiceconfig id="hau" backend="voicevox">
+      <voicevoxconfig id="10" />
+    </voiceconfig>
+    <characterconfig name="metan" voice-id="metan" serif-color="#E14D2A" tachie-url="../../assets/metan.png" />
+    <characterconfig name="char2" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda.png" />
+    <characterconfig name="char2_hiso" voice-id="zundamon-hisohiso" tachie-url="../../assets/zunda.png" />
+    <characterconfig name="char3" voice-id="tsumugi" tachie-url="../../assets/tsumugi.png" />
+    <characterconfig name="hau" voice-id="hau" tachie-url="../../assets/hau0000.png" />
+    <characterconfig name="m" voice-id="metan" serif-color="#E14D2A" tachie-url="../../assets/metan.png" />
+    <characterconfig name="z" voice-id="zundamon" serif-color="#379237"
+                     tachie-url="../../assets/zunda.png" />
+    <!-- PSDTool便利すぎ〜〜 -->
+    <characterconfig name="z;" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda0001.png" />
+    <characterconfig name="z^" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda0002.png" />
+    <characterconfig name="z!" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda0003.png" />
+    <characterconfig name="zi" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda0004.png" />
+    <characterconfig name="z_" voice-id="zundamon-hisohiso" tachie-url="../../assets/zunda.png" />
+    <characterconfig name="t" voice-id="tsumugi" tachie-url="../../assets/tsumugi.png" />
+    <characterconfig name="t^" voice-id="tsumugi" tachie-url="../../assets/tsumugi0000.png" />
+    <characterconfig name="t!" voice-id="tsumugi" tachie-url="../../assets/tsumugi0001.png" />
+    <dict pronounce="ゼットエム_エム">zmm</dict>
+    <dict pronounce="スカラ_">Scala</dict>
+    <dict pronounce="ア_ドベント">Advent</dict>
+    <dict pronounce="コ_ード">code</dict>
+    <dict pronounce="マスジャッ_クス">MathJax</dict>
+    <dict pronounce="クロ_ミウム">Chromium</dict>
+    <dict pronounce="エフエフエム_ペグ">ffmpeg</dict>
+    <dict pronounce="エムピ_ーフォー">mp4</dict>
+    <dict pronounce="キャ_ッツ">Cats</dict>
+    <dict pronounce="モノ_イド">Monoid</dict>
+  </meta>
+  <predef>
+    <code id="abstract">
+      <![CDATA[
+* zmmの紹介
+  * はじめに (イマココ)
+  * zmmの使い方
+      ]]>
+    </code>
+    <code id="howto-run">
+      <![CDATA[
+* zmmの紹介
+  * はじめに
+  * zmmの使い方
+    * 起動方法 (イマココ)
+    * zmmのメンタルモデル
+    * 機能紹介
+    * 従来のソフトウェアとの差異
+      ]]>
+    </code>
+    <code id="problem" lang="markdown">
+      <![CDATA[
+1. テキストが無いので検索できない
+====================
+- 検索できないと発見できない
+  - 情報は検索できるからこそ意味がある
+- 検索での流入が望めないのでバズ狙いの情報が氾濫してしまう
+- 動画は全部見ないと望みの情報があるかどうか分からない
+  - 視聴者は倍速試聴といった不合理な対策をとっている状態
+  - これにより動画全体の品質が上がりにくい
+    - Wikipediaを引用するだけの動画がもてはやされる現状
+
+2. 検索性が悪化することでそれを探してくる人の地位が上がり、権威化してしまう
+=================================================
+- 情報の独占構造が生まれてしまう
+- 独占構造は不公正な情報発信の温床となる
+      ]]>
+    </code>
+    <code id="goal" lang="markdown">
+      <![CDATA[
+1. 動画とテキストの共存
+=================
+- HTML形式の出力をサポートすることで可能となる
+
+2. テキスト世界の住人が動画文化圏に飛び出せるようにする
+=======================================
+- 既存の動画編集ツールには無かったテキスト文化圏向けの機能を増強する
+  - 後程紹介します
+      ]]>
+    </code>
+    <code id="run.sh" lang="bash">
+      <![CDATA[
+$ sbt 'run 原稿.xml'
+$ xdg-open output_with_bgm.mp4
+      ]]>
+    </code>
+    <code id="scalasample" lang="scala">
+      <![CDATA[
+def groupReduction[E : Eq, S : Semigroup](xs: Seq[(E, S)]): Seq[(E, S)] = {
+    import cats.syntax.eq._
+    import cats.syntax.apply._
+    xs.view.map(_.swap).foldRight(Seq.empty[(S, E)]) {
+        case (head, second +: acc) if head._2 === second._2 => (head <* second) +: acc
+        case (em, acc) => em +: acc
+    }.map(_.swap)
+}
+      ]]>
+    </code>
+    <math id="samplemath">
+      <![CDATA[
+      \require{boldsymbol}
+      \begin{prooftree}
+      \AxiomC{$\boldsymbol\Gamma \vdash e_1 : \boldsymbol S \rightarrow \boldsymbol T$}
+      \AxiomC{$\boldsymbol\Gamma \vdash e_2 : \boldsymbol S$}
+      \BinaryInfC{$\boldsymbol\Gamma \vdash e_1 e_2 : \boldsymbol T$}
+      \end{prooftree}
+      ]]>
+    </math>
+    <code id="tanishi">https://tanishiking24.hatenablog.com/entry/2021/12/01/161058
+の記事に触発されてEssential Effectsを読んでいた</code>
+    <bib global="yes" type="online" uri="https://voicevox.hiroshiba.jp">VOICEVOX ずんだもん</bib>
+    <bib global="yes" type="online" uri="https://voicevox.hiroshiba.jp">VOICEVOX 雨晴はう</bib>
+    <bib global="yes" type="online" uri="https://voicevox.hiroshiba.jp">VOICEVOX 四国めたん</bib>
+    <bib global="yes" type="online" uri="https://voicevox.hiroshiba.jp">VOICEVOX 春日部つむぎ</bib>
+    <bib global="yes" type="online" uri="im10788496">ずんだもん立ち絵素材</bib>
+    <bib global="yes" type="online" uri="im10880094">雨晴はう立ち絵素材</bib>
+    <bib global="yes" type="online" uri="im10849150">春日部つむぎ立ち絵素材</bib>
+    <bib global="yes" type="online" uri="im10791276">四国めたん立ち絵素材</bib>
+    <bib global="yes" type="online" uri="im6495733">教室(夕方)</bib>
+    <bib global="yes" type="online" uri="sm41113899">【30分耐久】フリーBGM かわいい せつない Future Bass チップチューン ライブ配信 作業用</bib>
+    <bib id="psdtool" type="online" uri="https://oov.github.io/psdtool/">PSDTool</bib>
+    <bib id="sac" type="online" uri="https://qiita.com/advent-calendar/2022/scala">Scala Advent Calendar 2022</bib>
+  </predef>
+  <dialogue backgroundImage="../../assets/6495733.jpeg" bgm="assets/nc284625_15%_4x.mp3" speed="1.1">
+    <!-- TODO: assetのパスをhtmlからのパスではなくxmlからのパスにする、asset: schemeの導入 -->
+    <say by="hau">この動画は、Scala Advent Calendar 2022<cite id="sac"/>の11日目の記事です。</say>
+    <say by="hau">昨日の記事は、110416さんによる「Scala のビルドツール mill を紹介する」でした。</say>
+    <say by="hau">記事だと言っているのに突然動画が始まってびっくりしているかもしれません。</say>
+    <say by="hau">この動画こそが、このアドベントカレンダーでの発表対象となる動画作成ツール「zmm」で生成した動画なのです。</say>
+
+    <say by="m" motif="はじめに">皆さんは「マルチメディア」という言葉をご存知でしょうか。</say>
+    <scene code="abstract">
+      <say by="m">元々はコンピュータ上で文字以外の情報を扱えることを指していたこの言葉は、 2022年現在もはや当たり前すぎて使われることはありません。</say>
+      <say by="m">インターネットの普及と技術発展により、情報を表現する手法は多様化してきました。</say>
+      <say by="m">今や、動画を用いた情報発信は広く普及しており、特に若い人の間ではそれが顕著です。</say>
+      <scene code="problem">
+        <say by="m">しかしながら、動画による情報発信には、従来のインターネットの規範にそぐわない以下の特性がありました。</say>
+        <say by="m">まず、テキスト情報が失われるため、検索エンジンを用いた内容による検索が困難であること。</say>
+        <say by="m">そして、検索が困難であるため、情報を保有する権威者に情報が集中すること。</say>
+        <say by="m">この二つです。</say>
+        <say by="m">このような動画にまつわる問題を解消・軽減するためには、
+        動画内にうまくテキスト情報を埋め込んだり、</say>
+        <say by="m">動画とHTMLベースの情報が併存するような環境を作る必要がありました。</say>
+      </scene>
+      <scene code="goal">
+        <say by="m">今回私が作成・開発中であるzmmは、この問題を一部解消することを目指して作られています。</say>
+        <say by="m">zmmは動画のスタイルのうち「解説動画」と一般に呼ばれているものの作成を支援するツールであり、以下の2点を指向しています。</say>
+        <say by="m">まず、現在黄金期にある動画形式と、これまで発展してきたテキスト形式の共存を目指すこと。</say>
+        <say by="m">そして、これまで動画作成のノウハウを持っておらず、テキストベースのコンテンツを作る才能があるにもかかわらず動画形式での発信が叶わなかったユーザが、 </say>
+        <say by="m">より簡単に解説動画を作成できるようになり、より豊かな動画圏を目指すこと。</say>
+        <say by="t">テキストは得意だけど動画はそうでもないというユーザは多いはずだよね</say>
+      </scene>
+      <say by="m">そしてこの動画は、このzmmの宣伝も兼ねた自分自身の解説動画です。</say>
+      <say by="m">この動画では、エンジニアを中心としたコンテンツ発信者に向けたzmm紹介と、</say>
+      <say by="m">zmmを構成するソフトウェアコンポーネントについての解説を行います。</say>
+      <say by="m">対象読者は、XMLをある程度理解できる中級インターネット利用者です。</say>
+      <say by="m">また、後半の技術的解説は難易度が上がるため、プログラミングの経験がある人を対象とします。</say>
+      <say by="m">では始めましょう。</say>
+    </scene>
+    <say by="z;" motif="使い方">堅苦しい話ばかりだとブラウザバックされちゃうのだ</say>
+    <say by="z^" motif="使い方">ここからは使い方を中心に解説していくのだ</say>
+    <scene code="run.sh">
+      <say by="z">まずはzmmの起動方法について説明するのだ</say>
+      <say by="z">zmmはScalaで書かれたアプリケーションで、XMLを引数として受け取り、mp4ファイルを出力として返すのだ</say>
+      <say by="t">ちょうど今示しているコマンドラインの形で使うことができるよ</say>
+      <say by="z">ただし今のところ、zmmを使うためにはffmpegを筆頭とする補助ツールが必要なのだ</say>
+      <say by="z">また、インストーラも存在しないのでユーザはsbtを使って起動する必要があるのだ</say>
+      <say by="z">これだと当然使いにくいので変換サーバを用意するといった方法を考えているのだ</say>
+    </scene>
+    <scene backgroundImage="../../assets/advent1.png">
+      <say by="zi">構成要素についてもうちょっと詳しく解説していくのだ</say>
+      <say by="zi">zmmはいくつかのパーツに分かれていて、役割を分担しているのだ</say>
+      <say by="zi">XMLファイルからmp4ファイルへの変換の全般的な処理をzmmが行っているのだ</say>
+      <say by="zi">そして画像の生成まわりではChromiumを呼び出して処理させているのだ</say>
+      <say by="zi">音声合成にはおなじみVOICEVOXを呼び出しているし</say>
+      <say by="zi">動画処理のためにffmpegを使っているのだ</say>
+      <say by="t" speed="1">これらのパーツを組み合わせてzmmは最終的なmp4ファイルを出力できているんだね</say>
+    </scene>
+    <say by="z">次に、zmmの特徴や機能について説明していくのだ</say>
+    <say by="z">zmmは標準的な解説動画に使われる、背景、立ち絵、BGM、キャラクターに合わせた文字色の変更をサポートしているのだ</say>
+    <say by="t">ここまでの動画でも、実際に背景が設定されたり立ち絵が表示されているね</say>
+    <say by="z">特筆すべき機能として、ソースコードを画面に表示することでプログラミング系解説動画の作成をサポートするのだ</say>
+    <say by="t" code="scalasample">例えばzmmのソースコードの一部をこのように表示することができるよ</say>
+    <say by="z">他にも、数式を表示することもサポートしているのだ</say>
+    <say by="t">記法はMathJaxに準拠していて、例えば</say>
+    <say by="t" sic="対数の計算規則、といった表現ができるよ">$\log _{a}xy=\log _{a}x+\log _{a}y$ といった表現ができるよ</say>
+    <say by="t" math="samplemath">このように、板書のように画面に数式を表示することもできるよ</say>
+    <say by="z">これに限らず、便利な機能はどんどん追加していきたいと考えているのだ</say>
+
+    <say by="m">在来のソフトウェアとの比較についても触れておきましょう。</say>
+    <say by="m">いわゆる「解説動画」を作るためのツールとして「ゆっくりムービーメーカー」「AviUtl」</say>
+    <say by="m">などがよく使われていますが、これらのツールと比較してzmmは以下のような違いを有しています。</say>
+    <say by="m">まず何より、MITライセンスで提供されるオープンソースソフトウェアであり、利用者による機能追加が容易になるように設計されていること。</say>
+    <say by="m">また、どちらかといえばテキスト文化圏のユーザに向けた機能、</say>
+    <say by="m">例えばソースコード表示機能や数式表示機能に特化していること。</say>
+    <say by="m">この2つが大きなメリットです。</say>
+    <say by="m">ちなみに将来的には文献表示機能やHTML出力機能を提供していく予定です。</say>
+    <say by="m">対照的に、機能の充実性や動きを伴うダイナミックな演出には不向きなのがデメリットと言えるでしょう。</say>
+    <say by="m">まとめるとzmmは、オープン性と、よりテキストに特化した仕様になっているツールなのです。</say>
+    <say by="z">zmmの内部構造についての話もしておくのだ</say>
+    <say by="z">まず、zmmは周辺ライブラリとの協働の都合上Scala2を使っているのだ</say>
+    <say by="z">今後ライブラリまわりのScala3対応が進展すればScala3化が可能になるはずなのだ</say>
+
+    <say by="z">次に、型クラスのためにCatsを導入したのだ</say>
+    <say by="z">アプリケーションの特性上、</say>
+    <say by="z">zmmには木構造であるXMLをパースして情報を取り出すといった操作がきわめて多いのだ</say>
+    <say by="z">Catsは、</say>
+    <say by="z">木構造から一定の規則でデータを取り出すといったボイラープレートをMonoidといった型クラスを活用することで省略できるのだ</say>
+    <say by="z">これにより数学的に堅牢な状態で処理を記述でき、コーナーケースで困るようなことがなかったのだ</say>
+    <say by="z">数学の力によりコーナーケースを潰すことができるというのがCatsなどの型クラスライブラリを使う利点だと実感したのだ</say>
+
+    <say by="z">そして、Cats Effectを導入したのだ</say>
+    <say by="z">zmmには外部プロセスを呼び出す処理や、音声合成やレンダリングに時間がかかるシチュエーションが多いのでCats Effectの出番なのだ</say>
+    <say by="z">計算リソースを有効活用しつつ安全に処理を進めるために、Cats Effectを用いて非同期処理まわりの抽象化を行ったのだ</say>
+    <say by="z" code="tanishi">たまたま最近Cats Effectの勉強をしていたのでこれが幸いしたのだ</say>
+
+    <say by="hau">これでこの記事は終わりです、もし良かったらzmmを触ってみてくださいね</say>
+    <say by="hau">御清聴ありがとうございました。</say>
+    <say by="m">明日の記事は jokester さんによる 「Cats Effect 使ってみた」 です。</say>
+    <say by="z^">よろしくなのだ〜</say>
+  </dialogue>
+</content>
