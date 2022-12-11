@@ -3,6 +3,7 @@ package infrastructure
 
 import cats.effect.IO
 import scala.concurrent.duration.FiniteDuration
+import domain.model.Context
 
 trait FFmpegComponent {
   self: domain.repository.FFmpegComponent with util.UtilComponent =>
@@ -20,11 +21,21 @@ trait FFmpegComponent {
       case ConcreteFFmpeg.Quiet => os.Pipe
       case ConcreteFFmpeg.Verbose => os.Inherit
     }
-    def concatenateWavFiles(files: Seq[File]): IO[os.Path] = {
-      // stub
-      val fileList = files.map(f => s"file '${f}'").mkString("\n")
-      val fileListPath = os.pwd / "fileList.txt"
-      IO.delay {
+    def concatenateWavFiles(files: Seq[(os.Path, FiniteDuration, Context)]): IO[os.Path] = {
+      import cats.syntax.parallel._
+      // トランジションを含む時間で音声の入りを調整する
+      val zero = FiniteDuration(0, "second")
+      val dummyHead = (null/* DANGEROUS!! */, zero, Context.empty)
+      val prependingSilence = (dummyHead +: files).sliding(2).map {
+        case Seq((_, dur, preContext), (f, _, _)) => preContext.transition match {
+          case Some(transition) =>
+            prependSilence(f, transition.duration * 2) // 後ろ側の音声で、本来前の音声が後置するべき無音も作ってやる
+          case None => IO.pure(f)
+        }
+      }.toSeq.parSequence
+      prependingSilence.map { files =>
+        val fileList = files.map(f => s"file '${f.toString}'").mkString("\n")
+        val fileListPath = os.pwd / "fileList.txt"
         os.remove(fileListPath, checkExists = false)
         os.write(fileListPath, fileList)
       } *>
@@ -45,7 +56,7 @@ trait FFmpegComponent {
             "copy",
             "artifacts/concatenated.wav"
           )
-          .call(stdout = stdout, stderr = stdout, stdin = fileList, cwd = os.pwd)
+          .call(stdout = stdout, stderr = stdout, cwd = os.pwd)
       } *>
       IO.pure(os.pwd / os.RelPath("artifacts/concatenated.wav"))
     }
@@ -112,6 +123,14 @@ trait FFmpegComponent {
         .call(stdout = stdout, stderr = stdout, cwd = os.pwd)
       }
     } yield os.pwd / os.RelPath("output.mp4")
+
+    private def prependSilence(audio: os.Path, dur: FiniteDuration): IO[os.Path] = {
+      val resultFileName = os.Path("/" ++ audio.segments.toSeq.dropRight(1).mkString("/")) / ("ap_" ++ audio.last) // いったん上書きする
+      IO.delay {
+        os.proc("ffmpeg", "-y", "-i", audio, "-af", s"adelay=${dur.toSeconds}s:all=true", resultFileName).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
+        resultFileName
+      }
+    }
 }
 
 }

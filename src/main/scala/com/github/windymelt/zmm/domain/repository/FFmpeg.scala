@@ -1,4 +1,5 @@
-package com.github.windymelt.zmm.domain.repository
+package com.github.windymelt.zmm.domain
+package repository
 
 import cats.effect.IO
 
@@ -9,7 +10,7 @@ trait FFmpegComponent {
   trait FFmpeg {
     type File = String // TODO: 必要に応じて拡張する
     import concurrent.duration.FiniteDuration
-    def concatenateWavFiles(files: Seq[File]): IO[os.Path]
+    def concatenateWavFiles(files: Seq[(os.Path, FiniteDuration, model.Context)]): IO[os.Path]
     def getWavDuration(file: File): IO[FiniteDuration]
     def concatenateImagesWithDuration(imageDurationPair: Seq[(os.Path, FiniteDuration)]): IO[os.Path]
     def zipVideoWithAudioWithDuration(videoPath: os.Path, audioDurationPair: Seq[(Option[os.Path], FiniteDuration)]): IO[os.Path]

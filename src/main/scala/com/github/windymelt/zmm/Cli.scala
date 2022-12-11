@@ -54,10 +54,11 @@ final class Cli
            pds.zip(transitionApplied).map {case ((p, _), (_, fd)) => p -> fd }
          }
        }
+       pathDurationCtx <- IO.pure(pathAndDurations.zip(sayCtxPairs).map { case ((p, d), (_, c)) => (p, d, c) })
        // この時点でvideoとaudioとの間に依存がないので並列実行する
        // BUG: SI-5589 により、タプルにバインドできない
        va <- backgroundIndicator("Generating video and concatenated audio").use { _ =>
-         generateVideo(sayCtxPairs, pathAndDurations) product ffmpeg.concatenateWavFiles(pathAndDurations.map(_._1.toString))
+         generateVideo(sayCtxPairs, pathAndDurations) product ffmpeg.concatenateWavFiles(pathDurationCtx.map { case (p, fd, c) => (os.pwd / os.RelPath(p.toString), fd, c) })
        }
        val (video, audio) = va
        zippedVideo <- backgroundIndicator("Zipping silent video and audio").use { _ => ffmpeg.zipVideoWithAudio(video, audio) }

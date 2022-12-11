@@ -120,7 +120,7 @@ object Context {
       sic = firstAttrTextOf(e, "sic"),
       transition = for {
         t <- firstAttrTextOf(e, "transition")
-        dur <- firstAttrTextOf(e, "transitionDuration")
+        dur <- firstAttrTextOf(e, "transitionDuration").orElse("1".some)
         finidur <- FiniteDuration.apply(dur.toLong, "second").some
       } yield TransitionConfig(t, finidur)
     )
