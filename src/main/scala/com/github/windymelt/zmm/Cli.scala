@@ -46,7 +46,13 @@ final class Cli
        pathAndDurations <- {
          import cats.syntax.parallel._
          val saySeq = sayCtxPairs map { case (s, ctx) => generateSay(s, voiceVox, ctx) }
-         saySeq.parSequence
+         val parallel = saySeq.parSequence
+
+         // トランジション処理を適用して長さを調整する(トランジションする箇所では長くする必要がある)
+         parallel.map { pds =>
+           val transitionApplied = Transition.applyTransitionToDurations(pds.zip(sayCtxPairs).map { case ((_, fd), (_, ctx)) => ctx -> fd })
+           pds.zip(transitionApplied).map {case ((p, _), (_, fd)) => p -> fd }
+         }
        }
        // この時点でvideoとaudioとの間に依存がないので並列実行する
        // BUG: SI-5589 により、タプルにバインドできない
