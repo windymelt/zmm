@@ -1,5 +1,7 @@
 package com.github.windymelt.zmm.domain.model
 
+import scala.concurrent.duration.FiniteDuration
+
 sealed trait VoiceBackendConfig
 final case class VoiceVoxBackendConfig(speakerId: String)
     extends VoiceBackendConfig
@@ -9,6 +11,11 @@ final case class CharacterConfig(
   voiceId: String,
   serifColor: Option[String] = None,
   tachieUrl: Option[String] = None, // セリフカラー同様、セリフによって上書きされうる
+)
+
+final case class TransitionConfig(
+  transitionType: String,   // e.g. fade
+  duration: FiniteDuration, // e.g. 1 sec.
 )
 
 /*
@@ -35,6 +42,7 @@ final case class Context(
     codes: Map[String, (String, Option[String])] = Map.empty, // id -> (code, lang?)
     maths: Map[String, String] = Map.empty, // id -> LaTeX string
     sic: Option[String] = None, // 代替読みを設定できる(数式などで使う)
+    transition: Option[TransitionConfig] = None,
     // TODO: BGM, fontColor, etc.
 ) {
   def atv = additionalTemplateVariables // alias for template
@@ -73,6 +81,7 @@ object Context {
         codes = x.codes |+| y.codes, // Map の Monoid性を応用すると、同一idで書かれたコードは結合されるという好ましい特性が表われるのでこうしている。additionalTemplateVariablesに畳んでもいいかもしれない。現在のコードはadditionalTemplateVariablesに入れている
         maths = x.maths |+| y.maths,
         sic = y.sic orElse x.sic,
+        transition = y.transition orElse x.transition, // あまり複雑な合成は想定していない
       )
     }
     def empty: Context = Context.empty
@@ -109,6 +118,11 @@ object Context {
       additionalTemplateVariables = atvs,
       bgm = firstAttrTextOf(e, "bgm"),
       sic = firstAttrTextOf(e, "sic"),
+      transition = for {
+        t <- firstAttrTextOf(e, "transition")
+        dur <- firstAttrTextOf(e, "transitionDuration")
+        finidur <- FiniteDuration.apply(dur.toLong, "second").some
+      } yield TransitionConfig(t, finidur)
     )
   }
 
