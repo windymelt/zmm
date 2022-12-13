@@ -1,5 +1,7 @@
 # ずんだムービーメーカー(仮)
 
+![](https://raw.githubusercontent.com/windymelt/zmm/main/zmm.png)
+
 まだアルファクオリティです
 
 ## Sample
