@@ -42,5 +42,7 @@ trait UtilComponent {
     }.map(_.swap)
   }
 
+  lazy val config = com.typesafe.config.ConfigFactory.load()
+
   implicit val EqForPath: Eq[os.Path] = Eq.by(_.toString())
 }

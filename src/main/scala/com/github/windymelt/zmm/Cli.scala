@@ -25,15 +25,18 @@ final class Cli
 \_____/\_|  |_/\_|  |_/"""
 
   def voiceVox: VoiceVox = new ConcreteVoiceVox()
-  def ffmpeg = new ConcreteFFmpeg(ConcreteFFmpeg.Quiet)
-  val chromiumNoSandBox = sys.env.get("CHROMIUM_NOSANDBOX").map(_ == "1").getOrElse(false)
-  def screenShot = new ChromeScreenShot("chromium", ChromeScreenShot.Quiet, chromiumNoSandBox)
+  def ffmpeg = new ConcreteFFmpeg(config.getString("ffmpeg.command"), ConcreteFFmpeg.Quiet)
+  val chromiumNoSandBox = sys.env.get("CHROMIUM_NOSANDBOX").map(_ == "1").getOrElse(config.getBoolean("chromium.nosandbox"))
+  def screenShot = new ChromeScreenShot(config.getString("chromium.command"), ChromeScreenShot.Quiet, chromiumNoSandBox)
 
   def generate(filePath: String): IO[Unit] = {
     val content = IO.delay(scala.xml.XML.loadFile(filePath))
 
      for {
        _ <- showLogo
+       _ <- IO.println(s"""[configuration] voicevox api: ${config.getString("voicevox.apiUri")}""")
+       _ <- IO.println(s"""[configuration] chromium command: ${config.getString("chromium.command")}""")
+       _ <- IO.println(s"""[configuration] ffmpeg command: ${config.getString("ffmpeg.command")}""")
        _ <- IO.println("Invoking audio api...")
        //        speakers <- voiceVox.speakers()
        //        _ <- IO.println(speakers)
