@@ -26,18 +26,17 @@ trait VoiceVoxComponent {
     * docker run --rm -it -p '127.0.0.1:50021:50021' voicevox/voicevox_engine:cpu-ubuntu20.04-latest
     * }}}
     */
-  class ConcreteVoiceVox extends VoiceVox {
-    val voicevoxUri = sys.env.get("VOICEVOX_URI") getOrElse "http://localhost:50021" // TODO: remove unsafe
+  class ConcreteVoiceVox(voiceVoxUri: String) extends VoiceVox {
     def speakers(): IO[SpeakerInfo] = client.use {
       c =>
-      val req = Request[IO](uri = Uri.fromString(s"${voicevoxUri}/speakers").right.get)
+      val req = Request[IO](uri = Uri.fromString(s"${voiceVoxUri}/speakers").right.get)
       c.expect[SpeakerInfo](req)
     }
     // TODO: localhost:50021決め打ちをやめる
     def audioQuery(text: String, speaker: String): IO[AudioQuery] = client.use {
       c =>
         val uri = Uri
-          .fromString(s"${voicevoxUri}/audio_query")
+          .fromString(s"${voiceVoxUri}/audio_query")
           .map(
             _.copy(query =
               org.http4s.Query
@@ -55,7 +54,7 @@ trait VoiceVoxComponent {
     def synthesis(aq: AudioQuery, speaker: String): IO[fs2.Stream[IO, Byte]] =
       client.use { c =>
         val uri = Uri
-          .fromString(s"${voicevoxUri}/synthesis")
+          .fromString(s"${voiceVoxUri}/synthesis")
           .map(
             _.copy(
               query = org.http4s.Query.fromMap(Map("speaker" -> Seq(speaker)))
@@ -81,7 +80,7 @@ trait VoiceVoxComponent {
 
     def registerDict(word: String, pronounce: String, lowerPoint: Int): IO[Unit] = client.use { c =>
       val uri = Uri
-        .fromString(s"${voicevoxUri}/user_dict_word")
+        .fromString(s"${voiceVoxUri}/user_dict_word")
         .map(
           _.copy(
             query = org.http4s.Query.fromMap(Map("surface" -> Seq(word), "pronunciation" -> Seq(pronounce), "accent_type" -> Seq(lowerPoint.toString)))

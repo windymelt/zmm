@@ -24,7 +24,9 @@ final class Cli
 ./ /___| |  | || |  | |
 \_____/\_|  |_/\_|  |_/"""
 
-  def voiceVox: VoiceVox = new ConcreteVoiceVox()
+
+  val voiceVoxUri = sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
+  def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
   def ffmpeg = new ConcreteFFmpeg(config.getString("ffmpeg.command"), ConcreteFFmpeg.Quiet)
   val chromiumNoSandBox = sys.env.get("CHROMIUM_NOSANDBOX").map(_ == "1").getOrElse(config.getBoolean("chromium.nosandbox"))
   def screenShot = new ChromeScreenShot(config.getString("chromium.command"), ChromeScreenShot.Quiet, chromiumNoSandBox)
