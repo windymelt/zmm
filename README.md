@@ -25,6 +25,11 @@ $ sbt 'run sample.xml'
 - chromium
   - for generating screenshot from HTML file
 
+## Q&A
+
+- 突然音声が止まる
+  - BGMの尺切れのおそれがあります
+
 ## Credits
 
 - Thanks to VOICEVOX.
