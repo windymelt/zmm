@@ -4,19 +4,29 @@
 
 まだアルファクオリティです
 
-## Sample
+## Download
+
+[リリースページ](https://github.com/windymelt/zmm/releases)から最新のJARファイルをダウンロードできます。
+
+## How to
+
+まずdocker composeを使ってVOICEVOXのエンジンを起動しておきます。
 
 ```sh
 $ docker compose up voicevox-cpu
 ```
 
+次に、ダウンロードしたJARファイルを起動します。
+
 ```sh
-$ sbt 'run sample.xml'
+$ java -jar zmm-vx.y.z.jar 原稿.xml
 ```
 
-## Prerequisites
+しばらく待つことで動画が `output_with_bgm.mp4` として出力されます。
 
-- sbt
+## 必要なソフトウェア
+
+- sbt(開発時)
   - for building Scala code
 - docker compose
   - for VOICEVOX
