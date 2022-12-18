@@ -6,13 +6,18 @@ import cats.effect.ExitCode
 import java.io.OutputStream
 import org.http4s.syntax.header
 
-object Main extends IOApp {
-  def run(args: List[String]) = {
-    // load source file
-    val filePath = args(0)
+import com.monovore.decline._
+import com.monovore.decline.effect._
 
+object Main extends CommandIOApp(
+  name = "zmm",
+  header = "Zunda Movie Maker",
+  version = BuildInfo.version,
+) {
+  val opts = Opts.argument[java.nio.file.Path](metavar = "XMLFile")
+  override def main: Opts[IO[ExitCode]] = opts map { file =>
     val cli = new Cli()
-    cli.generate(filePath) *>
+    cli.generate(file.toString) *>
       IO.pure(cats.effect.ExitCode.Success)
   }
 }
