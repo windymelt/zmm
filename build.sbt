@@ -1,4 +1,5 @@
 import Dependencies._
+import ReleaseTransformations._
 
 ThisBuild / scalaVersion     := "2.13.8"
 ThisBuild / organization     := "com.github.windymelt"
@@ -30,6 +31,22 @@ lazy val root = (project in file("."))
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion),
     buildInfoPackage := "com.github.windymelt.zmm"
   )
+  .settings(
+    releaseProcess := Seq[ReleaseStep](
+      checkSnapshotDependencies,              // : ReleaseStep
+      inquireVersions,                        // : ReleaseStep
+      runClean,                               // : ReleaseStep
+      runTest,                                // : ReleaseStep
+      setReleaseVersion,                      // : ReleaseStep
+      commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
+      tagRelease,                             // : ReleaseStep
+      // publishArtifacts, // : ReleaseStep, checks whether `publishTo` is properly set up
+      releaseStepTask(assembly),
+      setNextVersion,                         // : ReleaseStep
+      commitNextVersion,                      // : ReleaseStep
+      pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
+    )
+  )
 
 ThisBuild / assemblyMergeStrategy := {
   case PathList("META-INF", "versions", "9", "module-info.class") => MergeStrategy.first
@@ -38,21 +55,7 @@ ThisBuild / assemblyMergeStrategy := {
     oldStrategy(x)
 }
 
-import ReleaseTransformations._
 
-ThisBuild / releaseProcess := Seq[ReleaseStep](
-  checkSnapshotDependencies,              // : ReleaseStep
-  inquireVersions,                        // : ReleaseStep
-  runClean,                               // : ReleaseStep
-  runTest,                                // : ReleaseStep
-  setReleaseVersion,                      // : ReleaseStep
-  commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
-  tagRelease,                             // : ReleaseStep
-  // publishArtifacts,                       // : ReleaseStep, checks whether `publishTo` is properly set up
-  releaseStepTask(root / assembly),
-  setNextVersion,                         // : ReleaseStep
-  commitNextVersion,                      // : ReleaseStep
-  pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
-)
+
 
 // See https://www.scala-sbt.org/1.x/docs/Using-Sonatype.html for instructions on how to publish to Sonatype.
