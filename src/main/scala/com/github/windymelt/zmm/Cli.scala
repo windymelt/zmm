@@ -24,19 +24,40 @@ final class Cli
 ./ /___| |  | || |  | |
 \_____/\_|  |_/\_|  |_/"""
 
-  def voiceVox: VoiceVox = new ConcreteVoiceVox()
-  def ffmpeg = new ConcreteFFmpeg(ConcreteFFmpeg.Quiet)
-  val chromiumNoSandBox = sys.env.get("CHROMIUM_NOSANDBOX").map(_ == "1").getOrElse(false)
-  def screenShot = new ChromeScreenShot("chromium", ChromeScreenShot.Quiet, chromiumNoSandBox)
+
+  val voiceVoxUri = sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
+  def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
+  def ffmpeg = new ConcreteFFmpeg(config.getString("ffmpeg.command"), ConcreteFFmpeg.Quiet)
+  val chromiumNoSandBox = sys.env.get("CHROMIUM_NOSANDBOX").map(_ == "1").getOrElse(config.getBoolean("chromium.nosandbox"))
+  def screenShot = new ChromeScreenShot(config.getString("chromium.command"), ChromeScreenShot.Quiet, chromiumNoSandBox)
+
+  def showVoiceVoxSpeakers(): IO[Unit] = {
+    import io.circe.JsonObject
+    import com.mitchtalmadge.asciidata.table.ASCIITable
+    for {
+      speakers <- voiceVox.speakers()
+      speakersTable <- IO.pure {
+        val speakersArray = speakers.asArray.get.flatMap(_.asObject)
+        val styleToSeq = (name: String) => (id: String) => (styleName: String) => Seq(name, id, styleName)
+        val speakerToSeq = (speaker: JsonObject) => {
+          val styles = speaker("styles").get.asArray.get.flatMap(_.asObject)
+          styles map (s => styleToSeq(speaker("name").get.asString.get)(s("id").get.asNumber.get.toString)(s("name").get.asString.get))
+        }
+        speakersArray.flatMap(speakerToSeq).map(_.toArray).toArray
+      }
+      _ <- IO.println(ASCIITable.fromData(Seq("voice", "voice ID", "style").toArray, speakersTable))
+    } yield ()
+  }
 
   def generate(filePath: String): IO[Unit] = {
     val content = IO.delay(scala.xml.XML.loadFile(filePath))
 
      for {
        _ <- showLogo
+       _ <- IO.println(s"""[configuration] voicevox api: ${config.getString("voicevox.apiUri")}""")
+       _ <- IO.println(s"""[configuration] chromium command: ${config.getString("chromium.command")}""")
+       _ <- IO.println(s"""[configuration] ffmpeg command: ${config.getString("ffmpeg.command")}""")
        _ <- IO.println("Invoking audio api...")
-       //        speakers <- voiceVox.speakers()
-       //        _ <- IO.println(speakers)
        x <- content
        _ <- contentSanityCheck(x)
        defaultCtx <- prepareDefaultContext(x)

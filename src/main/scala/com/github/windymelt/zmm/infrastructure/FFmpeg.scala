@@ -15,7 +15,7 @@ trait FFmpegComponent {
 
   def ffmpeg: ConcreteFFmpeg
 
-  class ConcreteFFmpeg(verbosity: ConcreteFFmpeg.Verbosity) extends FFmpeg {
+  class ConcreteFFmpeg(ffmpegCommand: String, verbosity: ConcreteFFmpeg.Verbosity) extends FFmpeg {
     val stdout = verbosity match {
       case ConcreteFFmpeg.Quiet => os.Pipe
       case ConcreteFFmpeg.Verbose => os.Inherit
@@ -31,7 +31,7 @@ trait FFmpegComponent {
       IO.delay {
         os
           .proc(
-            "ffmpeg",
+            ffmpegCommand,
             "-protocol_whitelist",
             "file",
             "-y", // overwrite if exists
@@ -80,7 +80,7 @@ trait FFmpegComponent {
           _ <- writeCutfile
           _ <- IO.delay {
             // TODO: move to infra layer
-            os.proc("ffmpeg", "-protocol_whitelist", "file", "-y", "-f", "concat", "-safe", "0", "-i", "artifacts/cutFile.txt", "-pix_fmt", "yuv420p", "-c:v", "libx264", "artifacts/scenes.mp4")
+            os.proc(ffmpegCommand, "-protocol_whitelist", "file", "-y", "-f", "concat", "-safe", "0", "-i", "artifacts/cutFile.txt", "-pix_fmt", "yuv420p", "-c:v", "libx264", "artifacts/scenes.mp4")
             .call(stdout = stdout, stderr = stdout, cwd = os.pwd)
         }
         } yield os.pwd / os.RelPath("./artifacts/scenes.mp4")
@@ -95,12 +95,12 @@ trait FFmpegComponent {
       for {
         _ <- writeCutfile
         bgm <- IO.delay {
-          os.proc("ffmpeg", "-protocol_whitelist", "file", "-y", "-f", "concat", "-safe", "0", "-i", "artifacts/bgmCutFile.txt", "artifacts/concatenatedBGM.wav")
+          os.proc(ffmpegCommand, "-protocol_whitelist", "file", "-y", "-f", "concat", "-safe", "0", "-i", "artifacts/bgmCutFile.txt", "artifacts/concatenatedBGM.wav")
             .call(stdout = stdout, stderr = stdout, cwd = os.pwd)
           os.pwd / os.RelPath("artifacts/concatenatedBGM.wav")
         }
         _ <- IO.delay {
-          os.proc("ffmpeg", "-y", "-i", videoPath, "-i", bgm, "-filter_complex", "[0:a][1:a]amerge=inputs=2[a]", "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-ac", "2", "output_with_bgm.mp4")
+          os.proc(ffmpegCommand, "-y", "-i", videoPath, "-i", bgm, "-filter_complex", "[0:a][1:a]amerge=inputs=2[a]", "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-ac", "2", "output_with_bgm.mp4")
           .call(stdout = stdout, stderr = stdout, cwd = os.pwd)
         }
       } yield os.pwd / os.RelPath("output_with_bgm.mp4")
@@ -108,7 +108,7 @@ trait FFmpegComponent {
 
     def zipVideoWithAudio(video: os.Path, audio: os.Path): IO[os.Path] = for {
       _ <- IO.delay {
-        os.proc("ffmpeg", "-y", "-r", "30", "-i", video, "-i", audio, "-c:v", "copy", "-c:a", "aac", "output.mp4")
+        os.proc(ffmpegCommand, "-y", "-r", "30", "-i", video, "-i", audio, "-c:v", "copy", "-c:a", "aac", "output.mp4")
         .call(stdout = stdout, stderr = stdout, cwd = os.pwd)
       }
     } yield os.pwd / os.RelPath("output.mp4")
