@@ -8,6 +8,7 @@ ThisBuild / organizationName := "windymelt"
 lazy val root = (project in file("."))
   .settings(
     name := "zmm",
+    publish / skip := true,
     libraryDependencies ++= Seq(
       "org.scala-lang.modules" %% "scala-xml" % "1.2.0",
       "org.typelevel" %% "cats-effect" % "3.3.12",
