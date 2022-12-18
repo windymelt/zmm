@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<content version="0.0">
+  <meta>
+    <voiceconfig id="metan" backend="voicevox">
+      <voicevoxconfig id="2" />
+    </voiceconfig>
+    <voiceconfig id="zundamon" backend="voicevox">
+      <voicevoxconfig id="3" />
+    </voiceconfig>
+    <voiceconfig id="zundamon-hisohiso" backend="voicevox">
+      <voicevoxconfig id="38" />
+    </voiceconfig>
+    <voiceconfig id="tsumugi" backend="voicevox">
+      <voicevoxconfig id="8" />
+    </voiceconfig>
+    <characterconfig name="m" voice-id="metan" serif-color="#E14D2A" tachie-url="../../assets/metan.png" />
+    <characterconfig name="z" voice-id="zundamon" serif-color="#379237"
+                     tachie-url="../../assets/zunda.png" />
+    <characterconfig name="z;" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda0001.png" />
+    <characterconfig name="z^" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda0002.png" />
+    <characterconfig name="z!" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda0003.png" />
+    <characterconfig name="z_" voice-id="zundamon-hisohiso" tachie-url="../../assets/zunda.png" />
+    <characterconfig name="t" voice-id="tsumugi" tachie-url="../../assets/tsumugi.png" />
+    <characterconfig name="t^" voice-id="tsumugi" tachie-url="../../assets/tsumugi0000.png" />
+    <characterconfig name="t!" voice-id="tsumugi" tachie-url="../../assets/tsumugi0001.png" />
+    <dict pronounce="ゼットエムエ_ム">zmm</dict>
+    <dict pronounce="スカ_ラ">Scala</dict>
+    <dict pronounce="ヌル_ポ">nullpo</dict>
+    <dict pronounce="クロー_ム">chrome</dict>
+    <dict pronounce="ジャ_ー">JAR</dict>
+    <dict pronounce="リードミ_ー">README</dict>
+  </meta>
+  <predef>
+    <code id="run" lang="sh">
+      <![CDATA[
+$ java -jar zmm-0.2.0.2.jar 原稿.xml
+(そういえば四国めたんの髪ってScalaのロゴに似てない？)
+      ]]>
+    </code>
+    <code id="voice" lang="sh">
+      <![CDATA[
+$ java -jar zmm-0.2.0.2.jar show voicevox
+      ]]>
+    </code>
+    <code id="comment" lang="markdown">
+      <![CDATA[
+- 無理せず毎秒投稿しろ
+- 数学をしゃべりだした
+      ]]>
+    </code>
+  </predef>
+  <dialogue backgroundImage="../../assets/6495733.jpeg" bgm="assets/nc282335_15%_twice.mp3">
+  <!-- TODO: assetのパスをhtmlからのパスではなくxmlからのパスにする、asset: schemeの導入 -->
+    <scene backgroundImage="../../assets/zmm-logo.png">
+    <say by="z">zmm開発日誌その6、はーじまーるよー</say>
+    <say by="z" speed="1.1">この動画では、動画生成ツールzmmの開発の進捗をちびちび報告していくのだ</say>
+    <say by="z" speed="1.1">ちなみにこの動画自体もzmmで生成されているのだ</say>
+    <say by="t">ここまでがテンプレだね。</say>
+    </scene>
+    <say by="m">今回は主にzmmをダウンロードして実行するまでのステップを改善したという報告になります。</say>
+    <say by="m">これまでは、sbtというScalaをコンパイルするためのプログラムが必要だったのですが、</say>
+    <scene code="run">
+    <say by="m">今回からはJavaの実行環境さえ用意されていれば良くなります。</say>
+    <say by="m">zmmを実行するには、まずzmmのJARファイルをダウンロードし、</say>
+    <say by="m">コマンドラインからjavaコマンドを実行すれば良くなりました。</say>
+    <say by="z">以前と比べるとずいぶんな進化なのだ</say>
+    <say by="m">そうですね。以前はsbtコマンドをインストールし、関連するライブラリをインストールする操作が必要でした。</say>
+    <say by="m">一応自動でこれらのダウンロード作業は行われていましたが、ちょっと試してみたいという人にはだいぶ大変でした。</say>
+    <say by="z">そもそも大多数のユーザはScalaをコンパイルする環境なんか持ってないのだ</say>
+    <say by="m">そうなんです。でもJavaの実行環境ならインストールされている確率が跳ね上がるんですよ</say>
+    <say by="z">え、どうしてなのだ？</say>
+    <say by="t">マイクラとか色々なゲームがJavaで動くから、既にユーザのマシンに入っていることが多いんだよね</say>
+    <say by="z^">確かにそのやり方ならうまくいきそうなのだ</say>
+    <say by="t">ちなみに、VOICEVOXやchromeといったツールはあらかじめインストールしておく必要があるので、このあたりは要改善だね</say>
+    <say by="m">はい、なるべくユーザの負担にならないように開発を進めていく予定です。</say>
+    </scene>
+    <scene backgroundImage="../../assets/zmm-release.png">
+    <say by="m">ちなみに、JARファイルはプロジェクトのページのRelease画面からダウンロードできます。
+    READMEファイルもご確認いただけると嬉しいです。</say>
+    <say by="t">このへんのダウンロードしてもらう方法って本当に大変だよね・・・</say>
+    </scene>
+    <say by="m">そういえばですが、ついでに新機能が増えました。</say>
+    <say by="z">お、何なのだ？</say>
+    <scene code="voice">
+    <say by="m">VOICEVOXのボイスを指定するのに使うIDを一覧するコマンドが使えるようになりました。</say>
+    <say by="m">show voicevoxというコマンドをzmmに与えると、VOICEVOXで使えるボイスとそのスタイルに対応したIDが出力されます。</say>
+    </scene>
+    <scene backgroundImage="../../assets/zmm-voice.png">
+    <say by="m">例えばこの画像では、ずんだもんのひそひそボイスは38番であることがわかりますね。</say>
+    <say by="z_">本当なのだ、ひそひそボイスになっているのだ</say>
+    <say by="t!">メタ発言だ</say>
+    <say by="m">キャラクターの設定を行うときに重宝すると思います。どうぞご活用ください。</say>
+    </scene>
+    <say by="t">コメントにもお返事していこうね</say>
+    <scene code="comment">
+        <say by="m">「無理せず毎秒投稿しろ」</say>
+        <say by="z!" speed="1.3">アッハイ</say>
+        <say by="t">なんか前よりハードコアになってない？</say>
+        <say by="z">リリースプロセスを改善したのでこれからはより開発を進めやすくなったと思うのだ</say>
+        <say by="m">「数学をしゃべりだした」</say>
+        <say by="z">個人的に欲しい機能だったので追加して良かったのだ</say>
+        <say by="z">数学は得意じゃないけど数学が得意な人の話は聞いていて楽しいのでサポートしていきたいのだ</say>
+    </scene>
+    <say by="m">さて、今回の進捗はここまでです。これまでいいねしてくださった皆様、ありがとうございます！</say>
+    <say by="m">そして、広告してくださった「nullpo!」様、ありがとうございます！</say>
+    <say by="t">今後も投稿を続けていくと思うので、投稿者をフォローしてくれると嬉しいな</say>
+    <say by="z^">それでは、ご視聴ありがとうございました！</say>
+  </dialogue>
+</content>
