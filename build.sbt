@@ -19,6 +19,7 @@ lazy val root = (project in file("."))
       "com.typesafe" % "config" % "1.4.2",
       "com.monovore" %% "decline" % "2.4.1",
       "com.monovore" %% "decline-effect" % "2.4.1",
+      "com.mitchtalmadge" % "ascii-data" % "1.4.0",
       scalaTest % Test,
     )
   )
