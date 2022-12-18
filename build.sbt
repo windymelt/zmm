@@ -20,6 +20,7 @@ lazy val root = (project in file("."))
       "com.monovore" %% "decline" % "2.4.1",
       "com.monovore" %% "decline-effect" % "2.4.1",
       "com.mitchtalmadge" % "ascii-data" % "1.4.0",
+      "org.slf4j" % "slf4j-simple" % "2.0.6",
       scalaTest % Test,
     )
   )
@@ -29,5 +30,12 @@ lazy val root = (project in file("."))
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion),
     buildInfoPackage := "com.github.windymelt.zmm"
   )
+
+ThisBuild / assemblyMergeStrategy := {
+  case PathList("META-INF", "versions", "9", "module-info.class") => MergeStrategy.first
+  case x =>
+    val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
+    oldStrategy(x)
+}
 
 // See https://www.scala-sbt.org/1.x/docs/Using-Sonatype.html for instructions on how to publish to Sonatype.
