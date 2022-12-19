@@ -26,10 +26,11 @@ final class Cli
 
 
   val voiceVoxUri = sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
+  val chromiumCommand = sys.env.get("CHROMIUM_CMD").getOrElse(config.getString("chromium.command"))
   def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
   def ffmpeg = new ConcreteFFmpeg(config.getString("ffmpeg.command"), ConcreteFFmpeg.Quiet)
   val chromiumNoSandBox = sys.env.get("CHROMIUM_NOSANDBOX").map(_ == "1").getOrElse(config.getBoolean("chromium.nosandbox"))
-  def screenShot = new ChromeScreenShot(config.getString("chromium.command"), ChromeScreenShot.Quiet, chromiumNoSandBox)
+  def screenShot = new ChromeScreenShot(chromiumCommand, ChromeScreenShot.Quiet, chromiumNoSandBox)
 
   def showVoiceVoxSpeakers(): IO[Unit] = {
     import io.circe.JsonObject
@@ -54,8 +55,9 @@ final class Cli
 
      for {
        _ <- showLogo
-       _ <- IO.println(s"""[configuration] voicevox api: ${config.getString("voicevox.apiUri")}""")
-       _ <- IO.println(s"""[configuration] chromium command: ${config.getString("chromium.command")}""")
+       _ <- IO.println(s"""[pwd] ${System.getProperty("user.dir")}""")
+       _ <- IO.println(s"""[configuration] voicevox api: ${voiceVoxUri}""")
+       _ <- IO.println(s"""[configuration] chromium command: ${chromiumCommand}""")
        _ <- IO.println(s"""[configuration] ffmpeg command: ${config.getString("ffmpeg.command")}""")
        _ <- IO.println("Invoking audio api...")
        x <- content
