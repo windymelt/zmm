@@ -1,5 +1,16 @@
 version: "3.9"
 services:
+  zmm:
+    image: windymelt/zmm:latest
+    volumes:
+      - "./:/app"
+      # 手元にあるフォントを使えるようにする措置
+      - "$HOME/.fonts/:/root/.fonts:ro"
+    working_dir: /app
+    environment:
+      - "VOICEVOX_URI=http://voicevox-cpu:50021"
+      - "CHROMIUM_CMD=chromium-browser"
+      - "CHROMIUM_NOSANDBOX=1"
   # どっちかを動かしてください
   voicevox-cpu:
     image: voicevox/voicevox_engine:cpu-ubuntu20.04-latest

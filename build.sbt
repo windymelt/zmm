@@ -1,5 +1,6 @@
 import Dependencies._
 import ReleaseTransformations._
+import com.typesafe.sbt.packager.docker._
 
 ThisBuild / scalaVersion     := "2.13.8"
 ThisBuild / organization     := "com.github.windymelt"
@@ -23,10 +24,13 @@ lazy val root = (project in file("."))
       "com.mitchtalmadge" % "ascii-data" % "1.4.0",
       "org.slf4j" % "slf4j-simple" % "2.0.6",
       scalaTest % Test,
-    )
+    ),
+    assembly / mainClass := Some("com.github.windymelt.zmm.Main"),
   )
   .enablePlugins(SbtTwirl)
   .enablePlugins(BuildInfoPlugin)
+  .enablePlugins(JavaAppPackaging) // for DockerPlugin
+  .enablePlugins(DockerPlugin)
   .settings(
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion),
     buildInfoPackage := "com.github.windymelt.zmm"
@@ -42,10 +46,38 @@ lazy val root = (project in file("."))
       tagRelease,                             // : ReleaseStep
       // publishArtifacts, // : ReleaseStep, checks whether `publishTo` is properly set up
       releaseStepTask(assembly),
+      releaseStepTask(Docker / publish),
       setNextVersion,                         // : ReleaseStep
       commitNextVersion,                      // : ReleaseStep
       pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
     )
+  )
+  .settings(
+    dockerBaseImage := "amazoncorretto:17",
+    Docker / daemonUser := "root",
+    Docker / maintainer := "Windymelt",
+    dockerRepository := Some("docker.io"),
+    dockerUsername := Some("windymelt"),
+    dockerUpdateLatest := true,
+    /* zmmではScala highlightのためにカスタムしたhighlight.jsを同梱しているが、mappingが今のところ壊れているのでDocker Imageでは直接highlight.jsをダウンロードさせる */
+    dockerCommands ++= Seq(
+      Cmd("USER", "root"),
+      ExecCmd("RUN", "mkdir", "-p", "/app/artifacts/html"),
+      ExecCmd("RUN", "mkdir", "/app/assets"),
+      ExecCmd("ADD", "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js", "/app/highlight.min.js"),
+      ExecCmd("RUN", "mkdir", "-p", "/app/highlight/styles"),
+      ExecCmd("ADD", "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css", "/app/highlight/styles/default.min.css"),
+      Cmd("WORKDIR", "/root"),
+      ExecCmd("RUN", "yum", "-y", "install", "wget", "tar", "xz"),
+      ExecCmd("RUN", "wget", "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"),
+      ExecCmd("RUN", "tar", "xvf", "ffmpeg-release-amd64-static.tar.xz"),
+      ExecCmd("RUN", "mv", "ffmpeg-5.1.1-amd64-static/ffmpeg", "/usr/bin/ffmpeg"),
+      ExecCmd("RUN", "mv", "ffmpeg-5.1.1-amd64-static/ffprobe", "/usr/bin/ffprobe"),
+      ExecCmd("RUN", "amazon-linux-extras", "install", "-y", "epel"),
+      ExecCmd("RUN", "yum", "update", "-y"),
+      ExecCmd("RUN", "yum", "install", "-y", "chromium"),
+      Cmd("WORKDIR", "/app"),
+    ),
   )
 
 ThisBuild / assemblyMergeStrategy := {

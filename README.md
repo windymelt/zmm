@@ -10,17 +10,31 @@
 
 ## How to
 
-まずdocker composeを使ってVOICEVOXのエンジンを起動しておきます。
+まず Docker Compose を使ってVOICEVOXのエンジンを起動しておきます。
 
 ```sh
 $ docker compose up voicevox-cpu
 ```
 
-次に、ダウンロードしたJARファイルを起動します。
+### Dockerを使う場合
+
+Docker Hub にzmmのイメージがアップロードされているので、このイメージを使う場合はffmpegやchromiumのインストールは不要です。
+
+```sh
+$ docker compose run --rm zmm 原稿.xml
+```
+
+しばらく待つことで動画が `output_with_bgm.mp4` として出力されます。
+
+### JARファイルを使う場合
+
+Docker Compose を使わない場合は、ダウンロードしたJARファイルを起動します。
 
 ```sh
 $ java -jar zmm-vx.y.z.jar 原稿.xml
 ```
+
+JARファイルを使う場合、ffmpegやchromiumがインストールされている必要があります。
 
 しばらく待つことで動画が `output_with_bgm.mp4` として出力されます。
 
