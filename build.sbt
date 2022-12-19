@@ -23,7 +23,8 @@ lazy val root = (project in file("."))
       "com.mitchtalmadge" % "ascii-data" % "1.4.0",
       "org.slf4j" % "slf4j-simple" % "2.0.6",
       scalaTest % Test,
-    )
+    ),
+    assembly / mainClass := Some("com.github.windymelt.zmm.Main"),
   )
   .enablePlugins(SbtTwirl)
   .enablePlugins(BuildInfoPlugin)
