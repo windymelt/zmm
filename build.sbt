@@ -28,6 +28,8 @@ lazy val root = (project in file("."))
   )
   .enablePlugins(SbtTwirl)
   .enablePlugins(BuildInfoPlugin)
+  .enablePlugins(JavaAppPackaging) // for DockerPlugin
+  .enablePlugins(DockerPlugin)
   .settings(
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion),
     buildInfoPackage := "com.github.windymelt.zmm"
@@ -43,10 +45,19 @@ lazy val root = (project in file("."))
       tagRelease,                             // : ReleaseStep
       // publishArtifacts, // : ReleaseStep, checks whether `publishTo` is properly set up
       releaseStepTask(assembly),
+      releaseStepTask(docker / publish)
       setNextVersion,                         // : ReleaseStep
       commitNextVersion,                      // : ReleaseStep
       pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
     )
+  )
+  .settings(
+    dockerBaseImage := "amazoncorretto:17",
+    Docker / daemonUser := "root",
+    Docker / maintainer := "Windymelt",
+    dockerRepository := Some("docker.io"),
+    dockerUsername := Some("windymelt"),
+    dockerUpdateLatest := true,
   )
 
 ThisBuild / assemblyMergeStrategy := {
