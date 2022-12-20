@@ -11,6 +11,7 @@ services:
       - "VOICEVOX_URI=http://voicevox-cpu:50021"
       - "CHROMIUM_CMD=chromium-browser"
       - "CHROMIUM_NOSANDBOX=1"
+      - "CHROMIUM_NOGPU=1"
   # どっちかを動かしてください
   voicevox-cpu:
     image: voicevox/voicevox_engine:cpu-ubuntu20.04-latest

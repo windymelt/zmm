@@ -30,7 +30,8 @@ final class Cli
   def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
   def ffmpeg = new ConcreteFFmpeg(config.getString("ffmpeg.command"), ConcreteFFmpeg.Quiet)
   val chromiumNoSandBox = sys.env.get("CHROMIUM_NOSANDBOX").map(_ == "1").getOrElse(config.getBoolean("chromium.nosandbox"))
-  def screenShot = new ChromeScreenShot(chromiumCommand, ChromeScreenShot.Quiet, chromiumNoSandBox)
+  val chromiumNoGpu = sys.env.get("CHROMIUM_NOGPU").map(_ == "1").getOrElse(config.getBoolean("chromium.nogpu"))
+  def screenShot = new ChromeScreenShot(chromiumCommand, ChromeScreenShot.Quiet, chromiumNoSandBox, chromiumNoGpu)
 
   def showVoiceVoxSpeakers(): IO[Unit] = {
     import io.circe.JsonObject
