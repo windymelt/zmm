@@ -60,7 +60,7 @@ final class Cli
     val placeXml: IO[Unit] = IO {
       os.exists(os.pwd / "script.xml") match {
         case true => IO.println("script.xml は既に存在するのでスキップされました")
-        case false => IO(os.write(os.pwd / "script.xml", ""))
+        case false => IO(os.write(os.pwd / "script.xml", xml.script().body))
       }
     }.flatten
 
