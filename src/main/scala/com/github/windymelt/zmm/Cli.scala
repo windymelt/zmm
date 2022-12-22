@@ -72,7 +72,7 @@ final class Cli
       }
     }.flatten
 
-    val digArtifact: IO[Unit] = IO {
+    val digArtifacts: IO[Unit] = IO {
       os.exists(os.pwd / "artifacts") match {
         case true => IO.println("artifacts/ は既に存在するのでスキップされました")
         case false => IO(os.makeDir(os.pwd / "artifacts"))
@@ -95,7 +95,7 @@ final class Cli
 
     val init = for {
       _ <- placeXml
-      _ <- digArtifact >> digArtifactsHtml
+      _ <- digArtifacts >> digArtifactsHtml
       _ <- digAssets
     } yield ()
 
