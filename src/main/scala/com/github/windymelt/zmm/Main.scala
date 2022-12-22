@@ -17,13 +17,13 @@ object Main extends CommandIOApp(
     val cli = new Cli()
     o match {
       case ShowCommand(target) => target match {
-        case "voicevox" => cli.showVoiceVoxSpeakers() >> IO.pure(cats.effect.ExitCode.Success)
-        case _ => IO.println("subcommand [show] only accepts 'voicevox'. try `show voicevox`") >> IO.pure(cats.effect.ExitCode.Error)
+        case "voicevox" => cli.showVoiceVoxSpeakers() >> IO.pure(ExitCode.Success)
+        case _ => IO.println("subcommand [show] only accepts 'voicevox'. try `show voicevox`") >> IO.pure(ExitCode.Error)
       }
       case TargetFile(file) =>
         cli.generate(file.toString) >>
-          IO.pure(cats.effect.ExitCode.Success)
-      case InitializeCommand() => cli.initializeProject() >> IO.pure(cats.effect.ExitCode.Success)
+          IO.pure(ExitCode.Success)
+      case InitializeCommand() => cli.initializeProject() >> IO.pure(ExitCode.Success)
     }
   }
 }
