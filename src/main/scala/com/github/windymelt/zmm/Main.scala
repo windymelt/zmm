@@ -10,7 +10,7 @@ import com.monovore.decline.effect.CommandIOApp
 
 object Main extends CommandIOApp(
   name = "zmm",
-  header = "Zunda Movie Maker",
+  header = "Zunda Movie Maker -- see https://www.3qe.us/zmm/doc/ for more documentation",
   version = BuildInfo.version,
 ) {
   override def main: Opts[IO[ExitCode]] = CliOptions.opts map { o =>
