@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<content version="0.0">
+  <meta>
+    <voiceconfig id="metan" backend="voicevox">
+      <voicevoxconfig id="2" />
+    </voiceconfig>
+    <voiceconfig id="zundamon" backend="voicevox">
+      <voicevoxconfig id="3" />
+    </voiceconfig>
+    <characterconfig name="metan" voice-id="metan" serif-color="#E14D2A"
+                     tachie-url="../../assets/めたんの立ち絵を設定してください" />
+    <characterconfig name="zunda" voice-id="zundamon" serif-color="#379237"
+                     tachie-url="../../assets/ずんだもんの立ち絵を設定してください" />
+    <dict pronounce="ゼットエムエ_ム">zmm</dict>
+  </meta>
+  <predef>
+  </predef>
+  <dialogue backgroundImage="../../assets/ここに背景画像を設定してください" bgm="assets/ここにBGMファイルを設定してください">
+  <scene>
+  <say by="metan">こんにちは、四国めたんです</say>
+  <say by="zunda">こんにちは、ずんだもんなのだ</say>
+  <say by="metan">この原稿ファイルはzmmのサンプル原稿です</say>
+  <say by="zunda">よろしくなのだ</say>
+  </scene>
+  </dialogue>
+</content>

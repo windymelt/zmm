@@ -5,32 +5,25 @@ import cats.effect.IOApp
 import cats.effect.ExitCode
 import java.io.OutputStream
 import org.http4s.syntax.header
-
-import com.monovore.decline._
-import com.monovore.decline.effect._
-
-sealed trait ZmmOption
-final case class ShowCommand(target: String) extends ZmmOption // 今のところvoicevoxしか入らない
-final case class TargetFile(target: java.nio.file.Path) extends ZmmOption
+import com.monovore.decline.Opts
+import com.monovore.decline.effect.CommandIOApp
 
 object Main extends CommandIOApp(
   name = "zmm",
-  header = "Zunda Movie Maker",
+  header = "Zunda Movie Maker -- see https://www.3qe.us/zmm/doc/ for more documentation",
   version = BuildInfo.version,
 ) {
-  val showCommand = Opts.subcommand(name = "show", help = "Prints information.")(Opts.argument[String]("voicevox").map(ShowCommand.apply))
-  val targetFile = Opts.argument[java.nio.file.Path](metavar = "XMLFile").map(TargetFile.apply)
-  val opts: Opts[ZmmOption] = targetFile orElse showCommand
-  override def main: Opts[IO[ExitCode]] = opts map { o =>
+  override def main: Opts[IO[ExitCode]] = CliOptions.opts map { o =>
     val cli = new Cli()
     o match {
       case ShowCommand(target) => target match {
-        case "voicevox" => cli.showVoiceVoxSpeakers() >> IO.pure(cats.effect.ExitCode.Success)
-        case _ => IO.println("subcommand [show] only accepts 'voicevox'. try `show voicevox`") >> IO.pure(cats.effect.ExitCode.Error)
+        case "voicevox" => cli.showVoiceVoxSpeakers() >> IO.pure(ExitCode.Success)
+        case _ => IO.println("subcommand [show] only accepts 'voicevox'. try `show voicevox`") >> IO.pure(ExitCode.Error)
       }
       case TargetFile(file) =>
         cli.generate(file.toString) >>
-          IO.pure(cats.effect.ExitCode.Success)
+          IO.pure(ExitCode.Success)
+      case InitializeCommand() => cli.initializeProject() >> IO.pure(ExitCode.Success)
     }
   }
 }
