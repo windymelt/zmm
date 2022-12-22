@@ -19,6 +19,8 @@
   <scene>
   <say by="metan">こんにちは、四国めたんです</say>
   <say by="zunda">こんにちは、ずんだもんなのだ</say>
+  <say by="metan">この原稿ファイルはzmmのサンプル原稿です</say>
+  <say by="zunda">よろしくなのだ</say>
   </scene>
   </dialogue>
 </content>
