@@ -50,7 +50,53 @@ final class Cli
     } yield ()
   }
 
-  def initializeProject(): IO[Unit] = IO.println("Initialized project!!") // stub
+  def initializeProject(): IO[Unit] = {
+    val agreed = for {
+      cwd <- IO.pure(os.pwd.toString())
+      _ <- IO.print(s"$cwd を ZMMプロジェクトとして初期化しますか? [y/N]?>")
+      ynString <- IO.readLine
+    } yield ynString == "y"
+
+    val placeXml: IO[Unit] = IO {
+      os.exists(os.pwd / "script.xml") match {
+        case true => IO.println("script.xml は既に存在するのでスキップされました")
+        case false => IO(os.write(os.pwd / "script.xml", ""))
+      }
+    }.flatten
+
+    val digArtifact: IO[Unit] = IO {
+      os.exists(os.pwd / "artifact") match {
+        case true => IO.println("artifact/ は既に存在するのでスキップされました")
+        case false => IO(os.makeDir(os.pwd / "artifact"))
+      }
+    }.flatten
+
+    val digAssets: IO[Unit] = IO {
+      os.exists(os.pwd / "assets") match {
+        case true => IO.println("assets/ は既に存在するのでスキップされました")
+        case false => IO(os.makeDir(os.pwd / "assets"))
+      }
+    }.flatten
+
+    val digAssetsHtml: IO[Unit] = IO {
+      os.exists(os.pwd / "assets" / "html") match {
+        case true => IO.println("assets/html/ は既に存在するのでスキップされました")
+        case false => IO(os.makeDir(os.pwd / "assets" / "html"))
+      }
+    }.flatten
+
+    val init = for {
+      _ <- placeXml
+      _ <- digArtifact
+      _ <- digAssets
+    } yield ()
+
+    // ZMMプロジェクトを構成するいくつかのファイル/ディレクトリについて、存在しなかったらテンプレートをもとに作成する、を繰り返す
+    agreed flatMap {
+      case true => init
+      case false => IO.println("中断します")
+    }
+  }
 
   def generate(filePath: String): IO[Unit] = {
     val content = IO.delay(scala.xml.XML.loadFile(filePath))
