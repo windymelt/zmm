@@ -50,6 +50,8 @@ final class Cli
     } yield ()
   }
 
+  def initializeProject(): IO[Unit] = IO.println("Initialized project!!") // stub
+
   def generate(filePath: String): IO[Unit] = {
     val content = IO.delay(scala.xml.XML.loadFile(filePath))
 

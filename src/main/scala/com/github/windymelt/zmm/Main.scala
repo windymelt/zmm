@@ -23,7 +23,7 @@ object Main extends CommandIOApp(
       case TargetFile(file) =>
         cli.generate(file.toString) >>
           IO.pure(cats.effect.ExitCode.Success)
-      case InitializeCommand() => ??? // TODO: initialize cwd as ZMM project.
+      case InitializeCommand() => cli.initializeProject() >> IO.pure(cats.effect.ExitCode.Success)
     }
   }
 }
