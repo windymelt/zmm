@@ -27,6 +27,7 @@ final case class Context(
     backgroundImageUrl: Option[String] = None,
     spokenByCharacterId: Option[String] = None,
     speed: Option[String] = Some("1.0"),
+    font: Option[String] = None,
     serifColor: Option[String] = None, // どう使うかはテンプレート依存
     tachieUrl: Option[String] = None,
     dict: Seq[(String, String, Int)] = Seq.empty,
@@ -65,6 +66,7 @@ object Context {
           y.backgroundImageUrl orElse x.backgroundImageUrl, // 後勝ち
         spokenByCharacterId = spokenByCharacterId,
         speed = y.speed orElse x.speed, // 後勝ち
+        font = y.font orElse x.font, // 後勝ち
         serifColor = serifColor,
         tachieUrl = tachieUrl,
         dict = y.dict |+| x.dict,
@@ -104,6 +106,7 @@ object Context {
       backgroundImageUrl = firstAttrTextOf(e, "backgroundImage"), // TODO: no camelCase
       spokenByCharacterId = firstAttrTextOf(e, "by"),
       speed = firstAttrTextOf(e, "speed"),
+      font = firstAttrTextOf(e, "font"),
       serifColor = firstAttrTextOf(e, "serif-color"),
       tachieUrl = firstAttrTextOf(e, "tachie-url"),
       additionalTemplateVariables = atvs,

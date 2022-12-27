@@ -1,4 +1,5 @@
 @(serif: String, ctx: com.github.windymelt.zmm.domain.model.Context)
+@font() = {@ctx.font.getOrElse("sans-serif")}
 <html>
     <body style="background-color: darkblue; @ctx.backgroundImageUrl.map(url => s"background-image: url('${url}');" ).getOrElse("") background-size: 100%;">
     <!-- Highlight.js -->
@@ -21,7 +22,7 @@
     </script>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src=@{"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"} ></script>
-    <div style="position: fixed; left: 10%; right: 20%; top: 10%; font-size: 64pt; font-family: Corporate Logo ver3; color: white; -webkit-text-stroke: 0.05em black; text-stroke: 0.05em black;">@{ctx.atv.get("motif")}</div>
+    <div style="position: fixed; left: 10%; right: 20%; top: 10%; font-size: 64pt; font-family: @font(); color: white; -webkit-text-stroke: 0.05em black; text-stroke: 0.05em black;">@{ctx.atv.get("motif")}</div>
     <div style="@{ctx.atv.get("math").map(_ => "").getOrElse("display: none; ")}position: fixed; left: 2%; right: 20%; top: 2%; font-size: 32pt; color: rgba(238,232,213,1); background-color: rgba(7,54,66,0.9)">
         \[
         @ctx.maths.get(ctx.atv.get("math").getOrElse("")).getOrElse("")
@@ -36,7 +37,7 @@
         </div>
         <img alt="zunda" src="@ctx.tachieUrl.getOrElse("")" style="position: fixed; height: 80%; bottom:0px; right: 0%;" />
         <div style="background-color: rgba(0,0,0,0.5); position: fixed; left: 0px; bottom: 0px; height: 40%; width: 100%; font-size: 64pt;">
-            <div style="padding:0 1em 0 1em; font-family: Corporate Logo ver3; font-weight: 800; color: white; -webkit-text-stroke: 0.05em @{ctx.serifColor.getOrElse("black")}; text-stroke: 0.05em @{ctx.serifColor.getOrElse("black")};">@serif</div>
+            <div style="padding:0 1em 0 1em; font-family: @font(); font-weight: 800; color: white; -webkit-text-stroke: 0.05em @{ctx.serifColor.getOrElse("black")}; text-stroke: 0.05em @{ctx.serifColor.getOrElse("black")};">@serif</div>
             <!-- <div style="padding:0 1em 0 1em; font-family: Corporate Logo ver3; font-weight: 800; color: white; -webkit-text-stroke: 0.05em black; text-stroke: 0.05em black;">
                 TODO: SVG Textには今のところ折り返し機能が無いのだ そのかわり綺麗なテキスト縁取りが利用できるのだ
                 <svg style="width: 100%">
