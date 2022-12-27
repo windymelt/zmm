@@ -228,6 +228,8 @@ final class Cli
         .headOption
         .flatMap(_.attribute("url").headOption.map(_.text))
 
+    val defaultFont = (elem \ "meta" \ "font").headOption.map(_.text)
+
     // 発音調整などに使う文字列辞書。今のところVOICEVOXの発音辞書に使っている
     // (word, pronounce, accent lower point)
     val dict: Seq[(String, String, Int)] =
@@ -248,7 +250,7 @@ final class Cli
       id -> math
     } ).toMap
 
-    IO.pure(domain.model.Context(voiceConfigMap, characterConfigMap, defaultBackgroundImage, dict = dict, codes = codes, maths = maths))
+    IO.pure(domain.model.Context(voiceConfigMap, characterConfigMap, defaultBackgroundImage, dict = dict, codes = codes, maths = maths, font = defaultFont))
   }
 
   private def generateVideo(
