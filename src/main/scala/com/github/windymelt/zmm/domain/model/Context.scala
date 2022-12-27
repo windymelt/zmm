@@ -41,11 +41,8 @@ final case class Context(
   def atv = additionalTemplateVariables // alias for template
 }
 
-// TODO: 後で動かす
 sealed trait DialogueTree
 final case class Say(val text: String)
-// TODO: 仮にsceneだけとしている(他にも色々ありそう)
-final case class Scene(children: Seq[DialogueTree])
 
 object Context {
   import cats._
