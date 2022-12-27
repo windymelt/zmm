@@ -51,6 +51,58 @@ object Context {
   import cats._
   import cats.implicits._
   import scala.xml.{Text, Node, Elem, Comment}
+  import cats.effect.IO
+
+  def prepareDefaultContextFromXmlElement(elem: scala.xml.Elem): IO[Context] = {
+    val voiceConfigList = elem \ "meta" \ "voiceconfig"
+    val voiceConfigMap = voiceConfigList.map { vc =>
+      vc \@ "backend" match {
+        case "voicevox" =>
+          val vvc = vc \ "voicevoxconfig"
+          val voiceVoxSpeakerId = vvc \@ "id"
+          (vc \@ "id", VoiceVoxBackendConfig(voiceVoxSpeakerId))
+        case _ => ??? // not implemented
+      }
+    }.toMap
+
+    val characterConfigList = elem \ "meta" \ "characterconfig"
+    val characterConfigMap = characterConfigList.map { cc =>
+      val name = cc \@ "name"
+      val defaultSerifColor = Some(cc \@ "serif-color").filterNot(_.isEmpty())
+      val tachieUrl = Some(cc \@ "tachie-url").filterNot(_.isEmpty())
+      name -> CharacterConfig(name, cc \@ "voice-id", defaultSerifColor, tachieUrl)
+    }.toMap
+
+    val defaultBackgroundImage =
+      (elem \ "meta" \ "assets" \ "backgroundImage")
+        .filter(_.attribute("id").map(_.text).contains("default"))
+        .headOption
+        .flatMap(_.attribute("url").headOption.map(_.text))
+
+    val defaultFont = (elem \ "meta" \ "font").headOption.map(_.text)
+
+    // 発音調整などに使う文字列辞書。今のところVOICEVOXの発音辞書に使っている
+    // (word, pronounce, accent lower point)
+    val dict: Seq[(String, String, Int)] =
+      (elem \ "meta" \ "dict")
+        .flatMap(es => es.map(e => (e.text, (e \@ "pronounce" filterNot(_ == '_')), (e \@ "pronounce" indexOf('_')))))
+
+    val codes: Map[String, (String, Option[String])] = (elem \ "predef" \ "code").flatMap(es => es.map { e =>
+      val code = e.text.stripLeading()
+      val id = e \@ "id"
+      val lang = Some(e \@ "lang").filterNot(_.isEmpty())
+      id -> (code, lang)
+    } ).toMap
+
+    val maths: Map[String, String] = (elem \ "predef" \ "math").flatMap(es => es.map { e =>
+      val math = e.text.stripLeading()
+      val id = e \@ "id"
+
+      id -> math
+    } ).toMap
+
+    IO.pure(Context(voiceConfigMap, characterConfigMap, defaultBackgroundImage, dict = dict, codes = codes, maths = maths, font = defaultFont))
+  }
 
   // Context is a Monoid
   implicit val monoidForContext = new Monoid[Context] {
