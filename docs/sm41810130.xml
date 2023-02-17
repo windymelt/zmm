@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<content version="0.0">
+  <meta>
+    <voiceconfig id="metan" backend="voicevox">
+      <voicevoxconfig id="2" />
+    </voiceconfig>
+    <voiceconfig id="zundamon" backend="voicevox">
+      <voicevoxconfig id="3" />
+    </voiceconfig>
+    <voiceconfig id="tsumugi" backend="voicevox">
+      <voicevoxconfig id="8" />
+    </voiceconfig>
+    <characterconfig name="m" voice-id="metan" serif-color="#E14D2A" tachie-url="../../assets/metan.png" />
+    <characterconfig name="z" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda.png" />
+    <characterconfig name="z;" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda0001.png" />
+    <characterconfig name="z^" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda0002.png" />
+    <characterconfig name="z!" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda0003.png" />
+    <characterconfig name="z_" voice-id="zundamon-hisohiso" tachie-url="../../assets/zunda.png" />
+    <characterconfig name="t" voice-id="tsumugi" tachie-url="../../assets/tsumugi.png" />
+    <characterconfig name="t^" voice-id="tsumugi" tachie-url="../../assets/tsumugi0000.png" />
+    <characterconfig name="t!" voice-id="tsumugi" tachie-url="../../assets/tsumugi0001.png" />
+    <dict pronounce="ゼットエムエ_ム">zmm</dict>
+    <dict pronounce="ゼットエムエ_ム">ZMM</dict>
+    <dict pronounce="スカ_ラ">Scala</dict>
+    <dict pronounce="ウェー_ブ">WAV</dict>
+    <dict pronounce="スカラマツ_リ">ScalaMatsuri</dict>
+    <font>Corporate Logo ver3</font>
+  </meta>
+  <predef>
+  </predef>
+  <dialogue backgroundImage="../../assets/6495733.jpeg" bgm="assets/nc284625_15%_4x.mp3">
+    <!-- TODO: assetのパスをhtmlからのパスではなくxmlからのパスにする、asset: schemeの導入 -->
+    <scene backgroundImage="../../assets/zmm-logo.png">
+      <say by="z">zmm開発日誌その7、はーじまーるよー</say>
+      <say by="z" speed="1.1">この動画では、動画生成ツールzmmの開発の進捗をちびちび報告していくのだ</say>
+      <say by="z" speed="1.1">ちなみにこの動画自体もzmmで生成されているのだ</say>
+      <say by="t">ここまでがテンプレだね。</say>
+    </scene>
+    <say by="z;">前回の投稿からかなり日が開いてしまってたいへん申し訳ないのだ……。</say>
+    <say by="t!">けっこう待ったけど何があったの？</say>
+    <say by="z;">やることが沢山あったのだ</say>
+    <say by="z;">ZMMとVOICEVOXのコアとを直接接続する実験をしていたり、記法の改善を試したり、</say>
+    <say by="z;">投稿者がカンファレンスに登壇することになったりと、てんやわんやな時期を過ごしていたのだ</say>
+    <say by="t">
+盛り沢山な月を過ごしていたんだね。
+ZMMとVOICEVOXとを直接繋ぐってどういうこと？
+    </say>
+    <say by="m">説明しましょう！そもそもみなさんが使っているVOICEVOXは、3つのパーツで出来ているんですよ</say>
+    <say by="t">パーツ？</say>
+    <scene backgroundImage="../../assets/voicevox_layer.png">
+      <say by="m">VOICEVOXは、エディター、エンジン、コアの3つで構成されています</say>
+      <say by="m">普段よく使われるウィンドウを使って声を合成するシステムはエディターと呼ばれ、ユーザとのやり取りを担当しています。</say>
+      <say by="t">ふだんVOICEVOXユーザがよく触るところだね</say>
+      <say by="m">その下の層にあるのがエンジンです。エディターは音声合成をエンジンと呼ばれるパーツに依頼し、WAVファイルを受け取ってユーザに返しています。</say>
+      <say by="m">さらに深く、エンジンは合成処理をコアと呼ばれるパーツに依頼している、という構造になっています。</say>
+      <say by="m">VOICEVOXのキャラクターごとの音声の特徴などはコアに記録されています。</say>
+      <say by="t">コアは直接触らないんだね</say>
+      <say by="m">コアはニューラルネットワークの仕組みを使って音声を合成しますが通信手段は持たないので、エンジンに仲介してもらっているのです。</say>
+      <say by="t">VOICEVOXは3層構造になっていて、ユーザは普段はその一番外側を触っている、って理解でいいかな？</say>
+      <say by="m">そのとおりです！そしてZMMはエディタの代わりになれるもう一つの層として開発されているわけです。
+そこで、エンジンとの関係が問題になってきます。</say>
+    </scene>
+    <say by="t">エンジンとの関係？</say>
+    <say by="m">ZMM、エンジン、コアの3層構造にすると、どうしても配布するサイズが大きくなり、仕組みも複雑になってしまうのです。</say>
+    <say by="t">素朴に考えても3つのパーツを配布しないといけないから大変だね。</say>
+    <say by="m">そうなんです。例えば別々のプログラミング言語を動作させる必要があり、インストールしてもらうのがより困難になります。</say>
+    <say by="z;">ただでさえプログラムを動かすのは面倒なのに、複数インストールするのは辛いのだ……</say>
+    <say by="m">そこで、ZMMが直接VOICEVOXコアを内部に取り込むことで、パーツを減らしてインストールしやすくするという計画を立てました。</say>
+    <say by="m">VOICEVOX統合計画、とでも呼びましょうか。</say>
+    <say by="t">名前が付くとなんか急にかっこよくなってきたね……。</say>
+    <say by="m">ただその道のりは思ったよりも険しく、休みの日を使って少しずつ進めている状態です。</say>
+    <say by="m">これが投稿が遅くなった理由の一つです。あまり進捗はないのですが、いったん報告をしておくべきだと思って動画を作ることにしました。</say>
+    <say by="z!">何も便りがないと期待してくれているユーザさんが可哀想なのだ</say>
+
+    <say by="m">はい。なるだけ忘れないうちに投稿をするスタイルを維持したいですね。</say>
+    <say by="t">そうだね。次の話題は何だっけ？</say>
+    <say by="m">はい、なんと作者が国際カンファレンスに登壇することになってしまいました。</say>
+    <say by="t!">すごいことになったね！</say>
+    <scene backgroundImage="../../assets/scalamatsuri.png">
+      <say by="m">ええ、ScalaMatsuriという、プログラミング言語Scalaにまつわる話題を交換する国際的なカンファレンスがあるのですが、</say>
+      <say by="m">トークに応募したところ当選してしまったので、発表資料の作成などで作業時間が削られてしまいました。</say>
+      <say by="z^">一体どんな発表をすることになったのだ？</say>
+      <say by="m">なんと、このZMMに関する発表を行います。</say>
+      <say by="m">ZMMもScalaで書かれているのですが、その設計や思想について20分登壇という形でトークさせていただくこととなりました。</say>
+      <say by="m">オンライン開催なので誰でも参加できます。もし良かったら聞いてみてくださいね。</say>
+      <say by="t">ScalaMatsuriは4月15〜16日開催だね。詳細はブログを読んでくれると嬉しいな</say>
+    </scene>
+    <say by="m">はい、よろしくお願いします。</say>
+    <say by="m">今回お伝えできる内容は以上となります。引き続き開発を続けていくので、応援よろしくお願いします！</say>
+    <say by="m">また、これまでいいねしてくださった皆様、ありがとうございます！</say>
+    <say by="m">そして、広告してくださった皆様、ありがとうございます！</say>
+    <say by="t">今後も投稿を続けていくと思うので、投稿者をフォローしてくれると嬉しいな</say>
+    <say by="z^">それでは、ご視聴ありがとうございました！</say>
+  </dialogue>
+</content>
