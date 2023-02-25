@@ -54,6 +54,19 @@ class ContextSpec extends AnyFlatSpec with Matchers {
     c.head._2.backgroundImageUrl shouldBe empty
   }
 
+  it should "split say by empty p tag" in {
+    val e = <dialogue><say motif="motif0">Hello<p/>world</say></dialogue>
+    val c = Context.fromNode(e)
+    c should have size (2)
+    c(0)._1.text shouldBe "Hello"
+    c(1)._1.text shouldBe "world"
+
+    val e0 = <dialogue><say motif="motif0">Hello</say><say motif="motif0">world</say></dialogue>
+    val c0 = Context.fromNode(e0)
+
+    c shouldEqual c0
+  }
+
   it should "recognize context propergation" in {
     val e =
       <dialogue backgroundImage="https://example.com/default.png">
