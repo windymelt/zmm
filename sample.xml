@@ -35,6 +35,11 @@ def groupReduction[E : Eq, S : Semigroup](xs: Seq[(E, S)]): Seq[(E, S)] = {
 }
       ]]>
     </code>
+    <code id="p-split" lang="xml">
+    <![CDATA[
+<say>一つめの発言<p/>二つめの発言</say>
+    ]]>
+    </code>
   </predef>
   <dialogue backgroundImage="" bgm="assets/nc282335_20%.mp3">
   <!-- TODO: assetのパスをhtmlからのパスではなくxmlからのパスにする、asset: schemeの導入 -->
@@ -51,5 +56,9 @@ def groupReduction[E : Eq, S : Semigroup](xs: Seq[(E, S)]): Seq[(E, S)] = {
     <say by="char2" motif="motif=...と書くことで補足情報を表示できるようにした">motif属性を使うことにより、補足情報を表示できるのだ。</say>
     <say by="char3" motif="bgm=...と書くことでbgmを設定できる">bgm属性を使うことで、その箇所で好きなBGMを流すこともできるよ。</say>
     <say by="char2" code="code1">code属性を使うことで、プログラミング言語のソースコードを画面に示すことができるのだ。</say>
+    <say by="char1" code="p-split">
+    同一キャラの発言は、空のpタグを使うことで分割できます。<p/>
+    同一キャラにしばらく喋ってもらいたいときに使うと、記述量を節約できます。
+    </say>
   </dialogue>
 </content>
