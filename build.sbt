@@ -76,6 +76,7 @@ lazy val root = (project in file("."))
       ExecCmd("RUN", "amazon-linux-extras", "install", "-y", "epel"),
       ExecCmd("RUN", "yum", "update", "-y"),
       ExecCmd("RUN", "yum", "install", "-y", "chromium"),
+      Cmd("ENV", "IS_DOCKER_ZMM=1"),
       Cmd("WORKDIR", "/app"),
     ),
   )
