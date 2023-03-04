@@ -54,6 +54,10 @@ JARファイルを使う場合、ffmpegやchromiumがインストールされて
 - 突然音声が止まる
   - BGMの尺切れのおそれがあります
 
+## Release Procedure (for mainteners)
+
+cleanなmain branchで`sbt release`を実行するとリリースされます。
+
 ## Credits
 
 - Thanks to VOICEVOX.
