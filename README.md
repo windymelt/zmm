@@ -56,7 +56,9 @@ JARファイルを使う場合、ffmpegやchromiumがインストールされて
 
 ## Release Procedure (for mainteners)
 
-cleanなmain branchで`sbt release`を実行するとリリースされます。
+cleanなmain branchで`sbt release`を実行するとリリースされます。DockerHubに自動でアップロードされます。gitに自動でタグが打たれてpushされます。バージョンが自動的にインクリメントされます。
+
+GitHub/UberJARのリリースは人間が行います。GitHub Releasesにリリースを作成し、生成されたUberJARを登録してください。
 
 ## Credits
 
