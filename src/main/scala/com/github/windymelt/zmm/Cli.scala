@@ -141,8 +141,12 @@ final class Cli
 
          val reductedBgmWithDuration = groupReduction(bgmWithDuration)
 
+         // 環境によっては上書きに失敗する？ので出力ファイルが存在する場合削除する
+         val outputFile = os.pwd / "output_with_bgm.mp4"
+         os.remove(outputFile, checkExists = false)
+
          reductedBgmWithDuration.filter(_._1.isDefined).size match {
-           case 0 => IO.pure(os.move(zippedVideo, os.pwd / "output_with_bgm.mp4")) // Dirty fix. TODO: fix here
+           case 0 => IO.pure(os.move(zippedVideo, outputFile)) // Dirty fix. TODO: fix here
            case _ => ffmpeg.zipVideoWithAudioWithDuration(zippedVideo, reductedBgmWithDuration)
          }
        }
