@@ -7,10 +7,12 @@ sealed trait ZmmOption
 final case class ShowCommand(target: String) extends ZmmOption // 今のところvoicevoxしか入らない
 final case class TargetFile(target: java.nio.file.Path) extends ZmmOption
 final case class InitializeCommand() extends ZmmOption
+final case class VersionFlag() extends ZmmOption
 
 object CliOptions {
   private val showCommand = Opts.subcommand(name = "show", help = "Prints information.")(Opts.argument[String]("voicevox").map(ShowCommand.apply))
   private val targetFile = Opts.argument[java.nio.file.Path](metavar = "XMLFile").map(TargetFile.apply)
   private val initCommand = Opts.subcommand(name = "init", help = "Initializes current directory as ZMM project.")(Opts.unit.map(_ => InitializeCommand()))
-  val opts: Opts[ZmmOption] = targetFile orElse showCommand orElse initCommand
+  private val versionOption = Opts.flag("version", help = "Show version", short = "v").map(_ => VersionFlag())
+  val opts: Opts[ZmmOption] = versionOption orElse targetFile orElse showCommand orElse initCommand
 }

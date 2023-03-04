@@ -154,6 +154,25 @@ final class Cli
     IO.println(withColor(scala.io.AnsiColor.GREEN ++ scala.io.AnsiColor.BOLD)(zmmLogo)) >>
     IO.println(withColor(scala.io.AnsiColor.GREEN)(s"${BuildInfo.version}"))
 
+    /**
+      * ZMMのバージョンを表示する。
+      * 
+      * デバッグや問い合わせの助けとしても使う。
+      *
+      * @return IO[Unit]
+      */
+  def showVersion: IO[Unit] = 
+    IO.print("zmm ver=") >>
+    (BuildInfo.version match {
+      case s"$_-SNAPSHOT" => IO.print(withColor(scala.io.AnsiColor.YELLOW)(BuildInfo.version))
+      case _ => IO.print(withColor(scala.io.AnsiColor.GREEN)(BuildInfo.version))
+    }) >>
+    IO.print(", scalaVer=") >>
+    IO.print(withColor(scala.io.AnsiColor.GREEN)(BuildInfo.scalaVersion)) >>
+    IO.print(", sbtVer=") >>
+    IO.print(withColor(scala.io.AnsiColor.GREEN)(BuildInfo.sbtVersion)) >>
+    IO.println("")
+
   /**
     * 辞書要素を反映させる。
     *
