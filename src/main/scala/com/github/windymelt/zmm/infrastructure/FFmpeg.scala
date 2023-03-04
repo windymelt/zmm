@@ -83,7 +83,7 @@ trait FFmpegComponent {
             os.proc(ffmpegCommand, "-protocol_whitelist", "file", "-y", "-f", "concat", "-safe", "0", "-i", "artifacts/cutFile.txt", "-pix_fmt", "yuv420p", "-c:v", "libx264", "artifacts/scenes.mp4")
             .call(stdout = stdout, stderr = stdout, cwd = os.pwd)
         }
-        } yield os.pwd / os.RelPath("./artifacts/scenes.mp4")
+        } yield os.pwd / os.RelPath("artifacts/scenes.mp4")
     }
 
     def zipVideoWithAudioWithDuration(videoPath: os.Path, audioDurationPair: Seq[(Option[os.Path], FiniteDuration)]): IO[os.Path] = {
@@ -103,7 +103,7 @@ trait FFmpegComponent {
           os.proc(ffmpegCommand, "-y", "-i", videoPath, "-i", bgm, "-filter_complex", "[0:a][1:a]amerge=inputs=2[a]", "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-ac", "2", "output_with_bgm.mp4")
           .call(stdout = stdout, stderr = stdout, cwd = os.pwd)
         }
-      } yield os.pwd / os.RelPath("output_with_bgm.mp4")
+      } yield os.pwd / "output_with_bgm.mp4"
     }
 
     def zipVideoWithAudio(video: os.Path, audio: os.Path): IO[os.Path] = for {
@@ -111,7 +111,7 @@ trait FFmpegComponent {
         os.proc(ffmpegCommand, "-y", "-r", "30", "-i", video, "-i", audio, "-c:v", "copy", "-c:a", "aac", "output.mp4")
         .call(stdout = stdout, stderr = stdout, cwd = os.pwd)
       }
-    } yield os.pwd / os.RelPath("output.mp4")
+    } yield os.pwd / "output.mp4"
 }
 
 }
