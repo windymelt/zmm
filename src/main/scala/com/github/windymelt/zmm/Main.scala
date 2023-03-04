@@ -11,11 +11,11 @@ import com.monovore.decline.effect.CommandIOApp
 object Main extends CommandIOApp(
   name = "zmm",
   header = "Zunda Movie Maker -- see https://www.3qe.us/zmm/doc/ for more documentation",
-  version = BuildInfo.version,
 ) {
   override def main: Opts[IO[ExitCode]] = CliOptions.opts map { o =>
     val cli = new Cli()
     o match {
+      case VersionFlag() => cli.showVersion >> IO.pure(ExitCode.Success)
       case ShowCommand(target) => target match {
         case "voicevox" => cli.showVoiceVoxSpeakers() >> IO.pure(ExitCode.Success)
         case _ => IO.println("subcommand [show] only accepts 'voicevox'. try `show voicevox`") >> IO.pure(ExitCode.Error)
