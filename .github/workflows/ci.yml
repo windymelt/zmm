@@ -6,6 +6,24 @@ on:
       - main
 
 jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: 17
+          cache: 'sbt'
+      - name: Install sbt
+        run: curl -Ls https://raw.githubusercontent.com/dwijnand/sbt-extras/master/sbt > ./sbt && chmod 0755 ./sbt
+      - uses: coursier/cache-action@v6
+      - name: sbt scalafmtAll
+        run: ./sbt scalafmtAll
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Apply scalafmt
+          file_pattern: '*.scala'
   build-test:
     runs-on: ubuntu-latest
     strategy:
