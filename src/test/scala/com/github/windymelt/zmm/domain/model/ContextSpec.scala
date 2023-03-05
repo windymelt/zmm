@@ -3,6 +3,7 @@ package com.github.windymelt.zmm.domain.model
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+// TODO: use UnitSpec
 class ContextSpec extends AnyFlatSpec with Matchers {
   // Verify that Context is a Monoid
   "Context" should "satisfy associative law" in {
