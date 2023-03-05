@@ -20,6 +20,7 @@ jobs:
       - name: Install sbt
         run: curl -Ls https://raw.githubusercontent.com/dwijnand/sbt-extras/master/sbt > ./sbt && chmod 0755 ./sbt
       - uses: coursier/cache-action@v6
+      - run: git pull
       - name: sbt scalafmtAll
         run: ./sbt scalafmtAll
       - uses: stefanzweifel/git-auto-commit-action@v4
