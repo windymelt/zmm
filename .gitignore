@@ -2,6 +2,7 @@
 target/
 .bloop/
 .metals/
+metals.sbt
 
 # for Emacs
 *.~undo-tree~

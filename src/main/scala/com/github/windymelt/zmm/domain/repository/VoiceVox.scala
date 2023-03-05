@@ -17,4 +17,3 @@ trait VoiceVoxComponent {
     def registerDict(word: String, pronounce: String, lowerPoint: Int): IO[Unit]
   }
 }
-

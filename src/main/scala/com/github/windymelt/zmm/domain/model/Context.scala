@@ -5,10 +5,10 @@ final case class VoiceVoxBackendConfig(speakerId: String)
     extends VoiceBackendConfig
 
 final case class CharacterConfig(
-  name: String,
-  voiceId: String,
-  serifColor: Option[String] = None,
-  tachieUrl: Option[String] = None, // セリフカラー同様、セリフによって上書きされうる
+    name: String,
+    voiceId: String,
+    serifColor: Option[String] = None,
+    tachieUrl: Option[String] = None // セリフカラー同様、セリフによって上書きされうる
 )
 
 /*
@@ -33,9 +33,10 @@ final case class Context(
     dict: Seq[(String, String, Int)] = Seq.empty,
     additionalTemplateVariables: Map[String, String] = Map.empty,
     bgm: Option[String] = None,
-    codes: Map[String, (String, Option[String])] = Map.empty, // id -> (code, lang?)
+    codes: Map[String, (String, Option[String])] =
+      Map.empty, // id -> (code, lang?)
     maths: Map[String, String] = Map.empty, // id -> LaTeX string
-    sic: Option[String] = None, // 代替読みを設定できる(数式などで使う)
+    sic: Option[String] = None // 代替読みを設定できる(数式などで使う)
     // TODO: BGM, fontColor, etc.
 ) {
   def atv = additionalTemplateVariables // alias for template
@@ -54,11 +55,16 @@ object Context {
 
   // Context is a Monoid
   implicit val monoidForContext = new Monoid[Context] {
-    def combine(x: Context, y: Context): Context =  {
+    def combine(x: Context, y: Context): Context = {
       val spokenByCharacterId = y.spokenByCharacterId |+| x.spokenByCharacterId
       val characterConfigMap = x.characterConfigMap ++ y.characterConfigMap
-      val serifColor = y.serifColor orElse x.serifColor orElse spokenByCharacterId.flatMap(characterConfigMap.get).flatMap(_.serifColor)
-      val tachieUrl = y.tachieUrl orElse x.tachieUrl orElse spokenByCharacterId.flatMap(characterConfigMap.get).flatMap(_.tachieUrl)
+      val serifColor =
+        y.serifColor orElse x.serifColor orElse spokenByCharacterId
+          .flatMap(characterConfigMap.get)
+          .flatMap(_.serifColor)
+      val tachieUrl = y.tachieUrl orElse x.tachieUrl orElse spokenByCharacterId
+        .flatMap(characterConfigMap.get)
+        .flatMap(_.tachieUrl)
       Context(
         voiceConfigMap = x.voiceConfigMap ++ y.voiceConfigMap,
         characterConfigMap = characterConfigMap,
@@ -70,11 +76,13 @@ object Context {
         serifColor = serifColor,
         tachieUrl = tachieUrl,
         dict = y.dict |+| x.dict,
-        additionalTemplateVariables = x.additionalTemplateVariables ++ y.additionalTemplateVariables,
+        additionalTemplateVariables =
+          x.additionalTemplateVariables ++ y.additionalTemplateVariables,
         bgm = y.bgm orElse x.bgm,
-        codes = x.codes |+| y.codes, // Map の Monoid性を応用すると、同一idで書かれたコードは結合されるという好ましい特性が表われるのでこうしている。additionalTemplateVariablesに畳んでもいいかもしれない。現在のコードはadditionalTemplateVariablesに入れている
+        codes =
+          x.codes |+| y.codes, // Map の Monoid性を応用すると、同一idで書かれたコードは結合されるという好ましい特性が表われるのでこうしている。additionalTemplateVariablesに畳んでもいいかもしれない。現在のコードはadditionalTemplateVariablesに入れている
         maths = x.maths |+| y.maths,
-        sic = y.sic orElse x.sic,
+        sic = y.sic orElse x.sic
       )
     }
     def empty: Context = Context.empty
@@ -85,25 +93,28 @@ object Context {
       currentContext: Context = Context.empty
   ): Seq[(Say, Context)] = dialogueElem match {
     case Comment(_) => Seq.empty // コメントは無視する
-    case Text(t) if t.forall(_.isWhitespace) => Seq.empty // 空行やただの入れ子でコンテキストが生成されないようにする
+    case Text(t) if t.forall(_.isWhitespace) =>
+      Seq.empty // 空行やただの入れ子でコンテキストが生成されないようにする
     case Text(t) => Seq(Say(t) -> currentContext)
     case e: Elem =>
       e.child.flatMap(c => fromNode(c, currentContext |+| extract(e)))
   }
 
-  private def firstAttrTextOf(e: Elem, a: String): Option[String] = e.attribute(a).headOption.flatMap(_.headOption).map(_.text)
+  private def firstAttrTextOf(e: Elem, a: String): Option[String] =
+    e.attribute(a).headOption.flatMap(_.headOption).map(_.text)
 
   private def extract(e: Elem): Context = {
     val atvs = {
       val motif = firstAttrTextOf(e, "motif").map("motif" -> _)
-      val code = firstAttrTextOf(e,"code").map("code" -> _)
-      val math = firstAttrTextOf(e,"math").map("math" -> _)
+      val code = firstAttrTextOf(e, "code").map("code" -> _)
+      val math = firstAttrTextOf(e, "math").map("math" -> _)
       Seq(motif, code, math).flatten.toMap
     }
     Context(
       voiceConfigMap = empty.voiceConfigMap, // TODO
       characterConfigMap = empty.characterConfigMap, // TODO
-      backgroundImageUrl = firstAttrTextOf(e, "backgroundImage"), // TODO: no camelCase
+      backgroundImageUrl =
+        firstAttrTextOf(e, "backgroundImage"), // TODO: no camelCase
       spokenByCharacterId = firstAttrTextOf(e, "by"),
       speed = firstAttrTextOf(e, "speed"),
       font = firstAttrTextOf(e, "font"),
@@ -111,7 +122,7 @@ object Context {
       tachieUrl = firstAttrTextOf(e, "tachie-url"),
       additionalTemplateVariables = atvs,
       bgm = firstAttrTextOf(e, "bgm"),
-      sic = firstAttrTextOf(e, "sic"),
+      sic = firstAttrTextOf(e, "sic")
     )
   }
 

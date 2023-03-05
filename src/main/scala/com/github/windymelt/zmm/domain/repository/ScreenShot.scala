@@ -7,7 +7,10 @@ trait ScreenShotComponent {
   def screenShot: ScreenShot
 
   trait ScreenShot {
-    def takeScreenShot(htmlFilePath: Path, windowWidth: Int, windowHeight: Int): IO[Path]
+    def takeScreenShot(
+        htmlFilePath: Path,
+        windowWidth: Int,
+        windowHeight: Int
+    ): IO[Path]
   }
 }
-

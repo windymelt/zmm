@@ -27,9 +27,9 @@ trait VoiceVoxComponent {
     * }}}
     */
   class ConcreteVoiceVox(voiceVoxUri: String) extends VoiceVox {
-    def speakers(): IO[SpeakerInfo] = client.use {
-      c =>
-      val req = Request[IO](uri = Uri.fromString(s"${voiceVoxUri}/speakers").right.get)
+    def speakers(): IO[SpeakerInfo] = client.use { c =>
+      val req =
+        Request[IO](uri = Uri.fromString(s"${voiceVoxUri}/speakers").right.get)
       c.expect[SpeakerInfo](req)
     }
     // TODO: localhost:50021決め打ちをやめる
@@ -75,22 +75,34 @@ trait VoiceVoxComponent {
     def controlSpeed(aq: AudioQuery, speed: String): IO[AudioQuery] = {
       import io.circe.syntax._
       // TODO: .getやめて失敗できるようにする
-      IO.pure(aq.hcursor.downField("speedScale").withFocus(_ => speed.asJson).top.get)
+      IO.pure(
+        aq.hcursor.downField("speedScale").withFocus(_ => speed.asJson).top.get
+      )
     }
 
-    def registerDict(word: String, pronounce: String, lowerPoint: Int): IO[Unit] = client.use { c =>
+    def registerDict(
+        word: String,
+        pronounce: String,
+        lowerPoint: Int
+    ): IO[Unit] = client.use { c =>
       val uri = Uri
         .fromString(s"${voiceVoxUri}/user_dict_word")
         .map(
           _.copy(
-            query = org.http4s.Query.fromMap(Map("surface" -> Seq(word), "pronunciation" -> Seq(pronounce), "accent_type" -> Seq(lowerPoint.toString)))
+            query = org.http4s.Query.fromMap(
+              Map(
+                "surface" -> Seq(word),
+                "pronunciation" -> Seq(pronounce),
+                "accent_type" -> Seq(lowerPoint.toString)
+              )
+            )
           )
         )
 
       val req = Request[IO](
         Method.POST,
         uri = uri.right.get,
-        headers = Headers("Content-Type" -> "application/json"),
+        headers = Headers("Content-Type" -> "application/json")
       )
 
       c.successful(req) *> IO.unit
@@ -99,7 +111,11 @@ trait VoiceVoxComponent {
     private lazy val client = {
       import concurrent.duration._
       import scala.language.postfixOps
-      EmberClientBuilder.default[IO].withTimeout(10 minutes).withIdleConnectionTime(10 minutes).build
+      EmberClientBuilder
+        .default[IO]
+        .withTimeout(10 minutes)
+        .withIdleConnectionTime(10 minutes)
+        .build
     }
   }
 }

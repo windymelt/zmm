@@ -11,8 +11,13 @@ trait FFmpegComponent {
     import concurrent.duration.FiniteDuration
     def concatenateWavFiles(files: Seq[File]): IO[os.Path]
     def getWavDuration(file: File): IO[FiniteDuration]
-    def concatenateImagesWithDuration(imageDurationPair: Seq[(os.Path, FiniteDuration)]): IO[os.Path]
-    def zipVideoWithAudioWithDuration(videoPath: os.Path, audioDurationPair: Seq[(Option[os.Path], FiniteDuration)]): IO[os.Path]
+    def concatenateImagesWithDuration(
+        imageDurationPair: Seq[(os.Path, FiniteDuration)]
+    ): IO[os.Path]
+    def zipVideoWithAudioWithDuration(
+        videoPath: os.Path,
+        audioDurationPair: Seq[(Option[os.Path], FiniteDuration)]
+    ): IO[os.Path]
     def zipVideoWithAudio(videoPath: os.Path, audioPath: os.Path): IO[os.Path]
   }
 }
