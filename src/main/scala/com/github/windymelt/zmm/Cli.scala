@@ -320,52 +320,23 @@ final class Cli
 
     // 発音調整などに使う文字列辞書。今のところVOICEVOXの発音辞書に使っている
     // (word, pronounce, accent lower point)
-    val dict: Seq[(String, String, Int)] =
-      (elem \ "meta" \ "dict")
-        .flatMap(es =>
-          es.map(e =>
-            (
-              e.text,
-              (e \@ "pronounce" filterNot (_ == '_')),
-              (e \@ "pronounce" indexOf ('_'))
-            )
-          )
-        )
+    val dict: Seq[(String, String, Int)] = util.Dict.dictFromNode(elem)
 
-    val codes: Map[String, (String, Option[String])] =
-      (elem \ "predef" \ "code")
-        .flatMap(es =>
-          es.map { e =>
-            val code = e.text.stripLeading()
-            val id = e \@ "id"
-            val lang = Some(e \@ "lang").filterNot(_.isEmpty())
-            id -> (code, lang)
-          }
-        )
-        .toMap
+    val codes: Map[String, (String, Option[String])] = (elem \ "predef" \ "code").flatMap(es => es.map { e =>
+      val code = e.text.stripLeading()
+      val id = e \@ "id"
+      val lang = Some(e \@ "lang").filterNot(_.isEmpty())
+      id -> (code, lang)
+    } ).toMap
 
-    val maths: Map[String, String] = (elem \ "predef" \ "math")
-      .flatMap(es =>
-        es.map { e =>
-          val math = e.text.stripLeading()
-          val id = e \@ "id"
+    val maths: Map[String, String] = (elem \ "predef" \ "math").flatMap(es => es.map { e =>
+      val math = e.text.stripLeading()
+      val id = e \@ "id"
 
-          id -> math
-        }
-      )
-      .toMap
+      id -> math
+    } ).toMap
 
-    IO.pure(
-      domain.model.Context(
-        voiceConfigMap,
-        characterConfigMap,
-        defaultBackgroundImage,
-        dict = dict,
-        codes = codes,
-        maths = maths,
-        font = defaultFont
-      )
-    )
+    IO.pure(domain.model.Context(voiceConfigMap, characterConfigMap, defaultBackgroundImage, dict = dict, codes = codes, maths = maths, font = defaultFont))
   }
 
   private def generateVideo(

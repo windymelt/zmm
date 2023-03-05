@@ -3,6 +3,7 @@ package com.github.windymelt.zmm.util
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+// TODO: use UnitSpec
 class UtilSpec extends AnyFlatSpec with Matchers with UtilComponent {
   import cats.implicits._
   "groupReduction" should "reduce empty Seq as empty Seq" in {
