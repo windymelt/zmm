@@ -61,7 +61,8 @@ class ContextSpec extends AnyFlatSpec with Matchers {
     c(0)._1.text shouldBe "Hello"
     c(1)._1.text shouldBe "world"
 
-    val e0 = <dialogue><say motif="motif0">Hello</say><say motif="motif0">world</say></dialogue>
+    val e0 =
+      <dialogue><say motif="motif0">Hello</say><say motif="motif0">world</say></dialogue>
     val c0 = Context.fromNode(e0)
 
     c shouldEqual c0

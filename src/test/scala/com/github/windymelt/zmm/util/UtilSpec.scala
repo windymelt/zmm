@@ -18,11 +18,16 @@ class UtilSpec extends AnyFlatSpec with Matchers with UtilComponent {
   }
 
   it should "not reduce same key iff not adjacent" in {
-    groupReduction(Seq("foo" -> 1, "bar" -> 2, "foo" -> 3)) shouldBe Seq("foo" -> 1, "bar" -> 2, "foo" -> 3)
+    groupReduction(Seq("foo" -> 1, "bar" -> 2, "foo" -> 3)) shouldBe Seq(
+      "foo" -> 1,
+      "bar" -> 2,
+      "foo" -> 3
+    )
   }
 
   it should "treat whatever that is a Eq and Monoid" in {
-    val xs: Seq[(Boolean, Int)] = Seq(true -> 42, true -> 10, false -> 5, false -> 5, true -> 20)
+    val xs: Seq[(Boolean, Int)] =
+      Seq(true -> 42, true -> 10, false -> 5, false -> 5, true -> 20)
     val expected: Seq[(Boolean, Int)] = Seq(true -> 52, false -> 10, true -> 20)
     groupReduction(xs) shouldBe expected
   }
@@ -33,4 +38,3 @@ class UtilSpec extends AnyFlatSpec with Matchers with UtilComponent {
     cats.Eq[Path].eqv(Path("/"), Path("/foo")) shouldBe false
   }
 }
-
