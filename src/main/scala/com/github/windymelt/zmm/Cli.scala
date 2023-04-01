@@ -124,7 +124,7 @@ final class Cli
     }
   }
 
-  def generate(filePath: String): IO[Unit] = {
+  def generate(filePath: String, outPath: String): IO[Unit] = {
     val content = IO.delay(scala.xml.XML.loadFile(filePath))
 
     for {
@@ -175,7 +175,7 @@ final class Cli
         val reductedBgmWithDuration = groupReduction(bgmWithDuration)
 
         // 環境によっては上書きに失敗する？ので出力ファイルが存在する場合削除する
-        val outputFile = os.pwd / "output_with_bgm.mp4"
+        val outputFile = os.Path(outPath)
         os.remove(outputFile, checkExists = false)
 
         reductedBgmWithDuration.filter(_._1.isDefined).size match {
@@ -190,7 +190,7 @@ final class Cli
             )
         }
       }
-      _ <- IO.println("\nDone!")
+      _ <- IO.println(s"\nDone! Generated to $outPath")
     } yield ()
   }
 

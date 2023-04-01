@@ -27,8 +27,11 @@ object Main
               "subcommand [show] only accepts 'voicevox'. try `show voicevox`"
             ) >> IO.pure(ExitCode.Error)
         }
-      case TargetFile(file) =>
-        cli.generate(file.toString) >>
+      case Generate(file, out) =>
+        cli.generate(
+          file.target.toString,
+          out.toString
+        ) >>
           IO.pure(ExitCode.Success)
       case InitializeCommand() =>
         cli.initializeProject() >> IO.pure(ExitCode.Success)
