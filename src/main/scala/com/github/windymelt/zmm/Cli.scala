@@ -186,7 +186,8 @@ final class Cli
           case _ =>
             ffmpeg.zipVideoWithAudioWithDuration(
               zippedVideo,
-              reductedBgmWithDuration
+              reductedBgmWithDuration,
+              outputFile
             )
         }
       }

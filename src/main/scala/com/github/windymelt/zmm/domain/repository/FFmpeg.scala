@@ -16,7 +16,8 @@ trait FFmpegComponent {
     ): IO[os.Path]
     def zipVideoWithAudioWithDuration(
         videoPath: os.Path,
-        audioDurationPair: Seq[(Option[os.Path], FiniteDuration)]
+        audioDurationPair: Seq[(Option[os.Path], FiniteDuration)],
+        outputPath: os.Path
     ): IO[os.Path]
     def zipVideoWithAudio(videoPath: os.Path, audioPath: os.Path): IO[os.Path]
   }
