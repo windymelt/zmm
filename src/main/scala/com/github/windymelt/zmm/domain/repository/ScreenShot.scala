@@ -4,7 +4,7 @@ import cats.effect.IO
 
 trait ScreenShotComponent {
   type Path
-  def screenShot: ScreenShot
+  def screenShot: IO[ScreenShot]
 
   trait ScreenShot {
     def takeScreenShot(

@@ -7,6 +7,7 @@ import java.io.OutputStream
 import org.http4s.syntax.header
 import com.github.windymelt.zmm.domain.model.Context
 import scala.concurrent.duration.FiniteDuration
+import cats.effect.std.Mutex
 
 final class Cli
     extends domain.repository.FFmpegComponent
@@ -28,6 +29,8 @@ final class Cli
     sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
   val chromiumCommand =
     sys.env.get("CHROMIUM_CMD").getOrElse(config.getString("chromium.command"))
+  val firefoxCommand =
+    sys.env.get("FIREFOX_CMD").getOrElse(config.getString("firefox.command"))
   def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
   def ffmpeg =
     new ConcreteFFmpeg(config.getString("ffmpeg.command"), ConcreteFFmpeg.Quiet)
@@ -35,11 +38,14 @@ final class Cli
     .get("CHROMIUM_NOSANDBOX")
     .map(_ == "1")
     .getOrElse(config.getBoolean("chromium.nosandbox"))
-  def screenShot = new ChromeScreenShot(
-    chromiumCommand,
-    ChromeScreenShot.Quiet,
-    chromiumNoSandBox
-  )
+  def screenShot =
+    IO(
+      new ChromeScreenShot(
+        chromiumCommand,
+        ChromeScreenShot.Quiet,
+        chromiumNoSandBox
+      )
+    )
 
   def showVoiceVoxSpeakers(): IO[Unit] = {
     import io.circe.JsonObject
@@ -373,7 +379,8 @@ final class Cli
           stream,
           s"./artifacts/html/${sha1Hex}.html"
         )
-        screenShotFile <- screenShot.takeScreenShot(
+        ss <- screenShot
+        screenShotFile <- ss.takeScreenShot(
           os.pwd / os.RelPath(htmlFile.toString)
         )
       } yield screenShotFile

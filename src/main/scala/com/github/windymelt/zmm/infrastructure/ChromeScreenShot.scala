@@ -14,7 +14,7 @@ trait ChromeScreenShotComponent {
   }
 
   type Path = os.Path
-  def screenShot: ChromeScreenShot
+  def screenShot: IO[ChromeScreenShot]
 
   class ChromeScreenShot(
       chromeCommand: String,
