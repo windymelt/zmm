@@ -46,6 +46,8 @@ trait FFmpegComponent {
               "fileList.txt",
               "-c",
               "copy",
+              "-ac", // ステレオ化する
+              "2",
               "artifacts/concatenated.wav"
             )
             .call(
@@ -184,6 +186,63 @@ trait FFmpegComponent {
           ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
         }
       } yield os.pwd / "output_with_bgm.mp4"
+    }
+
+    def composeVideoWithDuration(
+        overlayVideoPath: os.Path,
+        baseVideoDurationPair: Seq[(Option[os.Path], FiniteDuration)]
+    ): IO[os.Path] = {
+      // 一度オーバーレイビデオをDurationに従って結合し、これと動画を合成する。
+      val writeCutfile = {
+        val cutFileContent = baseVideoDurationPair flatMap { case (pOpt, dur) =>
+          pOpt.map(p =>
+            s"file ${p}\noutpoint ${dur.toUnit(concurrent.duration.SECONDS)}"
+          )
+        } mkString ("\n")
+        self.writeStreamToFile(
+          fs2.Stream[IO, Byte](cutFileContent.getBytes(): _*),
+          "./artifacts/overlayVideoCutFile.txt"
+        )
+      }
+
+      for {
+        _ <- writeCutfile
+        base <- IO.delay {
+          os.proc(
+            ffmpegCommand,
+            "-protocol_whitelist",
+            "file",
+            "-y",
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            "artifacts/overlayVideoCutFile.txt",
+            "artifacts/concatenatedBase.mp4"
+          ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
+          os.pwd / os.RelPath("artifacts/concatenatedBase.mp4")
+        }
+        _ <- IO.delay {
+          os.proc(
+            ffmpegCommand,
+            "-y",
+            "-i",
+            base,
+            "-i",
+            overlayVideoPath,
+            "-filter_complex",
+            "[0:a][1:a]amerge=inputs=2[a];[1:v]colorkey=0xFF00FF:0.01:0[overlayv];[0:v][overlayv]overlay=x=0:y=0[outv]",
+            "-map",
+            "[outv]",
+            "-map",
+            "[a]",
+            "-ac",
+            "2",
+            "output_composed.mp4"
+          ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
+        }
+      } yield os.pwd / "output_composed.mp4"
     }
 
     def zipVideoWithAudio(video: os.Path, audio: os.Path): IO[os.Path] = for {

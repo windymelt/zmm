@@ -161,6 +161,32 @@ trait Cli
       zippedVideo <- backgroundIndicator("Zipping silent video and audio").use {
         _ => ffmpeg.zipVideoWithAudio(video, audio)
       }
+      composedVideo <- backgroundIndicator("Composing Video").use { _ =>
+        // もし設定されていればビデオを合成する。BGMと同様、同じビデオであれば結合する。
+        val videoWithDuration: Seq[(Option[os.Path], FiniteDuration)] =
+          sayCtxPairs
+            .map(p => p._2.video.map(os.pwd / os.RelPath(_)))
+            .zip(pathAndDurations.map(_._2))
+
+        val reductedVideoWithDuration = groupReduction(videoWithDuration)
+
+        // 環境によっては上書きに失敗する？ので出力ファイルが存在する場合削除する
+        val outputFile = os.pwd / "output_composed.mp4"
+        os.remove(outputFile, checkExists = false)
+
+        reductedVideoWithDuration.filter(_._1.isDefined).size match {
+          case 0 =>
+            IO.delay {
+              os.move(zippedVideo, outputFile)
+              zippedVideo
+            }
+          case _ =>
+            ffmpeg.composeVideoWithDuration(
+              zippedVideo,
+              reductedVideoWithDuration
+            )
+        }
+      }
       _ <- backgroundIndicator("Applying BGM").use { _ =>
         // BGMを合成する。BGMはコンテキストで割り当てる。sayCtxPairsでsayごとにコンテキストが確定するので、同じBGMであれば結合しつつ最終的なDurationを計算する。
         // たとえば、BGMa 5sec BGMa 5sec BGMb 10sec であるときは、 BGMa 10sec BGMb 10secに簡約される。
@@ -178,11 +204,11 @@ trait Cli
         reductedBgmWithDuration.filter(_._1.isDefined).size match {
           case 0 =>
             IO.pure(
-              os.move(zippedVideo, outputFile)
+              os.move(composedVideo, outputFile)
             ) // Dirty fix. TODO: fix here
           case _ =>
             ffmpeg.zipVideoWithAudioWithDuration(
-              zippedVideo,
+              composedVideo,
               reductedBgmWithDuration
             )
         }
