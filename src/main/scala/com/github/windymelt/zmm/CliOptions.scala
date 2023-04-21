@@ -2,13 +2,25 @@ package com.github.windymelt.zmm
 
 import com.monovore.decline._
 import com.monovore.decline.effect._
+import cats.data.Validated
+import cats.implicits._
+import cats.data.NonEmptyList
 
 sealed trait ZmmOption
 final case class ShowCommand(target: String)
     extends ZmmOption // 今のところvoicevoxしか入らない
-final case class TargetFile(target: java.nio.file.Path) extends ZmmOption
+final case class TargetFile(
+    target: java.nio.file.Path,
+    screenShotBackend: Option[ScreenShotBackend]
+) extends ZmmOption
 final case class InitializeCommand() extends ZmmOption
 final case class VersionFlag() extends ZmmOption
+
+sealed trait ScreenShotBackend
+object ScreenShotBackend {
+  final case object Chrome extends ScreenShotBackend
+  final case object Firefox extends ScreenShotBackend
+}
 
 object CliOptions {
   private val showCommand =
@@ -16,7 +28,7 @@ object CliOptions {
       Opts.argument[String]("voicevox").map(ShowCommand.apply)
     )
   private val targetFile =
-    Opts.argument[java.nio.file.Path](metavar = "XMLFile").map(TargetFile.apply)
+    Opts.argument[java.nio.file.Path](metavar = "XMLFile")
   private val initCommand = Opts.subcommand(
     name = "init",
     help = "Initializes current directory as ZMM project."
@@ -24,6 +36,28 @@ object CliOptions {
   private val versionOption = Opts
     .flag("version", help = "Show version", short = "v")
     .map(_ => VersionFlag())
+  private val screenShotBackend = Opts
+    .option[String](
+      "screenshot",
+      help = "Backend for screenshot. chrome or firefox.",
+      short = "s",
+      metavar = "chrome | firefox"
+    )
+    .mapValidated {
+      case "chrome" =>
+        Validated.valid(ScreenShotBackend.Chrome)
+      case "firefox" => Validated.valid(ScreenShotBackend.Firefox)
+      case _ =>
+        Validated.invalid(
+          "screenshot backend should be one of chrome and firefox"
+            .pure[NonEmptyList]
+        )
+    }
+    .orNone
+
+  val mainOpts = (targetFile, screenShotBackend).mapN { case (p, ss) =>
+    TargetFile(p, ss)
+  }
   val opts: Opts[ZmmOption] =
-    versionOption orElse targetFile orElse showCommand orElse initCommand
+    versionOption orElse mainOpts orElse showCommand orElse initCommand
 }

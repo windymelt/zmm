@@ -3,6 +3,7 @@ package infrastructure
 
 import cats.effect.IO
 import cats.implicits._
+import cats.effect.kernel.Resource
 
 trait ChromeScreenShotComponent {
   self: domain.repository.ScreenShotComponent =>
@@ -13,8 +14,7 @@ trait ChromeScreenShotComponent {
     final object Verbose extends Verbosity
   }
 
-  type Path = os.Path
-  def screenShot: ChromeScreenShot
+  def screenShotResource: IO[Resource[IO, ScreenShot]]
 
   class ChromeScreenShot(
       chromeCommand: String,
@@ -26,10 +26,10 @@ trait ChromeScreenShotComponent {
       case ChromeScreenShot.Verbose => os.Inherit
     }
     def takeScreenShot(
-        htmlFilePath: Path,
+        htmlFilePath: os.Path,
         windowWidth: Int = 1920,
         windowHeight: Int = 1080
-    ): IO[Path] = IO.delay {
+    ): IO[os.Path] = IO.delay {
       val proc = noSandBox match {
         case true =>
           os.proc(

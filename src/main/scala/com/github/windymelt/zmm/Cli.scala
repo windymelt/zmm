@@ -7,14 +7,14 @@ import java.io.OutputStream
 import org.http4s.syntax.header
 import com.github.windymelt.zmm.domain.model.Context
 import scala.concurrent.duration.FiniteDuration
+import cats.effect.std.Mutex
 
-final class Cli
+trait Cli
     extends domain.repository.FFmpegComponent
     with domain.repository.VoiceVoxComponent
     with domain.repository.ScreenShotComponent
     with infrastructure.FFmpegComponent
     with infrastructure.VoiceVoxComponent
-    with infrastructure.ChromeScreenShotComponent
     with util.UtilComponent {
 
   val zmmLogo = """ _________  ______  ___
@@ -26,8 +26,6 @@ final class Cli
 
   val voiceVoxUri =
     sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
-  val chromiumCommand =
-    sys.env.get("CHROMIUM_CMD").getOrElse(config.getString("chromium.command"))
   def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
   def ffmpeg =
     new ConcreteFFmpeg(config.getString("ffmpeg.command"), ConcreteFFmpeg.Quiet)
@@ -35,11 +33,6 @@ final class Cli
     .get("CHROMIUM_NOSANDBOX")
     .map(_ == "1")
     .getOrElse(config.getBoolean("chromium.nosandbox"))
-  def screenShot = new ChromeScreenShot(
-    chromiumCommand,
-    ChromeScreenShot.Quiet,
-    chromiumNoSandBox
-  )
 
   def showVoiceVoxSpeakers(): IO[Unit] = {
     import io.circe.JsonObject
@@ -131,9 +124,6 @@ final class Cli
       _ <- showLogo
       _ <- IO.println(s"""[pwd] ${System.getProperty("user.dir")}""")
       _ <- IO.println(s"""[configuration] voicevox api: ${voiceVoxUri}""")
-      _ <- IO.println(
-        s"""[configuration] chromium command: ${chromiumCommand}"""
-      )
       _ <- IO.println(s"""[configuration] ffmpeg command: ${config.getString(
           "ffmpeg.command"
         )}""")
@@ -363,28 +353,36 @@ final class Cli
       pathAndDurations: Seq[(fs2.io.file.Path, FiniteDuration)]
   ): IO[os.Path] = {
     import cats.syntax.parallel._
-    val saySeq = sayCtxPairs map { case (s, ctx) =>
-      for {
-        stream <- buildHtmlFile(s.text, ctx).map(s =>
-          fs2.Stream[IO, Byte](s.getBytes(): _*)
+
+    val shot: ScreenShot => (domain.model.Say, Context) => IO[os.Path] =
+      (ss: ScreenShot) =>
+        (s: domain.model.Say, ctx: Context) =>
+          for {
+            stream <- buildHtmlFile(s.text, ctx).map(s =>
+              fs2.Stream[IO, Byte](s.getBytes(): _*)
+            )
+            sha1Hex <- sha1HexCode(s.text.getBytes())
+            htmlFile <- writeStreamToFile(
+              stream,
+              s"./artifacts/html/${sha1Hex}.html"
+            )
+            screenShotFile <- ss.takeScreenShot(
+              os.pwd / os.RelPath(htmlFile.toString)
+            )
+          } yield screenShotFile
+
+    for {
+      ss <- screenShotResource
+      imgs <- for {
+        sceneImages <- sayCtxPairs.map { pair =>
+          ss.use { ss => shot(ss).tupled(pair) }
+        }.parSequence
+        concatenatedImages <- ffmpeg.concatenateImagesWithDuration(
+          sceneImages.zip(pathAndDurations.map(_._2))
         )
-        sha1Hex <- sha1HexCode(s.text.getBytes())
-        htmlFile <- writeStreamToFile(
-          stream,
-          s"./artifacts/html/${sha1Hex}.html"
-        )
-        screenShotFile <- screenShot.takeScreenShot(
-          os.pwd / os.RelPath(htmlFile.toString)
-        )
-      } yield screenShotFile
-    }
-    val sceneImages =
-      saySeq.grouped(10).map(_.parSequence).toSeq.reduceRight[IO[Seq[Path]]] {
-        case (acc, io) => acc.flatMap(acc => io.map(acc ++ _))
-      }
-    sceneImages.flatMap(imgs =>
-      ffmpeg.concatenateImagesWithDuration(imgs.zip(pathAndDurations.map(_._2)))
-    )
+      } yield concatenatedImages
+
+    } yield imgs
   }
 
   private def buildAudioQuery(
