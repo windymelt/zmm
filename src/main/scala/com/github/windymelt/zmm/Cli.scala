@@ -8,6 +8,7 @@ import org.http4s.syntax.header
 import com.github.windymelt.zmm.domain.model.Context
 import scala.concurrent.duration.FiniteDuration
 import cats.effect.std.Mutex
+import com.github.windymelt.zmm.domain.model.VoiceBackendConfig
 
 trait Cli
     extends domain.repository.FFmpegComponent
@@ -138,8 +139,14 @@ trait Cli
       )
       pathAndDurations <- {
         import cats.syntax.parallel._
-        val saySeq = sayCtxPairs map { case (s, ctx) =>
-          generateSay(s, voiceVox, ctx)
+        val saySeq = sayCtxPairs map {
+          case (s, ctx)
+              if ctx.spokenByCharacterId == Some(
+                "silent"
+              ) => // TODO: voiceconfigまで辿る
+            generateSilence(ctx)
+          case (s, ctx) =>
+            generateSay(s, voiceVox, ctx)
         }
         saySeq.parSequence
       }
@@ -265,6 +272,19 @@ trait Cli
     dur <- ffmpeg.getWavDuration(path.toString)
   } yield (path, dur)
 
+  private def generateSilence(
+      ctx: Context
+  ): IO[(fs2.io.file.Path, FiniteDuration)] = for {
+    len <- IO.pure(
+      ctx.silentLength.getOrElse(FiniteDuration(3, "second"))
+    ) // 指定してないなら3秒にしているが理由はない
+    sha1Hex <- sha1HexCode(len.toString.getBytes)
+    path <- IO.pure(os.Path(s"${os.pwd}/artifacts/silence_$sha1Hex.wav"))
+    wav <- backgroundIndicator("Exporting silent .wav file").use { _ =>
+      ffmpeg.generateSilentWav(path, len)
+    }
+  } yield (fs2.io.file.Path(path.toString()), len)
+
   private def contentSanityCheck(elem: scala.xml.Elem): IO[Unit] = {
     val checkTopElem = elem.label == "content"
     val ver = elem \@ "version" == "0.0"
@@ -277,14 +297,17 @@ trait Cli
 
   private def prepareDefaultContext(elem: scala.xml.Elem): IO[Context] = {
     val voiceConfigList = elem \ "meta" \ "voiceconfig"
-    val voiceConfigMap = voiceConfigList.map { vc =>
-      vc \@ "backend" match {
-        case "voicevox" =>
-          val vvc = vc \ "voicevoxconfig"
-          val voiceVoxSpeakerId = vvc \@ "id"
-          (vc \@ "id", domain.model.VoiceVoxBackendConfig(voiceVoxSpeakerId))
-        case _ => ??? // not implemented
-      }
+    val voiceConfigMap: Map[String, VoiceBackendConfig] = voiceConfigList.map {
+      vc =>
+        vc \@ "backend" match {
+          case "voicevox" =>
+            val vvc = vc \ "voicevoxconfig"
+            val voiceVoxSpeakerId = vvc \@ "id"
+            (vc \@ "id", domain.model.VoiceVoxBackendConfig(voiceVoxSpeakerId))
+          case "silent" =>
+            (vc \@ "id", domain.model.SilentBackendConfig())
+          case _ => ??? // not implemented
+        }
     }.toMap
 
     val characterConfigList = elem \ "meta" \ "characterconfig"
