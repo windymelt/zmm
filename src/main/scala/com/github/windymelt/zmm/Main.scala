@@ -15,23 +15,29 @@ object Main
         "Zunda Movie Maker -- see https://www.3qe.us/zmm/doc/ for more documentation"
     ) {
   override def main: Opts[IO[ExitCode]] = CliOptions.opts map { o =>
-    val cli = new Cli()
+    val defaultCli = new ChromiumCli()
+
     o match {
-      case VersionFlag() => cli.showVersion >> IO.pure(ExitCode.Success)
+      case VersionFlag() => defaultCli.showVersion >> IO.pure(ExitCode.Success)
       case ShowCommand(target) =>
         target match {
           case "voicevox" =>
-            cli.showVoiceVoxSpeakers() >> IO.pure(ExitCode.Success)
+            defaultCli.showVoiceVoxSpeakers() >> IO.pure(ExitCode.Success)
           case _ =>
             IO.println(
               "subcommand [show] only accepts 'voicevox'. try `show voicevox`"
             ) >> IO.pure(ExitCode.Error)
         }
-      case TargetFile(file) =>
+      case TargetFile(file, screenShotBackend) =>
+        val cli = screenShotBackend match {
+          case Some(ScreenShotBackend.Chrome)  => new ChromiumCli()
+          case Some(ScreenShotBackend.Firefox) => new FirefoxCli()
+          case _                               => defaultCli
+        }
         cli.generate(file.toString) >>
           IO.pure(ExitCode.Success)
       case InitializeCommand() =>
-        cli.initializeProject() >> IO.pure(ExitCode.Success)
+        defaultCli.initializeProject() >> IO.pure(ExitCode.Success)
     }
   }
 }
