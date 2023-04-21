@@ -1,8 +1,11 @@
 package com.github.windymelt.zmm.domain.model
 
+import scala.concurrent.duration.FiniteDuration
+
 sealed trait VoiceBackendConfig
 final case class VoiceVoxBackendConfig(speakerId: String)
     extends VoiceBackendConfig
+final case class SilentBackendConfig() extends VoiceBackendConfig
 
 final case class CharacterConfig(
     name: String,
@@ -36,7 +39,8 @@ final case class Context(
     codes: Map[String, (String, Option[String])] =
       Map.empty, // id -> (code, lang?)
     maths: Map[String, String] = Map.empty, // id -> LaTeX string
-    sic: Option[String] = None // 代替読みを設定できる(数式などで使う)
+    sic: Option[String] = None, // 代替読みを設定できる(数式などで使う)
+    silentLength: Option[FiniteDuration] = None // by=silentな場合に停止する時間
     // TODO: BGM, fontColor, etc.
 ) {
   def atv = additionalTemplateVariables // alias for template
@@ -82,7 +86,8 @@ object Context {
         codes =
           x.codes |+| y.codes, // Map の Monoid性を応用すると、同一idで書かれたコードは結合されるという好ましい特性が表われるのでこうしている。additionalTemplateVariablesに畳んでもいいかもしれない。現在のコードはadditionalTemplateVariablesに入れている
         maths = x.maths |+| y.maths,
-        sic = y.sic orElse x.sic
+        sic = y.sic orElse x.sic,
+        silentLength = y.silentLength <+> x.silentLength
       )
     }
     def empty: Context = Context.empty
@@ -122,7 +127,10 @@ object Context {
       tachieUrl = firstAttrTextOf(e, "tachie-url"),
       additionalTemplateVariables = atvs,
       bgm = firstAttrTextOf(e, "bgm"),
-      sic = firstAttrTextOf(e, "sic")
+      sic = firstAttrTextOf(e, "sic"),
+      silentLength = firstAttrTextOf(e, "silent-length").map(l =>
+        FiniteDuration.apply(Integer.parseInt(l), "second")
+      )
     )
   }
 

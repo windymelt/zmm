@@ -19,5 +19,6 @@ trait FFmpegComponent {
         audioDurationPair: Seq[(Option[os.Path], FiniteDuration)]
     ): IO[os.Path]
     def zipVideoWithAudio(videoPath: os.Path, audioPath: os.Path): IO[os.Path]
+    def generateSilentWav(path: os.Path, length: FiniteDuration): IO[os.Path]
   }
 }

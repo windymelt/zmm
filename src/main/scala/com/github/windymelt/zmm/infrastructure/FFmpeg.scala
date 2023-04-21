@@ -205,6 +205,26 @@ trait FFmpegComponent {
         ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
       }
     } yield os.pwd / "output.mp4"
-  }
 
+    def generateSilentWav(path: os.Path, length: FiniteDuration): IO[os.Path] =
+      for {
+        _ <- IO.delay {
+          val sample = 24000 // VOICEVOXに揃えないと伸びてしまう
+          val lengthSec = length.toSeconds
+          os.proc(
+            ffmpegCommand,
+            "-y",
+            "-t",
+            lengthSec,
+            "-f",
+            "lavfi",
+            "-i",
+            s"anullsrc=cl=mono:r=${sample}",
+            "-sample_fmt",
+            "s16", // depth 16
+            path
+          ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
+        }
+      } yield path
+  }
 }
