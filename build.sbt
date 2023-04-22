@@ -61,7 +61,14 @@ lazy val root = (project in file("."))
     dockerUpdateLatest := true,
     /* zmmではScala highlightのためにカスタムしたhighlight.jsを同梱しているが、mappingが今のところ壊れているのでDocker Imageでは直接highlight.jsをダウンロードさせる */
     dockerCommands ++= Seq(
+      // ExecCmd("COPY", "./entrypoint.sh", "/app/entrypoint.sh"),
+      // Cmd ("ENTRYPOINT", "[", "/app/entrypoint.sh", "]"),
+      // coretto image does not have useradd utils
       Cmd("USER", "root"),
+      ExecCmd("RUN", "yum", "install", "-y", "shadow-utils"),
+      ExecCmd("RUN", "yum", "clean", "all"),
+      ExecCmd("RUN", "useradd", "-m", "zundamon"),
+      ExecCmd("RUN", "mkdir", "/app"),
       ExecCmd("RUN", "mkdir", "-p", "/app/artifacts/html"),
       ExecCmd("RUN", "mkdir", "/app/assets"),
       ExecCmd("ADD", "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js", "/app/highlight.min.js"),
@@ -76,9 +83,12 @@ lazy val root = (project in file("."))
       ExecCmd("RUN", "amazon-linux-extras", "install", "-y", "epel"),
       ExecCmd("RUN", "yum", "update", "-y"),
       ExecCmd("RUN", "yum", "install", "-y", "chromium"),
+      ExecCmd("RUN", "chown", "-R", "zundamon", "/app"),
+      Cmd("USER", "zundamon"),
       Cmd("ENV", "IS_DOCKER_ZMM=1"),
       Cmd("WORKDIR", "/app"),
     ),
+    dockerEntrypoint := Seq("./entrypoint.sh")
   )
 
 ThisBuild / assemblyMergeStrategy := {
