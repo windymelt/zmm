@@ -286,7 +286,7 @@ trait FFmpegComponent {
             s"""nullsrc=s=1920x1080:r=$FRAME_RATE_FPS:d=$wholeDurationSec[nullsrc];
                 [0:a][1:a]amix=normalize=0[a];
                 [nullsrc][1:v]overlay=x=0:y=0[paddedbase];
-                [0:v]colorkey=0xFF00FF:0.01:0[overlayv];
+                [0:v]colorkey=0xFF00FF:0.1:0.5[overlayv];
                 [paddedbase][overlayv]overlay=x=0:y=0:eof_action=pass:shortest=0:repeatlast=1[outv0]${timecode}
                 """.stripMargin,
             "-map",
