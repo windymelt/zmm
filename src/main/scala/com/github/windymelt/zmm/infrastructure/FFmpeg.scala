@@ -205,6 +205,15 @@ trait FFmpegComponent {
         )
       }
 
+      val timecode = verbosity match {
+        case ConcreteFFmpeg.Verbose =>
+          ";[outv0]drawtext=fontsize=64:box=1:boxcolor=white@0.5:fontcolor=black:fontfile=Berkeley Mono:timecode='00\\:00\\:00\\:00':r=24:y=main_h-text_h:fontcolor=0xccFFFF[outv]"
+        case ConcreteFFmpeg.Quiet => ""
+      }
+      val outputVideoStream = verbosity match {
+        case ConcreteFFmpeg.Verbose => "[outv]"
+        case ConcreteFFmpeg.Quiet   => "[outv0]"
+      }
       for {
         _ <- writeCutfile
         base <- IO.delay {
@@ -228,13 +237,13 @@ trait FFmpegComponent {
             ffmpegCommand,
             "-y",
             "-i",
-            base,
-            "-i",
             overlayVideoPath,
+            "-i",
+            base,
             "-filter_complex",
-            "[0:a][1:a]amerge=inputs=2[a];[1:v]colorkey=0xFF00FF:0.01:0[overlayv];[0:v][overlayv]overlay=x=0:y=0[outv]",
+            s"[0:a][1:a]amerge=inputs=2[a];[0:v]colorkey=0xFF00FF:0.01:0[overlayv];[1:v][overlayv]overlay=x=0:y=0[outv0]${timecode}",
             "-map",
-            "[outv]",
+            outputVideoStream,
             "-map",
             "[a]",
             "-ac",
