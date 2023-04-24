@@ -2,6 +2,7 @@ package com.github.windymelt.zmm
 package infrastructure
 
 import cats.effect.IO
+
 import scala.concurrent.duration.FiniteDuration
 
 trait FFmpegComponent {
