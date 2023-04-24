@@ -19,6 +19,7 @@ trait FFmpegComponent {
       ffmpegCommand: String,
       verbosity: ConcreteFFmpeg.Verbosity
   ) extends FFmpeg {
+    val FRAME_RATE_FPS = 30 // TODO: application.confなどに逃がす
     val stdout = verbosity match {
       case ConcreteFFmpeg.Quiet   => os.Pipe
       case ConcreteFFmpeg.Verbose => os.Inherit
@@ -192,30 +193,68 @@ trait FFmpegComponent {
         overlayVideoPath: os.Path,
         baseVideoDurationPair: Seq[(Option[os.Path], FiniteDuration)]
     ): IO[os.Path] = {
-      // 一度オーバーレイビデオをDurationに従って結合し、これと動画を合成する。
-      val writeCutfile = {
+      import cats.implicits._
+      val paddingDur =
+        baseVideoDurationPair
+          .takeWhile(_._1.isEmpty)
+          .map(_._2.toUnit(concurrent.duration.SECONDS))
+          .combineAll
+      // 背景ビデオが開始する地点まで尺をつなぐためのダミー動画を生成する。
+      val genPadding = IO.delay {
+        os.proc(
+          ffmpegCommand,
+          "-protocol_whitelist",
+          "file",
+          "-y",
+          "-t",
+          paddingDur,
+          "-filter_complex",
+          s"smptehdbars=s=1920x1080:d=$paddingDur, fps=$FRAME_RATE_FPS[v];anullsrc=channel_layout=stereo:sample_rate=24000[o]",
+          "-safe",
+          "0",
+          "-map",
+          "[v]",
+          "-map",
+          "[o]",
+          "artifacts/basePadding.mp4"
+        ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
+        os.pwd / os.RelPath("artifacts/basePadding.mp4")
+      }
+
+      // 一度背景ビデオをDurationに従って結合し、これと動画を合成する。
+      val writeCutfile = (pad: os.Path) => {
+        val paddingContent = s"file $pad\noutpoint $paddingDur\n"
         val cutFileContent = baseVideoDurationPair flatMap { case (pOpt, dur) =>
           pOpt.map(p =>
             s"file ${p}\noutpoint ${dur.toUnit(concurrent.duration.SECONDS)}"
           )
         } mkString ("\n")
         self.writeStreamToFile(
-          fs2.Stream[IO, Byte](cutFileContent.getBytes(): _*),
-          "./artifacts/overlayVideoCutFile.txt"
+          fs2.Stream[IO, Byte](
+            (paddingContent ++ cutFileContent).getBytes(): _*
+          ),
+          "./artifacts/baseVideoCutFile.txt"
         )
       }
 
       val timecode = verbosity match {
         case ConcreteFFmpeg.Verbose =>
-          ";[outv0]drawtext=fontsize=64:box=1:boxcolor=white@0.5:fontcolor=black:fontfile=Berkeley Mono:timecode='00\\:00\\:00\\:00':r=24:y=main_h-text_h:fontcolor=0xccFFFF[outv]"
+          s";[outv0]drawtext=fontsize=64:box=1:boxcolor=white@0.5:fontcolor=black:fontfile=Berkeley Mono:timecode='00\\:00\\:00\\:00':r=$FRAME_RATE_FPS:y=main_h-text_h:fontcolor=0xccFFFF[outv]"
         case ConcreteFFmpeg.Quiet => ""
       }
+
       val outputVideoStream = verbosity match {
         case ConcreteFFmpeg.Verbose => "[outv]"
         case ConcreteFFmpeg.Quiet   => "[outv0]"
       }
+
+      val wholeDurationSec = baseVideoDurationPair
+        .map(_._2)
+        .combineAll
+        .toUnit(concurrent.duration.SECONDS)
       for {
-        _ <- writeCutfile
+        pad <- genPadding
+        _ <- writeCutfile(pad)
         base <- IO.delay {
           os.proc(
             ffmpegCommand,
@@ -227,7 +266,9 @@ trait FFmpegComponent {
             "-safe",
             "0",
             "-i",
-            "artifacts/overlayVideoCutFile.txt",
+            "artifacts/baseVideoCutFile.txt",
+            "-vf",
+            s"framerate=$FRAME_RATE_FPS", // こちらは動画なのでfpsではなくframerateフィルタでやや丁寧に処理する
             "artifacts/concatenatedBase.mp4"
           ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
           os.pwd / os.RelPath("artifacts/concatenatedBase.mp4")
@@ -241,11 +282,18 @@ trait FFmpegComponent {
             "-i",
             base,
             "-filter_complex",
-            s"[0:a][1:a]amerge=inputs=2[a];[0:v]colorkey=0xFF00FF:0.01:0[overlayv];[1:v][overlayv]overlay=x=0:y=0[outv0]${timecode}",
+            // 必ずbase videoはoverlay video以上の長さである必要があるので、何もない画面にbase videoをoverlayすることで長さを揃えてから再度overlayする
+            s"""nullsrc=s=1920x1080:r=$FRAME_RATE_FPS:d=$wholeDurationSec[nullsrc];
+                [0:a][1:a]amix=normalize=0[a];
+                [nullsrc][1:v]overlay=x=0:y=0[paddedbase];
+                [0:v]colorkey=0xFF00FF:0.01:0[overlayv];
+                [paddedbase][overlayv]overlay=x=0:y=0:eof_action=pass:shortest=0:repeatlast=1[outv0]${timecode}
+                """.stripMargin,
             "-map",
             outputVideoStream,
             "-map",
             "[a]",
+            "-shortest",
             "-ac",
             "2",
             "output_composed.mp4"

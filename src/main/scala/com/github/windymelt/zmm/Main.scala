@@ -30,6 +30,7 @@ object Main
         }
       case TargetFile(file, screenShotBackend) =>
         val cli = screenShotBackend match {
+          // TODO: ffmpeg verbosityをcli opsから設定可能にする
           case Some(ScreenShotBackend.Chrome)  => new ChromiumCli()
           case Some(ScreenShotBackend.Firefox) => new FirefoxCli()
           case _                               => defaultCli

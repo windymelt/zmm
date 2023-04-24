@@ -29,7 +29,10 @@ trait Cli
     sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
   def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
   def ffmpeg =
-    new ConcreteFFmpeg(config.getString("ffmpeg.command"), ConcreteFFmpeg.Quiet)
+    new ConcreteFFmpeg(
+      config.getString("ffmpeg.command"),
+      ConcreteFFmpeg.Quiet
+    ) // TODO: respect construct parameter
   val chromiumNoSandBox = sys.env
     .get("CHROMIUM_NOSANDBOX")
     .map(_ == "1")
