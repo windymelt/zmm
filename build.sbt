@@ -60,7 +60,7 @@ lazy val root = (project in file("."))
     dockerRepository := Some("docker.io"),
     dockerUsername := Some("windymelt"),
     dockerUpdateLatest := true,
-    mappings in Universal += file("entrypoint.sh") -> "entrypoint.sh",
+    Universal / mappings += file("entrypoint.sh") -> "entrypoint.sh",
     /* zmmではScala highlightのためにカスタムしたhighlight.jsを同梱しているが、mappingが今のところ壊れているのでDocker Imageでは直接highlight.jsをダウンロードさせる */
     dockerCommands ++= Seq(
       // Initnally, run as root. Go to protected user inside entrypoint.sh.
