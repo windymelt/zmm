@@ -63,14 +63,17 @@ lazy val root = (project in file("."))
     mappings in Universal += file("entrypoint.sh") -> "entrypoint.sh",
     /* zmmではScala highlightのためにカスタムしたhighlight.jsを同梱しているが、mappingが今のところ壊れているのでDocker Imageでは直接highlight.jsをダウンロードさせる */
     dockerCommands ++= Seq(
-      // coretto image does not have useradd utils
+      // Initnally, run as root. Go to protected user inside entrypoint.sh.
       Cmd("USER", "root"),
+      // coretto image does not have useradd utils
       ExecCmd("RUN", "yum", "install", "-y", "shadow-utils"),
       ExecCmd("RUN", "yum", "clean", "all"),
+      // Add protected user. entrypoint.sh uses this.
       ExecCmd("RUN", "useradd", "-m", "zundamon"),
       ExecCmd("RUN", "mkdir", "/app"),
       ExecCmd("RUN", "mkdir", "-p", "/app/artifacts/html"),
       ExecCmd("RUN", "mkdir", "/app/assets"),
+      // Install dependencies
       ExecCmd(
         "ADD",
         "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js",
@@ -100,6 +103,7 @@ lazy val root = (project in file("."))
       ExecCmd("RUN", "amazon-linux-extras", "install", "-y", "epel"),
       ExecCmd("RUN", "yum", "update", "-y"),
       ExecCmd("RUN", "yum", "install", "-y", "chromium"),
+      // entrypoint.sh is automatically copied into /opt/docker by sbt-native-packager.
       ExecCmd("RUN", "chmod", "u+x", "/opt/docker/entrypoint.sh"),
       ExecCmd("RUN", "chown", "-R", "zundamon", "/app"),
       Cmd("ENV", "IS_DOCKER_ZMM=1"),

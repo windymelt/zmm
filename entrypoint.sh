@@ -3,6 +3,8 @@
 # Script to adopt uid/gid to host's.
 # See https://zenn.dev/anyakichi/articles/73765814e57cba
 
+# Running as root here...
+
 export USER=zundamon
 export HOME=/home/zundamon
 
@@ -21,6 +23,8 @@ if [ "$uid" -ne 0 ]; then
     fi
 fi
 
+# setpriv is a minimal tool like sudo/doas.
 # Masquerade to host's user
-# Coretto's setpriv does not have --init-groups option. we use --clear-groups
+# Coretto's setpriv does not have --init-groups option. we use --clear-groups.
+# Binaries will be deployed into /opt/docker by sbt-native-packager.
 exec setpriv --reuid=$USER --regid=$USER --clear-groups /opt/docker/bin/zmm "$@"
