@@ -1,14 +1,15 @@
 package com.github.windymelt.zmm
 
+import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.IOApp
-import cats.effect.ExitCode
-import java.io.OutputStream
-import org.http4s.syntax.header
-import com.github.windymelt.zmm.domain.model.Context
-import scala.concurrent.duration.FiniteDuration
 import cats.effect.std.Mutex
+import com.github.windymelt.zmm.domain.model.Context
 import com.github.windymelt.zmm.domain.model.VoiceBackendConfig
+import org.http4s.syntax.header
+
+import java.io.OutputStream
+import scala.concurrent.duration.FiniteDuration
 
 trait Cli
     extends domain.repository.FFmpegComponent
@@ -29,7 +30,10 @@ trait Cli
     sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
   def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
   def ffmpeg =
-    new ConcreteFFmpeg(config.getString("ffmpeg.command"), ConcreteFFmpeg.Quiet)
+    new ConcreteFFmpeg(
+      config.getString("ffmpeg.command"),
+      ConcreteFFmpeg.Quiet
+    ) // TODO: respect construct parameter
   val chromiumNoSandBox = sys.env
     .get("CHROMIUM_NOSANDBOX")
     .map(_ == "1")

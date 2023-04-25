@@ -1,12 +1,13 @@
 package com.github.windymelt.zmm
 
+import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.IOApp
-import cats.effect.ExitCode
-import java.io.OutputStream
-import org.http4s.syntax.header
 import com.monovore.decline.Opts
 import com.monovore.decline.effect.CommandIOApp
+import org.http4s.syntax.header
+
+import java.io.OutputStream
 
 object Main
     extends CommandIOApp(
@@ -30,6 +31,7 @@ object Main
         }
       case TargetFile(file, screenShotBackend) =>
         val cli = screenShotBackend match {
+          // TODO: ffmpeg verbosityをcli opsから設定可能にする
           case Some(ScreenShotBackend.Chrome)  => new ChromiumCli()
           case Some(ScreenShotBackend.Firefox) => new FirefoxCli()
           case _                               => defaultCli
