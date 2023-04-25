@@ -1,9 +1,10 @@
 import Dependencies._
-import ReleaseTransformations._
 import com.typesafe.sbt.packager.docker._
 
-ThisBuild / scalaVersion     := "2.13.8"
-ThisBuild / organization     := "com.github.windymelt"
+import ReleaseTransformations._
+
+ThisBuild / scalaVersion := "2.13.8"
+ThisBuild / organization := "com.github.windymelt"
 ThisBuild / organizationName := "windymelt"
 
 lazy val root = (project in file("."))
@@ -23,9 +24,9 @@ lazy val root = (project in file("."))
       "com.monovore" %% "decline-effect" % "2.4.1",
       "com.mitchtalmadge" % "ascii-data" % "1.4.0",
       "org.slf4j" % "slf4j-simple" % "2.0.6",
-      scalaTest % Test,
+      scalaTest % Test
     ),
-    assembly / mainClass := Some("com.github.windymelt.zmm.Main"),
+    assembly / mainClass := Some("com.github.windymelt.zmm.Main")
   )
   .enablePlugins(SbtTwirl)
   .enablePlugins(BuildInfoPlugin)
@@ -37,19 +38,19 @@ lazy val root = (project in file("."))
   )
   .settings(
     releaseProcess := Seq[ReleaseStep](
-      checkSnapshotDependencies,              // : ReleaseStep
-      inquireVersions,                        // : ReleaseStep
-      runClean,                               // : ReleaseStep
-      runTest,                                // : ReleaseStep
-      setReleaseVersion,                      // : ReleaseStep
-      commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
-      tagRelease,                             // : ReleaseStep
+      checkSnapshotDependencies, // : ReleaseStep
+      inquireVersions, // : ReleaseStep
+      runClean, // : ReleaseStep
+      runTest, // : ReleaseStep
+      setReleaseVersion, // : ReleaseStep
+      commitReleaseVersion, // : ReleaseStep, performs the initial git checks
+      tagRelease, // : ReleaseStep
       // publishArtifacts, // : ReleaseStep, checks whether `publishTo` is properly set up
       releaseStepTask(assembly),
       releaseStepTask(Docker / publish),
-      setNextVersion,                         // : ReleaseStep
-      commitNextVersion,                      // : ReleaseStep
-      pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
+      setNextVersion, // : ReleaseStep
+      commitNextVersion, // : ReleaseStep
+      pushChanges // : ReleaseStep, also checks that an upstream branch is properly configured
     )
   )
   .settings(
@@ -59,10 +60,9 @@ lazy val root = (project in file("."))
     dockerRepository := Some("docker.io"),
     dockerUsername := Some("windymelt"),
     dockerUpdateLatest := true,
+    mappings in Universal += file("entrypoint.sh") -> "entrypoint.sh",
     /* zmmではScala highlightのためにカスタムしたhighlight.jsを同梱しているが、mappingが今のところ壊れているのでDocker Imageでは直接highlight.jsをダウンロードさせる */
     dockerCommands ++= Seq(
-      // ExecCmd("COPY", "./entrypoint.sh", "/app/entrypoint.sh"),
-      // Cmd ("ENTRYPOINT", "[", "/app/entrypoint.sh", "]"),
       // coretto image does not have useradd utils
       Cmd("USER", "root"),
       ExecCmd("RUN", "yum", "install", "-y", "shadow-utils"),
@@ -71,34 +71,49 @@ lazy val root = (project in file("."))
       ExecCmd("RUN", "mkdir", "/app"),
       ExecCmd("RUN", "mkdir", "-p", "/app/artifacts/html"),
       ExecCmd("RUN", "mkdir", "/app/assets"),
-      ExecCmd("ADD", "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js", "/app/highlight.min.js"),
+      ExecCmd(
+        "ADD",
+        "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js",
+        "/app/highlight.min.js"
+      ),
       ExecCmd("RUN", "mkdir", "-p", "/app/highlight/styles"),
-      ExecCmd("ADD", "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css", "/app/highlight/styles/default.min.css"),
+      ExecCmd(
+        "ADD",
+        "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css",
+        "/app/highlight/styles/default.min.css"
+      ),
       Cmd("WORKDIR", "/root"),
       ExecCmd("RUN", "yum", "-y", "install", "wget", "tar", "xz"),
-      ExecCmd("RUN", "wget", "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"),
+      ExecCmd(
+        "RUN",
+        "wget",
+        "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
+      ),
       ExecCmd("RUN", "tar", "xvf", "ffmpeg-release-amd64-static.tar.xz"),
-      ExecCmd("RUN", "mv", "ffmpeg-5.1.1-amd64-static/ffmpeg", "/usr/bin/ffmpeg"),
-      ExecCmd("RUN", "mv", "ffmpeg-5.1.1-amd64-static/ffprobe", "/usr/bin/ffprobe"),
+      ExecCmd("RUN", "mv", "ffmpeg-6.0-amd64-static/ffmpeg", "/usr/bin/ffmpeg"),
+      ExecCmd(
+        "RUN",
+        "mv",
+        "ffmpeg-6.0-amd64-static/ffprobe",
+        "/usr/bin/ffprobe"
+      ),
       ExecCmd("RUN", "amazon-linux-extras", "install", "-y", "epel"),
       ExecCmd("RUN", "yum", "update", "-y"),
       ExecCmd("RUN", "yum", "install", "-y", "chromium"),
+      ExecCmd("RUN", "chmod", "u+x", "/opt/docker/entrypoint.sh"),
       ExecCmd("RUN", "chown", "-R", "zundamon", "/app"),
-      Cmd("USER", "zundamon"),
       Cmd("ENV", "IS_DOCKER_ZMM=1"),
-      Cmd("WORKDIR", "/app"),
+      Cmd("WORKDIR", "/app")
     ),
-    dockerEntrypoint := Seq("./entrypoint.sh")
+    dockerEntrypoint := Seq("/opt/docker/entrypoint.sh")
   )
 
 ThisBuild / assemblyMergeStrategy := {
-  case PathList("META-INF", "versions", "9", "module-info.class") => MergeStrategy.first
+  case PathList("META-INF", "versions", "9", "module-info.class") =>
+    MergeStrategy.first
   case x =>
     val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
     oldStrategy(x)
 }
-
-
-
 
 // See https://www.scala-sbt.org/1.x/docs/Using-Sonatype.html for instructions on how to publish to Sonatype.

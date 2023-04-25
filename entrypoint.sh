@@ -22,4 +22,5 @@ if [ "$uid" -ne 0 ]; then
 fi
 
 # Masquerade to host's user
-exec setpriv --reuid=$USER --regid=$USER --init-groups "$@"
+# Coretto's setpriv does not have --init-groups option. we use --clear-groups
+exec setpriv --reuid=$USER --regid=$USER --clear-groups /opt/docker/bin/zmm "$@"
