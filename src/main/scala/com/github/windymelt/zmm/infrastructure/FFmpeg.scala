@@ -201,30 +201,34 @@ trait FFmpegComponent {
           .map(_._2.toUnit(concurrent.duration.SECONDS))
           .combineAll
       // 背景ビデオが開始する地点まで尺をつなぐためのダミー動画を生成する。
-      val genPadding = IO.delay {
-        os.proc(
-          ffmpegCommand,
-          "-protocol_whitelist",
-          "file",
-          "-y",
-          "-t",
-          paddingDur,
-          "-filter_complex",
-          s"smptehdbars=s=1920x1080:d=$paddingDur, fps=$FRAME_RATE_FPS[v];anullsrc=channel_layout=stereo:sample_rate=24000[o]",
-          "-safe",
-          "0",
-          "-map",
-          "[v]",
-          "-map",
-          "[o]",
-          "artifacts/basePadding.mp4"
-        ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
-        os.pwd / os.RelPath("artifacts/basePadding.mp4")
-      }
+      val genPadding =
+        if (paddingDur.isEmpty) IO.pure(None)
+        else
+          IO.delay {
+            os.proc(
+              ffmpegCommand,
+              "-protocol_whitelist",
+              "file",
+              "-y",
+              "-t",
+              paddingDur,
+              "-filter_complex",
+              s"smptehdbars=s=1920x1080:d=$paddingDur, fps=$FRAME_RATE_FPS[v];anullsrc=channel_layout=stereo:sample_rate=24000[o]",
+              "-safe",
+              "0",
+              "-map",
+              "[v]",
+              "-map",
+              "[o]",
+              "artifacts/basePadding.mp4"
+            ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
+            Some(os.pwd / os.RelPath("artifacts/basePadding.mp4"))
+          }
 
       // 一度背景ビデオをDurationに従って結合し、これと動画を合成する。
-      val writeCutfile = (pad: os.Path) => {
-        val paddingContent = s"file $pad\noutpoint $paddingDur\n"
+      val writeCutfile = (pad: Option[os.Path]) => {
+        val paddingContent =
+          pad.map(p => s"file $p\noutpoint $paddingDur\n").getOrElse("")
         val cutFileContent = baseVideoDurationPair flatMap { case (pOpt, dur) =>
           pOpt.map(p =>
             s"file ${p}\noutpoint ${dur.toUnit(concurrent.duration.SECONDS)}"
