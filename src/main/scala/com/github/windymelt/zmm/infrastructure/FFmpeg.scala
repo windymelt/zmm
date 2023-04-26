@@ -257,28 +257,9 @@ trait FFmpegComponent {
         .map(_._2)
         .combineAll
         .toUnit(concurrent.duration.SECONDS)
-      for {
-        pad <- genPadding
-        _ <- writeCutfile(pad)
-        base <- IO.delay {
-          os.proc(
-            ffmpegCommand,
-            "-protocol_whitelist",
-            "file",
-            "-y",
-            "-f",
-            "concat",
-            "-safe",
-            "0",
-            "-i",
-            "artifacts/baseVideoCutFile.txt",
-            "-vf",
-            s"framerate=$FRAME_RATE_FPS", // こちらは動画なのでfpsではなくframerateフィルタでやや丁寧に処理する
-            "artifacts/concatenatedBase.mp4"
-          ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
-          os.pwd / os.RelPath("artifacts/concatenatedBase.mp4")
-        }
-        _ <- IO.delay {
+
+      val colorKeyOverlay = (base: os.Path) =>
+        IO.delay {
           os.proc(
             ffmpegCommand,
             "-y",
@@ -304,6 +285,30 @@ trait FFmpegComponent {
             "output_composed.mp4"
           ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
         }
+
+      for {
+        pad <- genPadding
+        _ <- writeCutfile(pad)
+        base <- IO.delay {
+          os.proc(
+            ffmpegCommand,
+            "-protocol_whitelist",
+            "file",
+            "-y",
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            "artifacts/baseVideoCutFile.txt",
+            "-vf",
+            s"framerate=$FRAME_RATE_FPS", // こちらは動画なのでfpsではなくframerateフィルタでやや丁寧に処理する
+            "artifacts/concatenatedBase.mp4"
+          ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
+          os.pwd / os.RelPath("artifacts/concatenatedBase.mp4")
+        }
+        // base videoの上にoverlay videoを合成する。ここではoverlay videoは#ff00ffでカラーキー合成しているが、将来的にはAYUV形式などを使いたい
+        _ <- colorKeyOverlay(base)
       } yield os.pwd / "output_composed.mp4"
     }
 
