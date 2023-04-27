@@ -2,10 +2,11 @@ package com.github.windymelt.zmm
 package infrastructure
 
 import cats.effect.IO
-import cats.implicits._
-import cats.effect.std.Mutex
-import scala.concurrent.duration.FiniteDuration
 import cats.effect.kernel.Resource
+import cats.effect.std.Mutex
+import cats.implicits._
+
+import scala.concurrent.duration.FiniteDuration
 
 trait FirefoxScreenShotComponent {
   self: domain.repository.ScreenShotComponent =>
