@@ -21,7 +21,6 @@ trait FirefoxScreenShotComponent {
   class FirefoxScreenShot(
       firefoxCommand: String,
       verbosity: FirefoxScreenShot.Verbosity
-      // mutex: Mutex[IO] // firefox outputs fixed "screenshot.png", so we cannot call it concurrently
   ) extends ScreenShot {
     val stdout = verbosity match {
       case FirefoxScreenShot.Quiet   => os.Pipe
