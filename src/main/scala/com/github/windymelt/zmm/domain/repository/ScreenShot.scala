@@ -12,5 +12,9 @@ trait ScreenShotComponent {
         windowWidth: Int = 1920,
         windowHeight: Int = 1080
     ): IO[os.Path]
+
+    /** ユーザの入力によってスクリーンショット実装が切り替わるので、それを内部で判別できるようにするための識別子。
+      */
+    val screenShotImplementation: String
   }
 }

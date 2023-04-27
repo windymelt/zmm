@@ -21,6 +21,7 @@ trait ChromeScreenShotComponent {
       verbosity: ChromeScreenShot.Verbosity,
       noSandBox: Boolean = false
   ) extends ScreenShot {
+    val screenShotImplementation = "chrome"
     val stdout = verbosity match {
       case ChromeScreenShot.Quiet   => os.Pipe
       case ChromeScreenShot.Verbose => os.Inherit

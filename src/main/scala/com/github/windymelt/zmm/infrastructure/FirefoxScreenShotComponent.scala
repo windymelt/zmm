@@ -22,6 +22,7 @@ trait FirefoxScreenShotComponent {
       firefoxCommand: String,
       verbosity: FirefoxScreenShot.Verbosity
   ) extends ScreenShot {
+    val screenShotImplementation = "firefox"
     val stdout = verbosity match {
       case FirefoxScreenShot.Quiet   => os.Pipe
       case FirefoxScreenShot.Verbose => os.Inherit
