@@ -182,7 +182,7 @@ trait Cli
           case 0 =>
             IO.delay {
               os.move(zippedVideo, outputFile)
-              zippedVideo
+              outputFile
             }
           case _ =>
             ffmpeg.composeVideoWithDuration(
