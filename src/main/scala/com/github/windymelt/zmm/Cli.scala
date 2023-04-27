@@ -165,7 +165,7 @@ trait Cli
       zippedVideo <- backgroundIndicator("Zipping silent video and audio").use {
         _ => ffmpeg.zipVideoWithAudio(video, audio)
       }
-      composedVideo <- backgroundIndicator("Composing Video").use { _ =>
+      composedVideo <- backgroundIndicator("Composing Video").surround {
         // もし設定されていればビデオを合成する。BGMと同様、同じビデオであれば結合する。
         val videoWithDuration: Seq[(Option[os.Path], FiniteDuration)] =
           sayCtxPairs
