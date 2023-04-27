@@ -2,8 +2,8 @@ package com.github.windymelt.zmm
 package infrastructure
 
 import cats.effect.IO
-import cats.implicits._
 import cats.effect.kernel.Resource
+import cats.implicits._
 
 trait ChromeScreenShotComponent {
   self: domain.repository.ScreenShotComponent =>
@@ -21,6 +21,7 @@ trait ChromeScreenShotComponent {
       verbosity: ChromeScreenShot.Verbosity,
       noSandBox: Boolean = false
   ) extends ScreenShot {
+    val screenShotImplementation = "chrome"
     val stdout = verbosity match {
       case ChromeScreenShot.Quiet   => os.Pipe
       case ChromeScreenShot.Verbose => os.Inherit
@@ -34,18 +35,22 @@ trait ChromeScreenShotComponent {
         case true =>
           os.proc(
             chromeCommand,
-            "--headless",
+            "--headless=new",
             "--no-sandbox",
+            "--hide-scrollbars",
             s"--screenshot=${htmlFilePath}.png",
             s"--window-size=${windowWidth},${windowHeight}",
+            "--default-background-color=00000000",
             htmlFilePath
           )
         case false =>
           os.proc(
             chromeCommand,
-            "--headless",
+            "--headless=new",
+            "--hide-scrollbars",
             s"--screenshot=${htmlFilePath}.png",
             s"--window-size=${windowWidth},${windowHeight}",
+            "--default-background-color=00000000",
             htmlFilePath
           )
       }

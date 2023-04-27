@@ -18,6 +18,10 @@ trait FFmpegComponent {
         videoPath: os.Path,
         audioDurationPair: Seq[(Option[os.Path], FiniteDuration)]
     ): IO[os.Path]
+    def composeVideoWithDuration(
+        baseVideoPath: os.Path,
+        overlayVideoDurationPair: Seq[(Option[os.Path], FiniteDuration)]
+    ): IO[os.Path]
     def zipVideoWithAudio(videoPath: os.Path, audioPath: os.Path): IO[os.Path]
     def generateSilentWav(path: os.Path, length: FiniteDuration): IO[os.Path]
   }

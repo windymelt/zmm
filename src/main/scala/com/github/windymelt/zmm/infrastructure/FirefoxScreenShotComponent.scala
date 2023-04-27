@@ -2,10 +2,11 @@ package com.github.windymelt.zmm
 package infrastructure
 
 import cats.effect.IO
-import cats.implicits._
-import cats.effect.std.Mutex
-import scala.concurrent.duration.FiniteDuration
 import cats.effect.kernel.Resource
+import cats.effect.std.Mutex
+import cats.implicits._
+
+import scala.concurrent.duration.FiniteDuration
 
 trait FirefoxScreenShotComponent {
   self: domain.repository.ScreenShotComponent =>
@@ -21,8 +22,8 @@ trait FirefoxScreenShotComponent {
   class FirefoxScreenShot(
       firefoxCommand: String,
       verbosity: FirefoxScreenShot.Verbosity
-      // mutex: Mutex[IO] // firefox outputs fixed "screenshot.png", so we cannot call it concurrently
   ) extends ScreenShot {
+    val screenShotImplementation = "firefox"
     val stdout = verbosity match {
       case FirefoxScreenShot.Quiet   => os.Pipe
       case FirefoxScreenShot.Verbose => os.Inherit
