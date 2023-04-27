@@ -38,6 +38,7 @@ trait ChromeScreenShotComponent {
             "--no-sandbox",
             s"--screenshot=${htmlFilePath}.png",
             s"--window-size=${windowWidth},${windowHeight}",
+            "--default-background-color=00000000",
             htmlFilePath
           )
         case false =>
@@ -46,6 +47,7 @@ trait ChromeScreenShotComponent {
             "--headless",
             s"--screenshot=${htmlFilePath}.png",
             s"--window-size=${windowWidth},${windowHeight}",
+            "--default-background-color=00000000",
             htmlFilePath
           )
       }

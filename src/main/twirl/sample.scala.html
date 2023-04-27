@@ -1,7 +1,7 @@
 @(serif: String, ctx: com.github.windymelt.zmm.domain.model.Context)
 @font() = {@ctx.font.getOrElse("sans-serif")}
 <html>
-    <body style="background-color: darkblue; @ctx.backgroundImageUrl.map(url => s"background-image: url('${url}');" ).getOrElse("") background-size: 100%;">
+    <body style="@ctx.backgroundImageUrl.map(url => s"background-image: url('${url}');" ).getOrElse("") background-size: 100%;">
     <!-- Highlight.js -->
     <link rel="stylesheet"
           href="../../default.min.css">
