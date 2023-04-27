@@ -15,7 +15,7 @@ class ChromiumCli extends Cli with infrastructure.ChromeScreenShotComponent {
         s"""[configuration] chromium command: ${chromiumCommand}"""
       )
       smph <- Semaphore[IO](4) // TODO: go configuration
-    } yield smph.permit.map { _ => println("acquiring chrome") }.map { _ =>
+    } yield smph.permit.map { _ =>
       new ChromeScreenShot(
         chromiumCommand,
         ChromeScreenShot.Quiet,
