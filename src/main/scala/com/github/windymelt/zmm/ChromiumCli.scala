@@ -2,7 +2,7 @@ package com.github.windymelt.zmm
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
-import cats.effect.std.Semaphore
+import cats.effect.std.Mutex
 import cats.implicits._
 
 class ChromiumCli extends Cli with infrastructure.ChromeScreenShotComponent {
@@ -14,8 +14,8 @@ class ChromiumCli extends Cli with infrastructure.ChromeScreenShotComponent {
       _ <- IO.println(
         s"""[configuration] chromium command: ${chromiumCommand}"""
       )
-      smph <- Semaphore[IO](4) // TODO: go configuration
-    } yield smph.permit.map { _ =>
+      mu <- Mutex[IO]
+    } yield mu.lock.map { _ =>
       new ChromeScreenShot(
         chromiumCommand,
         ChromeScreenShot.Quiet,
