@@ -1,20 +1,22 @@
 package com.github.windymelt.zmm
 
+import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.IOApp
-import cats.effect.ExitCode
-import java.io.OutputStream
-import org.http4s.syntax.header
+import cats.effect.std.Mutex
 import com.github.windymelt.zmm.domain.model.Context
+import com.github.windymelt.zmm.domain.model.VoiceBackendConfig
+import org.http4s.syntax.header
+
+import java.io.OutputStream
 import scala.concurrent.duration.FiniteDuration
 
-final class Cli
+trait Cli
     extends domain.repository.FFmpegComponent
     with domain.repository.VoiceVoxComponent
     with domain.repository.ScreenShotComponent
     with infrastructure.FFmpegComponent
     with infrastructure.VoiceVoxComponent
-    with infrastructure.ChromeScreenShotComponent
     with util.UtilComponent {
 
   val zmmLogo = """ _________  ______  ___
@@ -26,20 +28,16 @@ final class Cli
 
   val voiceVoxUri =
     sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
-  val chromiumCommand =
-    sys.env.get("CHROMIUM_CMD").getOrElse(config.getString("chromium.command"))
   def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
   def ffmpeg =
-    new ConcreteFFmpeg(config.getString("ffmpeg.command"), ConcreteFFmpeg.Quiet)
+    new ConcreteFFmpeg(
+      config.getString("ffmpeg.command"),
+      ConcreteFFmpeg.Quiet
+    ) // TODO: respect construct parameter
   val chromiumNoSandBox = sys.env
     .get("CHROMIUM_NOSANDBOX")
     .map(_ == "1")
     .getOrElse(config.getBoolean("chromium.nosandbox"))
-  def screenShot = new ChromeScreenShot(
-    chromiumCommand,
-    ChromeScreenShot.Quiet,
-    chromiumNoSandBox
-  )
 
   def showVoiceVoxSpeakers(): IO[Unit] = {
     import io.circe.JsonObject
@@ -131,9 +129,6 @@ final class Cli
       _ <- showLogo
       _ <- IO.println(s"""[pwd] ${System.getProperty("user.dir")}""")
       _ <- IO.println(s"""[configuration] voicevox api: ${voiceVoxUri}""")
-      _ <- IO.println(
-        s"""[configuration] chromium command: ${chromiumCommand}"""
-      )
       _ <- IO.println(s"""[configuration] ffmpeg command: ${config.getString(
           "ffmpeg.command"
         )}""")
@@ -148,8 +143,14 @@ final class Cli
       )
       pathAndDurations <- {
         import cats.syntax.parallel._
-        val saySeq = sayCtxPairs map { case (s, ctx) =>
-          generateSay(s, voiceVox, ctx)
+        val saySeq = sayCtxPairs map {
+          case (s, ctx)
+              if ctx.spokenByCharacterId == Some(
+                "silent"
+              ) => // TODO: voiceconfigまで辿る
+            generateSilence(ctx)
+          case (s, ctx) =>
+            generateSay(s, voiceVox, ctx)
         }
         saySeq.parSequence
       }
@@ -163,6 +164,32 @@ final class Cli
       val (video, audio) = va
       zippedVideo <- backgroundIndicator("Zipping silent video and audio").use {
         _ => ffmpeg.zipVideoWithAudio(video, audio)
+      }
+      composedVideo <- backgroundIndicator("Composing Video").surround {
+        // もし設定されていればビデオを合成する。BGMと同様、同じビデオであれば結合する。
+        val videoWithDuration: Seq[(Option[os.Path], FiniteDuration)] =
+          sayCtxPairs
+            .map(p => p._2.video.map(os.pwd / os.RelPath(_)))
+            .zip(pathAndDurations.map(_._2))
+
+        val reductedVideoWithDuration = groupReduction(videoWithDuration)
+
+        // 環境によっては上書きに失敗する？ので出力ファイルが存在する場合削除する
+        val outputFile = os.pwd / "output_composed.mp4"
+        os.remove(outputFile, checkExists = false)
+
+        reductedVideoWithDuration.filter(_._1.isDefined).size match {
+          case 0 =>
+            IO.delay {
+              os.move(zippedVideo, outputFile)
+              outputFile
+            }
+          case _ =>
+            ffmpeg.composeVideoWithDuration(
+              zippedVideo,
+              reductedVideoWithDuration
+            )
+        }
       }
       _ <- backgroundIndicator("Applying BGM").use { _ =>
         // BGMを合成する。BGMはコンテキストで割り当てる。sayCtxPairsでsayごとにコンテキストが確定するので、同じBGMであれば結合しつつ最終的なDurationを計算する。
@@ -181,11 +208,11 @@ final class Cli
         reductedBgmWithDuration.filter(_._1.isDefined).size match {
           case 0 =>
             IO.pure(
-              os.move(zippedVideo, outputFile)
+              os.move(composedVideo, outputFile)
             ) // Dirty fix. TODO: fix here
           case _ =>
             ffmpeg.zipVideoWithAudioWithDuration(
-              zippedVideo,
+              composedVideo,
               reductedBgmWithDuration,
               outputFile
             )
@@ -276,6 +303,19 @@ final class Cli
     dur <- ffmpeg.getWavDuration(path.toString)
   } yield (path, dur)
 
+  private def generateSilence(
+      ctx: Context
+  ): IO[(fs2.io.file.Path, FiniteDuration)] = for {
+    len <- IO.pure(
+      ctx.silentLength.getOrElse(FiniteDuration(3, "second"))
+    ) // 指定してないなら3秒にしているが理由はない
+    sha1Hex <- sha1HexCode(len.toString.getBytes)
+    path <- IO.pure(os.Path(s"${os.pwd}/artifacts/silence_$sha1Hex.wav"))
+    wav <- backgroundIndicator("Exporting silent .wav file").use { _ =>
+      ffmpeg.generateSilentWav(path, len)
+    }
+  } yield (fs2.io.file.Path(path.toString()), len)
+
   private def contentSanityCheck(elem: scala.xml.Elem): IO[Unit] = {
     val checkTopElem = elem.label == "content"
     val ver = elem \@ "version" == "0.0"
@@ -288,14 +328,17 @@ final class Cli
 
   private def prepareDefaultContext(elem: scala.xml.Elem): IO[Context] = {
     val voiceConfigList = elem \ "meta" \ "voiceconfig"
-    val voiceConfigMap = voiceConfigList.map { vc =>
-      vc \@ "backend" match {
-        case "voicevox" =>
-          val vvc = vc \ "voicevoxconfig"
-          val voiceVoxSpeakerId = vvc \@ "id"
-          (vc \@ "id", domain.model.VoiceVoxBackendConfig(voiceVoxSpeakerId))
-        case _ => ??? // not implemented
-      }
+    val voiceConfigMap: Map[String, VoiceBackendConfig] = voiceConfigList.map {
+      vc =>
+        vc \@ "backend" match {
+          case "voicevox" =>
+            val vvc = vc \ "voicevoxconfig"
+            val voiceVoxSpeakerId = vvc \@ "id"
+            (vc \@ "id", domain.model.VoiceVoxBackendConfig(voiceVoxSpeakerId))
+          case "silent" =>
+            (vc \@ "id", domain.model.SilentBackendConfig())
+          case _ => ??? // not implemented
+        }
     }.toMap
 
     val characterConfigList = elem \ "meta" \ "characterconfig"
@@ -364,28 +407,36 @@ final class Cli
       pathAndDurations: Seq[(fs2.io.file.Path, FiniteDuration)]
   ): IO[os.Path] = {
     import cats.syntax.parallel._
-    val saySeq = sayCtxPairs map { case (s, ctx) =>
-      for {
-        stream <- buildHtmlFile(s.text, ctx).map(s =>
-          fs2.Stream[IO, Byte](s.getBytes(): _*)
+
+    val shot: ScreenShot => (domain.model.Say, Context) => IO[os.Path] =
+      (ss: ScreenShot) =>
+        (s: domain.model.Say, ctx: Context) =>
+          for {
+            stream <- buildHtmlFile(s.text, ctx).map(s =>
+              fs2.Stream[IO, Byte](s.getBytes(): _*)
+            )
+            sha1Hex <- sha1HexCode(s.text.getBytes())
+            htmlFile <- writeStreamToFile(
+              stream,
+              s"./artifacts/html/${sha1Hex}.html"
+            )
+            screenShotFile <- ss.takeScreenShot(
+              os.pwd / os.RelPath(htmlFile.toString)
+            )
+          } yield screenShotFile
+
+    for {
+      ss <- screenShotResource
+      imgs <- for {
+        sceneImages <- sayCtxPairs.map { pair =>
+          ss.use { ss => shot(ss).tupled(pair) }
+        }.parSequence
+        concatenatedImages <- ffmpeg.concatenateImagesWithDuration(
+          sceneImages.zip(pathAndDurations.map(_._2))
         )
-        sha1Hex <- sha1HexCode(s.text.getBytes())
-        htmlFile <- writeStreamToFile(
-          stream,
-          s"./artifacts/html/${sha1Hex}.html"
-        )
-        screenShotFile <- screenShot.takeScreenShot(
-          os.pwd / os.RelPath(htmlFile.toString)
-        )
-      } yield screenShotFile
-    }
-    val sceneImages =
-      saySeq.grouped(10).map(_.parSequence).toSeq.reduceRight[IO[Seq[Path]]] {
-        case (acc, io) => acc.flatMap(acc => io.map(acc ++ _))
-      }
-    sceneImages.flatMap(imgs =>
-      ffmpeg.concatenateImagesWithDuration(imgs.zip(pathAndDurations.map(_._2)))
-    )
+      } yield concatenatedImages
+
+    } yield imgs
   }
 
   private def buildAudioQuery(
