@@ -29,14 +29,17 @@ object Main
               "subcommand [show] only accepts 'voicevox'. try `show voicevox`"
             ) >> IO.pure(ExitCode.Error)
         }
-      case TargetFile(file, screenShotBackend) =>
+      case Generate(file, out, screenShotBackend) =>
         val cli = screenShotBackend match {
           // TODO: ffmpeg verbosityをcli opsから設定可能にする
           case Some(ScreenShotBackend.Chrome)  => new ChromiumCli()
           case Some(ScreenShotBackend.Firefox) => new FirefoxCli()
           case _                               => defaultCli
         }
-        cli.generate(file.toString) >>
+        cli.generate(
+          file.target.toString,
+          out.toAbsolutePath.toString
+        ) >>
           IO.pure(ExitCode.Success)
       case InitializeCommand() =>
         defaultCli.initializeProject() >> IO.pure(ExitCode.Success)

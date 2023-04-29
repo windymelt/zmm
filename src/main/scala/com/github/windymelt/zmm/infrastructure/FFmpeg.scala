@@ -146,7 +146,8 @@ trait FFmpegComponent {
 
     def zipVideoWithAudioWithDuration(
         videoPath: os.Path,
-        audioDurationPair: Seq[(Option[os.Path], FiniteDuration)]
+        audioDurationPair: Seq[(Option[os.Path], FiniteDuration)],
+        outputPath: os.Path
     ): IO[os.Path] = {
       // 一度オーディオをDurationに従って結合し、これと動画を合成する。単に上書きすると元の音声が消えてしまうのでフィルタ合成する。
       val writeCutfile = {
@@ -196,10 +197,10 @@ trait FFmpegComponent {
             "copy",
             "-ac",
             "2",
-            "output_with_bgm.mp4"
+            outputPath
           ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
         }
-      } yield os.pwd / "output_with_bgm.mp4"
+      } yield outputPath
     }
 
     /** キャラクターや字幕などの前景の後ろに背景動画を合成し、MP4ファイルを返す。

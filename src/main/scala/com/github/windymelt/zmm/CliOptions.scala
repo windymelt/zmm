@@ -1,20 +1,23 @@
 package com.github.windymelt.zmm
 
-import com.monovore.decline._
-import com.monovore.decline.effect._
+import cats.data.NonEmptyList
 import cats.data.Validated
 import cats.implicits._
-import cats.data.NonEmptyList
+import com.monovore.decline._
+import com.monovore.decline.effect._
 
 sealed trait ZmmOption
 final case class ShowCommand(target: String)
     extends ZmmOption // 今のところvoicevoxしか入らない
-final case class TargetFile(
-    target: java.nio.file.Path,
+final case class Generate(
+    targetFile: TargetFile,
+    outputFile: java.nio.file.Path,
     screenShotBackend: Option[ScreenShotBackend]
 ) extends ZmmOption
 final case class InitializeCommand() extends ZmmOption
 final case class VersionFlag() extends ZmmOption
+
+final case class TargetFile(target: java.nio.file.Path)
 
 sealed trait ScreenShotBackend
 object ScreenShotBackend {
@@ -28,14 +31,18 @@ object CliOptions {
       Opts.argument[String]("voicevox").map(ShowCommand.apply)
     )
   private val targetFile =
-    Opts.argument[java.nio.file.Path](metavar = "XMLFile")
-  private val initCommand = Opts.subcommand(
-    name = "init",
-    help = "Initializes current directory as ZMM project."
-  )(Opts.unit.map(_ => InitializeCommand()))
-  private val versionOption = Opts
-    .flag("version", help = "Show version", short = "v")
-    .map(_ => VersionFlag())
+    Opts
+      .argument[java.nio.file.Path](metavar = "XMLFile")
+      .map(TargetFile.apply)
+  private val outputFile =
+    Opts
+      .option[java.nio.file.Path](
+        "output",
+        help = "Output file name",
+        short = "o",
+        metavar = "OUTPUT.mp4"
+      )
+      .withDefault(java.nio.file.Path.of("output_with_bgm.mp4"))
   private val screenShotBackend = Opts
     .option[String](
       "screenshot",
@@ -54,10 +61,17 @@ object CliOptions {
         )
     }
     .orNone
+  private val generate =
+    (targetFile, outputFile, screenShotBackend) mapN (Generate.apply)
 
-  val mainOpts = (targetFile, screenShotBackend).mapN { case (p, ss) =>
-    TargetFile(p, ss)
-  }
+  private val initCommand = Opts.subcommand(
+    name = "init",
+    help = "Initializes current directory as ZMM project."
+  )(Opts.unit.map(_ => InitializeCommand()))
+  private val versionOption = Opts
+    .flag("version", help = "Show version", short = "v")
+    .map(_ => VersionFlag())
+
   val opts: Opts[ZmmOption] =
-    versionOption orElse mainOpts orElse showCommand orElse initCommand
+    versionOption orElse generate orElse showCommand orElse initCommand
 }
