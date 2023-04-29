@@ -38,7 +38,7 @@ object Main
         }
         cli.generate(
           file.target.toString,
-          out.toString
+          out.toAbsolutePath.toString
         ) >>
           IO.pure(ExitCode.Success)
       case InitializeCommand() =>
