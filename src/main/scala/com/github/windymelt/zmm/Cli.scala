@@ -10,6 +10,8 @@ import org.http4s.syntax.header
 
 import java.io.OutputStream
 import scala.concurrent.duration.FiniteDuration
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 trait Cli
     extends domain.repository.FFmpegComponent
@@ -25,6 +27,8 @@ trait Cli
   / /  | |\/| || |\/| |
 ./ /___| |  | || |  | |
 \_____/\_|  |_/\_|  |_/"""
+
+  implicit def logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
   val voiceVoxUri =
     sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
