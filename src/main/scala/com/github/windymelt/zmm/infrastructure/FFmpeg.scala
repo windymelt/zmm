@@ -197,7 +197,7 @@ trait FFmpegComponent {
             "copy",
             "-ac",
             "2",
-            "output_with_bgm.mp4"
+            outputPath
           ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
         }
       } yield outputPath
