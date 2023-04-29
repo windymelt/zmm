@@ -122,7 +122,7 @@ trait Cli
     }
   }
 
-  def generate(filePath: String, outPath: String): IO[Unit] = {
+  def generate(filePath: String, outPathString: String): IO[Unit] = {
     val content = IO.delay(scala.xml.XML.loadFile(filePath))
 
     for {
@@ -202,23 +202,23 @@ trait Cli
         val reductedBgmWithDuration = groupReduction(bgmWithDuration)
 
         // 環境によっては上書きに失敗する？ので出力ファイルが存在する場合削除する
-        val outputFile = os.Path(outPath)
-        os.remove(outputFile, checkExists = false)
+        val outputFilePath = os.Path(outPathString)
+        os.remove(outputFilePath, checkExists = false)
 
         reductedBgmWithDuration.filter(_._1.isDefined).size match {
           case 0 =>
             IO.pure(
-              os.move(composedVideo, outputFile)
+              os.move(composedVideo, outputFilePath)
             ) // Dirty fix. TODO: fix here
           case _ =>
             ffmpeg.zipVideoWithAudioWithDuration(
               composedVideo,
               reductedBgmWithDuration,
-              outputFile
+              outputFilePath
             )
         }
       }
-      _ <- IO.println(s"\nDone! Generated to $outPath")
+      _ <- IO.println(s"\nDone! Generated to $outPathString")
     } yield ()
   }
 
