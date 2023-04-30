@@ -28,7 +28,8 @@ final case class ShowCommand(target: String)
 final case class Generate(
     targetFile: TargetFile,
     outputFile: java.nio.file.Path,
-    screenShotBackend: Option[ScreenShotBackend]
+    screenShotBackend: Option[ScreenShotBackend],
+    verbosity: Option[Int]
 ) extends ZmmOption
 
 /** ディレクトリをZMMのプロジェクトとして初期化するモード。
@@ -87,8 +88,20 @@ object CliOptions {
     }
     .orNone
 
+  private val verbosityFlag = Opts
+    .flags(
+      "verbose",
+      help = "Be more verbose. Log level will increase."
+    )
+    .orNone // TODO: -vをversionから奪う
+
   private val generate =
-    (targetFile, outputFile, screenShotBackend) mapN (Generate.apply)
+    (
+      targetFile,
+      outputFile,
+      screenShotBackend,
+      verbosityFlag
+    ) mapN (Generate.apply)
 
   private val initCommand = Opts.subcommand(
     name = "init",
@@ -96,9 +109,15 @@ object CliOptions {
   )(Opts.unit.map(_ => InitializeCommand()))
 
   private val versionOption = Opts
-    .flag("version", help = "Show version", short = "v")
+    .flag(
+      "version",
+      help = "Show version",
+      short = "v"
+    ) // TODO: short optionはverbosityに譲りたい!!
     .map(_ => VersionFlag())
 
+  /** ZMMの全てのCLIオプションの組み合わせを表現したコンビネータ。
+    */
   val opts: Opts[ZmmOption] =
     versionOption orElse generate orElse showCommand orElse initCommand
 }

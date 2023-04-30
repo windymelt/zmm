@@ -7,7 +7,7 @@
     </encoder>
   </appender>
 
-  <logger name="root" level="${LOG_LEVEL:-info}" />
+  <logger name="root" level="info" />
 
   <root>
     <appender-ref ref="STDERR" />
