@@ -20,7 +20,11 @@ class ChromiumCli(logLevel: String = "INFO")
     } yield mu.lock.map { _ =>
       new ChromeScreenShot(
         chromiumCommand,
-        ChromeScreenShot.Quiet,
+        logLevel match {
+          case "TRACE" => ChromeScreenShot.Verbose
+          case "DEBUG" => ChromeScreenShot.Verbose
+          case _       => ChromeScreenShot.Quiet
+        },
         chromiumNoSandBox
       )
     }

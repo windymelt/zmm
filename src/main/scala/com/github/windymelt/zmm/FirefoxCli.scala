@@ -15,6 +15,13 @@ class FirefoxCli(logLevel: String = "INFO")
       _ <- logger.debug(s"firefox command: $firefoxCommand")
       mx <- Mutex[IO]
     } yield mx.lock.map { _ =>
-      new FirefoxScreenShot(firefoxCommand, FirefoxScreenShot.Quiet)
+      new FirefoxScreenShot(
+        firefoxCommand,
+        logLevel match {
+          case "TRACE" => FirefoxScreenShot.Verbose
+          case "DEBUG" => FirefoxScreenShot.Verbose
+          case _       => FirefoxScreenShot.Quiet
+        }
+      )
     }
 }
