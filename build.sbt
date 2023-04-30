@@ -23,8 +23,7 @@ lazy val root = (project in file("."))
       "com.monovore" %% "decline" % "2.4.1",
       "com.monovore" %% "decline-effect" % "2.4.1",
       "com.mitchtalmadge" % "ascii-data" % "1.4.0",
-      "org.slf4j" % "slf4j-simple" % "2.0.6",
-      "ch.qos.logback" % "logback-classic" % "1.4.7" % Test,
+      "ch.qos.logback" % "logback-classic" % "1.4.7",
       "org.typelevel" %% "log4cats-slf4j" % "2.6.0",
       scalaTest % Test
     ),
