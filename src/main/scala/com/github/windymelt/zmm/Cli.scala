@@ -225,7 +225,7 @@ abstract class Cli(logLevel: String = "INFO")
             )
         }
       }
-      _ <- IO.println(s"\nDone! Generated to $outPathString")
+      _ <- logger.info(s"Done! Generated to $outPathString")
     } yield ()
   }
 
