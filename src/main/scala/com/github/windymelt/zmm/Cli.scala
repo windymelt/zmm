@@ -7,11 +7,11 @@ import cats.effect.std.Mutex
 import com.github.windymelt.zmm.domain.model.Context
 import com.github.windymelt.zmm.domain.model.VoiceBackendConfig
 import org.http4s.syntax.header
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import java.io.OutputStream
 import scala.concurrent.duration.FiniteDuration
-import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 trait Cli
     extends domain.repository.FFmpegComponent
