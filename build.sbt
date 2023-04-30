@@ -7,6 +7,8 @@ ThisBuild / scalaVersion := "2.13.8"
 ThisBuild / organization := "com.github.windymelt"
 ThisBuild / organizationName := "windymelt"
 
+Global / onChangedBuildSource := ReloadOnSourceChanges
+
 lazy val root = (project in file("."))
   .settings(
     name := "zmm",
