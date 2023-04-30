@@ -7,11 +7,13 @@ import cats.effect.std.Mutex
 import com.github.windymelt.zmm.domain.model.Context
 import com.github.windymelt.zmm.domain.model.VoiceBackendConfig
 import org.http4s.syntax.header
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import java.io.OutputStream
 import scala.concurrent.duration.FiniteDuration
 
-trait Cli
+abstract class Cli(logLevel: String = "INFO")
     extends domain.repository.FFmpegComponent
     with domain.repository.VoiceVoxComponent
     with domain.repository.ScreenShotComponent
@@ -26,13 +28,19 @@ trait Cli
 ./ /___| |  | || |  | |
 \_____/\_|  |_/\_|  |_/"""
 
+  implicit def logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+
   val voiceVoxUri =
     sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
   def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
   def ffmpeg =
     new ConcreteFFmpeg(
       config.getString("ffmpeg.command"),
-      ConcreteFFmpeg.Quiet
+      verbosity = logLevel match {
+        case "DEBUG" => ConcreteFFmpeg.Verbose
+        case "TRACE" => ConcreteFFmpeg.Verbose
+        case _       => ConcreteFFmpeg.Quiet
+      }
     ) // TODO: respect construct parameter
   val chromiumNoSandBox = sys.env
     .get("CHROMIUM_NOSANDBOX")
@@ -126,18 +134,17 @@ trait Cli
     val content = IO.delay(scala.xml.XML.loadFile(filePath))
 
     for {
+      _ <- logger.debug(s"generate($filePath, $outPathString)")
       _ <- showLogo
-      _ <- IO.println(s"""[pwd] ${System.getProperty("user.dir")}""")
-      _ <- IO.println(s"""[configuration] voicevox api: ${voiceVoxUri}""")
-      _ <- IO.println(s"""[configuration] ffmpeg command: ${config.getString(
-          "ffmpeg.command"
-        )}""")
-      _ <- IO.println("Invoking audio api...")
+      _ <- logger.debug(s"pwd: ${System.getProperty("user.dir")}")
+      _ <- logger.debug(s"voicevox api: ${voiceVoxUri}")
+      _ <- logger.debug(
+        s"""ffmpeg command: ${config.getString("ffmpeg.command")}"""
+      )
       x <- content
       _ <- contentSanityCheck(x)
       defaultCtx <- prepareDefaultContext(x)
       _ <- applyDictionary(defaultCtx)
-      //        _ <- IO.println(ctx)
       sayCtxPairs <- IO.pure(
         Context.fromNode((x \ "dialogue").head, defaultCtx)
       )
@@ -218,7 +225,7 @@ trait Cli
             )
         }
       }
-      _ <- IO.println(s"\nDone! Generated to $outPathString")
+      _ <- logger.info(s"Done! Generated to $outPathString")
     } yield ()
   }
 
@@ -290,7 +297,7 @@ trait Cli
         ctx
       )
     }
-//    _ <- IO.println(aq)
+    _ <- logger.debug(aq.toString())
     fixedAq <- ctx.speed map (sp => voiceVox.controlSpeed(aq, sp)) getOrElse (IO
       .pure(aq))
     wav <- backgroundIndicator("Synthesizing wav").use { _ =>
