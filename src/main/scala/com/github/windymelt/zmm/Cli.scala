@@ -130,18 +130,17 @@ trait Cli
     val content = IO.delay(scala.xml.XML.loadFile(filePath))
 
     for {
+      _ <- logger.debug(s"generate($filePath, $outPathString)")
       _ <- showLogo
-      _ <- IO.println(s"""[pwd] ${System.getProperty("user.dir")}""")
-      _ <- IO.println(s"""[configuration] voicevox api: ${voiceVoxUri}""")
-      _ <- IO.println(s"""[configuration] ffmpeg command: ${config.getString(
-          "ffmpeg.command"
-        )}""")
-      _ <- IO.println("Invoking audio api...")
+      _ <- logger.debug(s"pwd: ${System.getProperty("user.dir")}")
+      _ <- logger.debug(s"voicevox api: ${voiceVoxUri}")
+      _ <- logger.debug(
+        s"""ffmpeg command: ${config.getString("ffmpeg.command")}"""
+      )
       x <- content
       _ <- contentSanityCheck(x)
       defaultCtx <- prepareDefaultContext(x)
       _ <- applyDictionary(defaultCtx)
-      //        _ <- IO.println(ctx)
       sayCtxPairs <- IO.pure(
         Context.fromNode((x \ "dialogue").head, defaultCtx)
       )
@@ -294,7 +293,7 @@ trait Cli
         ctx
       )
     }
-//    _ <- IO.println(aq)
+    _ <- logger.debug(aq.toString())
     fixedAq <- ctx.speed map (sp => voiceVox.controlSpeed(aq, sp)) getOrElse (IO
       .pure(aq))
     wav <- backgroundIndicator("Synthesizing wav").use { _ =>

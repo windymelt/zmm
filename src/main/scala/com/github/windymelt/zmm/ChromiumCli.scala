@@ -11,8 +11,8 @@ class ChromiumCli extends Cli with infrastructure.ChromeScreenShotComponent {
 
   def screenShotResource: IO[Resource[IO, ScreenShot]] = {
     for {
-      _ <- IO.println(
-        s"""[configuration] chromium command: ${chromiumCommand}"""
+      _ <- logger.debug(
+        s"chromium command: $chromiumCommand, chromoumNoSandBox: $chromiumNoSandBox"
       )
       mu <- Mutex[IO]
     } yield mu.lock.map { _ =>
