@@ -16,7 +16,7 @@ object Main
         "Zunda Movie Maker -- see https://www.3qe.us/zmm/doc/ for more documentation"
     ) {
   override def main: Opts[IO[ExitCode]] = CliOptions.opts map { o =>
-    val defaultCli = new ChromiumCli()
+    val defaultCli = new ChromiumCli(logLevel = "INFO")
 
     o match {
       case VersionFlag() => defaultCli.showVersion >> IO.pure(ExitCode.Success)
@@ -40,9 +40,11 @@ object Main
 
         val cli = screenShotBackend match {
           // TODO: ffmpeg verbosityをcli opsから設定可能にする
-          case Some(ScreenShotBackend.Chrome)  => new ChromiumCli()
-          case Some(ScreenShotBackend.Firefox) => new FirefoxCli()
-          case _                               => defaultCli
+          case Some(ScreenShotBackend.Chrome) =>
+            new ChromiumCli(logLevel = logLevel)
+          case Some(ScreenShotBackend.Firefox) =>
+            new FirefoxCli(logLevel = logLevel)
+          case _ => new ChromiumCli(logLevel = logLevel)
         }
         cli.logger.debug(s"Verbose mode enabled (log level: $logLevel)") >> cli
           .generate(

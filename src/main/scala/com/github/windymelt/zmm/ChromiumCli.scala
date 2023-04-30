@@ -5,7 +5,9 @@ import cats.effect.kernel.Resource
 import cats.effect.std.Mutex
 import cats.implicits._
 
-class ChromiumCli extends Cli with infrastructure.ChromeScreenShotComponent {
+class ChromiumCli(logLevel: String = "INFO")
+    extends Cli(logLevel = logLevel)
+    with infrastructure.ChromeScreenShotComponent {
   val chromiumCommand =
     sys.env.get("CHROMIUM_CMD").getOrElse(config.getString("chromium.command"))
 

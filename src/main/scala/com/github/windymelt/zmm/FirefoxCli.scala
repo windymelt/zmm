@@ -4,7 +4,9 @@ import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.std.Mutex
 
-class FirefoxCli extends Cli with infrastructure.FirefoxScreenShotComponent {
+class FirefoxCli(logLevel: String = "INFO")
+    extends Cli(logLevel = logLevel)
+    with infrastructure.FirefoxScreenShotComponent {
   val firefoxCommand =
     sys.env.get("FIREFOX_CMD").getOrElse(config.getString("firefox.command"))
 

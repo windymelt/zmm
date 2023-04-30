@@ -13,7 +13,7 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import java.io.OutputStream
 import scala.concurrent.duration.FiniteDuration
 
-trait Cli
+abstract class Cli(logLevel: String = "INFO")
     extends domain.repository.FFmpegComponent
     with domain.repository.VoiceVoxComponent
     with domain.repository.ScreenShotComponent
@@ -36,7 +36,11 @@ trait Cli
   def ffmpeg =
     new ConcreteFFmpeg(
       config.getString("ffmpeg.command"),
-      ConcreteFFmpeg.Quiet
+      verbosity = logLevel match {
+        case "DEBUG" => ConcreteFFmpeg.Verbose
+        case "TRACE" => ConcreteFFmpeg.Verbose
+        case _       => ConcreteFFmpeg.Quiet
+      }
     ) // TODO: respect construct parameter
   val chromiumNoSandBox = sys.env
     .get("CHROMIUM_NOSANDBOX")
