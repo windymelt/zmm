@@ -161,23 +161,26 @@ abstract class Cli(logLevel: String = "INFO")
         }
         saySeq.parSequence
       }
-      // 母音情報をContextに追加する
+      // 読み上げ長をContextに追加する。母音情報が得られた場合も追加する
       sayCtxPairs <- IO.pure {
         val pairs = sayCtxPairs zip voices
         pairs map {
-          case (originalPair, (_, _, Seq())) =>
-            originalPair
-          case ((say, context), (_, _, vowels)) =>
-            (say, context.copy(spokenVowels = Some(vowels)))
+          case ((say, context), (_, dur, Seq())) =>
+            (say, context.copy(duration = Some(dur)))
+          case ((say, context), (_, dur, vowels)) =>
+            (
+              say,
+              context.copy(spokenVowels = Some(vowels), duration = Some(dur))
+            )
         }
       }
       // この時点でvideoとaudioとの間に依存がないので並列実行する
       // BUG: SI-5589 により、タプルにバインドできない
       va <- backgroundIndicator("Generating video and concatenated audio").use {
         _ =>
-          val pathAndDurations = voices.map(v => (v._1, v._2))
-          generateVideo(sayCtxPairs, pathAndDurations) product ffmpeg
-            .concatenateWavFiles(pathAndDurations.map(_._1.toString))
+          val paths = voices.map(_._1)
+          generateVideo(sayCtxPairs, paths) product ffmpeg
+            .concatenateWavFiles(paths.map(_.toString))
       }
       val (video, audio) = va
       zippedVideo <- backgroundIndicator("Zipping silent video and audio").use {
@@ -187,8 +190,9 @@ abstract class Cli(logLevel: String = "INFO")
         // もし設定されていればビデオを合成する。BGMと同様、同じビデオであれば結合する。
         val videoWithDuration: Seq[(Option[os.Path], FiniteDuration)] =
           sayCtxPairs
-            .map(p => p._2.video.map(os.pwd / os.RelPath(_)))
-            .zip(voices.map(_._2))
+            .map(p =>
+              p._2.video.map(os.pwd / os.RelPath(_)) -> p._2.duration.get
+            )
 
         val reductedVideoWithDuration = groupReduction(videoWithDuration)
 
@@ -214,8 +218,7 @@ abstract class Cli(logLevel: String = "INFO")
         // たとえば、BGMa 5sec BGMa 5sec BGMb 10sec であるときは、 BGMa 10sec BGMb 10secに簡約される。
         val bgmWithDuration: Seq[(Option[os.Path], FiniteDuration)] =
           sayCtxPairs
-            .map(p => p._2.bgm.map(os.pwd / os.RelPath(_)))
-            .zip(voices.map(_._2))
+            .map(p => p._2.bgm.map(os.pwd / os.RelPath(_)) -> p._2.duration.get)
 
         val reductedBgmWithDuration = groupReduction(bgmWithDuration)
 
@@ -430,9 +433,7 @@ abstract class Cli(logLevel: String = "INFO")
 
   private def generateVideo(
       sayCtxPairs: Seq[(domain.model.Say, Context)],
-      pathAndDurations: Seq[
-        (fs2.io.file.Path, FiniteDuration)
-      ]
+      paths: Seq[fs2.io.file.Path]
   ): IO[os.Path] = {
     import cats.syntax.parallel._
 
@@ -460,7 +461,7 @@ abstract class Cli(logLevel: String = "INFO")
           ss.use { ss => shot(ss).tupled(pair) }
         }.parSequence
         concatenatedImages <- ffmpeg.concatenateImagesWithDuration(
-          sceneImages.zip(pathAndDurations.map(_._2))
+          sceneImages.zip(sayCtxPairs.map(_._2.duration.get))
         )
       } yield concatenatedImages
 
