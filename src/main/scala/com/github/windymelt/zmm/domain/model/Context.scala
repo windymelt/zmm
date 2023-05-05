@@ -29,6 +29,7 @@ final case class Context(
     characterConfigMap: Map[String, CharacterConfig] = Map.empty,
     backgroundImageUrl: Option[String] = None,
     spokenByCharacterId: Option[String] = None,
+    spokenVowels: Option[Seq[(String, FiniteDuration)]] = None, // 口パクのために使う母音情報
     speed: Option[String] = Some("1.0"),
     font: Option[String] = None,
     serifColor: Option[String] = None, // どう使うかはテンプレート依存
@@ -76,6 +77,7 @@ object Context {
         backgroundImageUrl =
           y.backgroundImageUrl orElse x.backgroundImageUrl, // 後勝ち
         spokenByCharacterId = spokenByCharacterId,
+        spokenVowels = y.spokenVowels <+> x.spokenVowels,
         speed = y.speed orElse x.speed, // 後勝ち
         font = y.font orElse x.font, // 後勝ち
         serifColor = serifColor,

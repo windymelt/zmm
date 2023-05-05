@@ -161,6 +161,16 @@ abstract class Cli(logLevel: String = "INFO")
         }
         saySeq.parSequence
       }
+      // 母音情報をContextに追加する
+      sayCtxPairs <- IO.pure {
+        val pairs = sayCtxPairs zip voices
+        pairs map {
+          case (originalPair, (_, _, Seq())) =>
+            originalPair
+          case ((say, context), (_, _, vowels)) =>
+            (say, context.copy(spokenVowels = Some(vowels)))
+        }
+      }
       // この時点でvideoとaudioとの間に依存がないので並列実行する
       // BUG: SI-5589 により、タプルにバインドできない
       va <- backgroundIndicator("Generating video and concatenated audio").use {
