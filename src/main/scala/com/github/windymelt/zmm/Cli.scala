@@ -174,6 +174,8 @@ abstract class Cli(logLevel: String = "INFO")
             )
         }
       }
+      // Contextにフィルタを適用する
+      sayCtxPairs <- IO.pure(applyFilters(sayCtxPairs))
       // この時点でvideoとaudioとの間に依存がないので並列実行する
       // BUG: SI-5589 により、タプルにバインドできない
       va <- backgroundIndicator("Generating video and concatenated audio").use {
@@ -241,6 +243,15 @@ abstract class Cli(logLevel: String = "INFO")
       }
       _ <- logger.info(s"Done! Generated to $outPathString")
     } yield ()
+  }
+
+  private def applyFilters(
+      pairs: Seq[(domain.model.Say, Context)]
+  ): Seq[(domain.model.Say, Context)] = {
+    // フィルタが増えたら合成して伸ばす
+    val composedFilters = domain.model.Filter.talkingMouthFilter
+    // Arrow.secondを使うとタプルの右側だけflatMapし、左側を補完させることができる
+    pairs.flatMap(composedFilters.second.run)
   }
 
   private def showLogo: IO[Unit] =
@@ -437,6 +448,16 @@ abstract class Cli(logLevel: String = "INFO")
   ): IO[os.Path] = {
     import cats.syntax.parallel._
 
+    val hashCodeToBytes = (n: Int) => {
+      import java.io.ByteArrayOutputStream
+      import java.io.ObjectOutputStream
+      val stream: ByteArrayOutputStream = new ByteArrayOutputStream()
+      val oos = new ObjectOutputStream(stream)
+      oos.writeObject(n)
+      oos.close()
+      stream.toByteArray
+    }
+
     val shot: ScreenShot => (domain.model.Say, Context) => IO[os.Path] =
       (ss: ScreenShot) =>
         (s: domain.model.Say, ctx: Context) =>
@@ -444,7 +465,10 @@ abstract class Cli(logLevel: String = "INFO")
             stream <- buildHtmlFile(s.text, ctx).map(s =>
               fs2.Stream[IO, Byte](s.getBytes(): _*)
             )
-            sha1Hex <- sha1HexCode(s.text.getBytes())
+            sha1Hex <- sha1HexCode(
+              s.text.getBytes() ++ hashCodeToBytes(ctx.hashCode())
+            )
+            // TODO: キャッシュを効かせられるようにしたい
             htmlFile <- writeStreamToFile(
               stream,
               s"./artifacts/html/${sha1Hex}.html"
