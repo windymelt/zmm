@@ -148,7 +148,7 @@ abstract class Cli(logLevel: String = "INFO")
       sayCtxPairs <- IO.pure(
         Context.fromNode((x \ "dialogue").head, defaultCtx)
       )
-      pathAndDurations <- {
+      voices <- {
         import cats.syntax.parallel._
         val saySeq = sayCtxPairs map {
           case (s, ctx)
@@ -165,6 +165,7 @@ abstract class Cli(logLevel: String = "INFO")
       // BUG: SI-5589 により、タプルにバインドできない
       va <- backgroundIndicator("Generating video and concatenated audio").use {
         _ =>
+          val pathAndDurations = voices.map(v => (v._1, v._2))
           generateVideo(sayCtxPairs, pathAndDurations) product ffmpeg
             .concatenateWavFiles(pathAndDurations.map(_._1.toString))
       }
@@ -177,7 +178,7 @@ abstract class Cli(logLevel: String = "INFO")
         val videoWithDuration: Seq[(Option[os.Path], FiniteDuration)] =
           sayCtxPairs
             .map(p => p._2.video.map(os.pwd / os.RelPath(_)))
-            .zip(pathAndDurations.map(_._2))
+            .zip(voices.map(_._2))
 
         val reductedVideoWithDuration = groupReduction(videoWithDuration)
 
@@ -204,7 +205,7 @@ abstract class Cli(logLevel: String = "INFO")
         val bgmWithDuration: Seq[(Option[os.Path], FiniteDuration)] =
           sayCtxPairs
             .map(p => p._2.bgm.map(os.pwd / os.RelPath(_)))
-            .zip(pathAndDurations.map(_._2))
+            .zip(voices.map(_._2))
 
         val reductedBgmWithDuration = groupReduction(bgmWithDuration)
 
@@ -420,7 +421,7 @@ abstract class Cli(logLevel: String = "INFO")
   private def generateVideo(
       sayCtxPairs: Seq[(domain.model.Say, Context)],
       pathAndDurations: Seq[
-        (fs2.io.file.Path, FiniteDuration, domain.model.VowelSeqWithDuration)
+        (fs2.io.file.Path, FiniteDuration)
       ]
   ): IO[os.Path] = {
     import cats.syntax.parallel._
