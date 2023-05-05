@@ -318,10 +318,10 @@ abstract class Cli(logLevel: String = "INFO")
       )
     }
     _ <- logger.debug(aq.toString())
-    fixedAq <- ctx.speed map (sp => voiceVox.controlSpeed(aq, sp)) getOrElse (IO
+    aq <- ctx.speed map (sp => voiceVox.controlSpeed(aq, sp)) getOrElse (IO
       .pure(aq))
     wav <- backgroundIndicator("Synthesizing wav").use { _ =>
-      buildWavFile(fixedAq, ctx.spokenByCharacterId.get, voiceVox, ctx)
+      buildWavFile(aq, ctx.spokenByCharacterId.get, voiceVox, ctx)
     }
     sha1Hex <- sha1HexCode(sayElem.text.getBytes())
     path <- backgroundIndicator("Exporting .wav file").use { _ =>
