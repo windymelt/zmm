@@ -1,6 +1,8 @@
 package com.github.windymelt.zmm
 package infrastructure
 
+import scala.concurrent.duration.FiniteDuration
+
 trait VoiceVoxComponent {
   self: domain.repository.VoiceVoxComponent =>
 
@@ -107,6 +109,21 @@ trait VoiceVoxComponent {
 
       c.successful(req) *> IO.unit
     }
+
+    def getVowels(aq: AudioQuery): IO[domain.model.VowelSeqWithDuration] =
+      IO.pure {
+        import io.circe.parser._
+        import io.circe.optics.JsonPath._
+        import io.circe.syntax._
+        val vowels: Seq[String] =
+          root.accent_phrases.each.moras.each.vowel.string.getAll(aq)
+        val durs: Seq[Double] =
+          root.accent_phrases.each.moras.each.vowel_length.double.getAll(aq)
+
+        vowels zip durs.map(s =>
+          FiniteDuration((s * 1000 * 1000).toLong, "microsecond")
+        )
+      }
 
     private lazy val client = {
       import concurrent.duration._

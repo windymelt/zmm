@@ -284,7 +284,13 @@ abstract class Cli(logLevel: String = "INFO")
       sayElem: domain.model.Say,
       voiceVox: VoiceVox,
       ctx: Context
-  ): IO[(fs2.io.file.Path, scala.concurrent.duration.FiniteDuration)] = for {
+  ): IO[
+    (
+        fs2.io.file.Path,
+        scala.concurrent.duration.FiniteDuration,
+        domain.model.VowelSeqWithDuration
+    )
+  ] = for {
     actualPronunciation <- IO.pure(
       ctx.sic.getOrElse(sayElem.text)
     ) // sicがない場合は元々のセリフを使う
@@ -308,20 +314,22 @@ abstract class Cli(logLevel: String = "INFO")
       writeStreamToFile(wav, s"artifacts/voice_${sha1Hex}.wav")
     }
     dur <- ffmpeg.getWavDuration(path.toString)
-  } yield (path, dur)
+    vowels <- voiceVox.getVowels(aq)
+  } yield (path, dur, vowels)
 
   private def generateSilence(
       ctx: Context
-  ): IO[(fs2.io.file.Path, FiniteDuration)] = for {
-    len <- IO.pure(
-      ctx.silentLength.getOrElse(FiniteDuration(3, "second"))
-    ) // 指定してないなら3秒にしているが理由はない
-    sha1Hex <- sha1HexCode(len.toString.getBytes)
-    path <- IO.pure(os.Path(s"${os.pwd}/artifacts/silence_$sha1Hex.wav"))
-    wav <- backgroundIndicator("Exporting silent .wav file").use { _ =>
-      ffmpeg.generateSilentWav(path, len)
-    }
-  } yield (fs2.io.file.Path(path.toString()), len)
+  ): IO[(fs2.io.file.Path, FiniteDuration, domain.model.VowelSeqWithDuration)] =
+    for {
+      len <- IO.pure(
+        ctx.silentLength.getOrElse(FiniteDuration(3, "second"))
+      ) // 指定してないなら3秒にしているが理由はない
+      sha1Hex <- sha1HexCode(len.toString.getBytes)
+      path <- IO.pure(os.Path(s"${os.pwd}/artifacts/silence_$sha1Hex.wav"))
+      wav <- backgroundIndicator("Exporting silent .wav file").use { _ =>
+        ffmpeg.generateSilentWav(path, len)
+      }
+    } yield (fs2.io.file.Path(path.toString()), len, Seq())
 
   private def contentSanityCheck(elem: scala.xml.Elem): IO[Unit] = {
     val checkTopElem = elem.label == "content"
@@ -411,7 +419,9 @@ abstract class Cli(logLevel: String = "INFO")
 
   private def generateVideo(
       sayCtxPairs: Seq[(domain.model.Say, Context)],
-      pathAndDurations: Seq[(fs2.io.file.Path, FiniteDuration)]
+      pathAndDurations: Seq[
+        (fs2.io.file.Path, FiniteDuration, domain.model.VowelSeqWithDuration)
+      ]
   ): IO[os.Path] = {
     import cats.syntax.parallel._
 
