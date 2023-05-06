@@ -448,16 +448,6 @@ abstract class Cli(logLevel: String = "INFO")
   ): IO[os.Path] = {
     import cats.syntax.parallel._
 
-    val hashCodeToBytes = (n: Int) => {
-      import java.io.ByteArrayOutputStream
-      import java.io.ObjectOutputStream
-      val stream: ByteArrayOutputStream = new ByteArrayOutputStream()
-      val oos = new ObjectOutputStream(stream)
-      oos.writeObject(n)
-      oos.close()
-      stream.toByteArray
-    }
-
     val shot: ScreenShot => (domain.model.Say, Context) => IO[os.Path] =
       (ss: ScreenShot) =>
         (s: domain.model.Say, ctx: Context) =>

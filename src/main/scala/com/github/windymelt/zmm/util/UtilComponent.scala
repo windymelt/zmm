@@ -51,6 +51,16 @@ trait UtilComponent {
       .map(_.swap)
   }
 
+  val hashCodeToBytes = (n: Int) => {
+    import java.io.ByteArrayOutputStream
+    import java.io.ObjectOutputStream
+    val stream: ByteArrayOutputStream = new ByteArrayOutputStream()
+    val oos = new ObjectOutputStream(stream)
+    oos.writeObject(n)
+    oos.close()
+    stream.toByteArray
+  }
+
   lazy val config = com.typesafe.config.ConfigFactory.load()
 
   implicit val EqForPath: Eq[os.Path] = Eq.by(_.toString())
