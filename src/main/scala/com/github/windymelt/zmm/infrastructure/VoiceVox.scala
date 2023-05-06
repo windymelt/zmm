@@ -116,6 +116,7 @@ trait VoiceVoxComponent {
         import io.circe.parser._
         import io.circe.optics.JsonPath._
         import io.circe.syntax._
+        import cats.data.{NonEmptySeq => NES}
         import cats.implicits._
         // 簡単のために母音と子音まとめて時間に含めてしまう
 
@@ -140,21 +141,28 @@ trait VoiceVoxComponent {
 
         // 無音期間
         val accent_phrases = root.accent_phrases.each.json.getAll(aq)
-        val pauses: Seq[Double] = accent_phrases
+        val pausesDur: Seq[Double] = accent_phrases
           .map(root.pause_mora.vowel_length.double.getOption)
           .map(
             _.getOrElse(0.0)
           ) // vowel_lengthがNaNになることはない(required)のでisNanは調べなくてよい
 
+        // 2つのSeqをおなじ位置の要素同士足して1つのSeqにしたい。
+        // Seqをアプリカティブに足すとデカルト積のように全要素を足し合わせる巨大なSeqになってしまう。
+        // 同じ位置の要素同士を足すにはZipListを使う。
+        // ZipListはNonEmptyList(Seq)とparallelの関係にあるので、2つのNonEmptySeqをparMapNして足せば完成する
         val durs: Seq[Double] =
-          (vowelDurs, consonantDurs, pauses) mapN (_ + _ + _)
+          (
+            NES.fromSeqUnsafe(vowelDurs),
+            NES.fromSeqUnsafe(consonantDurs)
+          ).parMapN(_ + _).toSeq
 
         // 先頭と末尾にはわずかに無音期間が設定されている。これをSeqの先頭と最後の要素に加算する
         val paddedDurs = durs match {
           case head +: mid :+ last =>
             val headPadding = root.prePhonemeLength.double.getOption(aq).get
             val lastPadding = root.postPhonemeLength.double.getOption(aq).get
-            (headPadding + head) +: mid :+ (last + lastPadding)
+            (headPadding + head) +: mid :+ (last + pausesDur.combineAll + lastPadding)
         }
 
         vowels zip paddedDurs.map { s =>
