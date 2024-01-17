@@ -1,4 +1,5 @@
-package com.github.windymelt.zmm.domain.repository
+package com.github.windymelt.zmm
+package domain.repository
 
 import cats.effect.IO
 
@@ -15,5 +16,6 @@ trait VoiceVoxComponent {
     // misc.
     def controlSpeed(aq: AudioQuery, speed: String): IO[AudioQuery]
     def registerDict(word: String, pronounce: String, lowerPoint: Int): IO[Unit]
+    def getVowels(aq: AudioQuery): IO[domain.model.VowelSeqWithDuration]
   }
 }

@@ -148,7 +148,7 @@ abstract class Cli(logLevel: String = "INFO")
       sayCtxPairs <- IO.pure(
         Context.fromNode((x \ "dialogue").head, defaultCtx)
       )
-      pathAndDurations <- {
+      voices <- {
         import cats.syntax.parallel._
         val saySeq = sayCtxPairs map {
           case (s, ctx)
@@ -161,12 +161,28 @@ abstract class Cli(logLevel: String = "INFO")
         }
         saySeq.parSequence
       }
+      // 読み上げ長をContextに追加する。母音情報が得られた場合も追加する
+      sayCtxPairs <- IO.pure {
+        val pairs = sayCtxPairs zip voices
+        pairs map {
+          case ((say, context), (_, dur, Seq())) =>
+            (say, context.copy(duration = Some(dur)))
+          case ((say, context), (_, dur, vowels)) =>
+            (
+              say,
+              context.copy(spokenVowels = Some(vowels), duration = Some(dur))
+            )
+        }
+      }
+      // Contextにフィルタを適用する
+      sayCtxPairs <- IO.pure(applyFilters(sayCtxPairs))
       // この時点でvideoとaudioとの間に依存がないので並列実行する
       // BUG: SI-5589 により、タプルにバインドできない
       va <- backgroundIndicator("Generating video and concatenated audio").use {
         _ =>
-          generateVideo(sayCtxPairs, pathAndDurations) product ffmpeg
-            .concatenateWavFiles(pathAndDurations.map(_._1.toString))
+          val paths = voices.map(_._1)
+          generateVideo(sayCtxPairs, paths) product ffmpeg
+            .concatenateWavFiles(paths.map(_.toString))
       }
       val (video, audio) = va
       zippedVideo <- backgroundIndicator("Zipping silent video and audio").use {
@@ -176,8 +192,9 @@ abstract class Cli(logLevel: String = "INFO")
         // もし設定されていればビデオを合成する。BGMと同様、同じビデオであれば結合する。
         val videoWithDuration: Seq[(Option[os.Path], FiniteDuration)] =
           sayCtxPairs
-            .map(p => p._2.video.map(os.pwd / os.RelPath(_)))
-            .zip(pathAndDurations.map(_._2))
+            .map(p =>
+              p._2.video.map(os.pwd / os.RelPath(_)) -> p._2.duration.get
+            )
 
         val reductedVideoWithDuration = groupReduction(videoWithDuration)
 
@@ -203,8 +220,7 @@ abstract class Cli(logLevel: String = "INFO")
         // たとえば、BGMa 5sec BGMa 5sec BGMb 10sec であるときは、 BGMa 10sec BGMb 10secに簡約される。
         val bgmWithDuration: Seq[(Option[os.Path], FiniteDuration)] =
           sayCtxPairs
-            .map(p => p._2.bgm.map(os.pwd / os.RelPath(_)))
-            .zip(pathAndDurations.map(_._2))
+            .map(p => p._2.bgm.map(os.pwd / os.RelPath(_)) -> p._2.duration.get)
 
         val reductedBgmWithDuration = groupReduction(bgmWithDuration)
 
@@ -227,6 +243,15 @@ abstract class Cli(logLevel: String = "INFO")
       }
       _ <- logger.info(s"Done! Generated to $outPathString")
     } yield ()
+  }
+
+  private def applyFilters(
+      pairs: Seq[(domain.model.Say, Context)]
+  ): Seq[(domain.model.Say, Context)] = {
+    // フィルタが増えたら合成して伸ばす
+    val composedFilters = domain.model.Filter.talkingMouthFilter
+    // Arrow.secondを使うとタプルの右側だけflatMapし、左側を補完させることができる
+    pairs.flatMap(composedFilters.second.run)
   }
 
   private def showLogo: IO[Unit] =
@@ -284,7 +309,13 @@ abstract class Cli(logLevel: String = "INFO")
       sayElem: domain.model.Say,
       voiceVox: VoiceVox,
       ctx: Context
-  ): IO[(fs2.io.file.Path, scala.concurrent.duration.FiniteDuration)] = for {
+  ): IO[
+    (
+        fs2.io.file.Path,
+        scala.concurrent.duration.FiniteDuration,
+        domain.model.VowelSeqWithDuration
+    )
+  ] = for {
     actualPronunciation <- IO.pure(
       ctx.sic.getOrElse(sayElem.text)
     ) // sicがない場合は元々のセリフを使う
@@ -298,30 +329,32 @@ abstract class Cli(logLevel: String = "INFO")
       )
     }
     _ <- logger.debug(aq.toString())
-    fixedAq <- ctx.speed map (sp => voiceVox.controlSpeed(aq, sp)) getOrElse (IO
+    aq <- ctx.speed map (sp => voiceVox.controlSpeed(aq, sp)) getOrElse (IO
       .pure(aq))
     wav <- backgroundIndicator("Synthesizing wav").use { _ =>
-      buildWavFile(fixedAq, ctx.spokenByCharacterId.get, voiceVox, ctx)
+      buildWavFile(aq, ctx.spokenByCharacterId.get, voiceVox, ctx)
     }
     sha1Hex <- sha1HexCode(sayElem.text.getBytes())
     path <- backgroundIndicator("Exporting .wav file").use { _ =>
       writeStreamToFile(wav, s"artifacts/voice_${sha1Hex}.wav")
     }
     dur <- ffmpeg.getWavDuration(path.toString)
-  } yield (path, dur)
+    vowels <- voiceVox.getVowels(aq)
+  } yield (path, dur, vowels)
 
   private def generateSilence(
       ctx: Context
-  ): IO[(fs2.io.file.Path, FiniteDuration)] = for {
-    len <- IO.pure(
-      ctx.silentLength.getOrElse(FiniteDuration(3, "second"))
-    ) // 指定してないなら3秒にしているが理由はない
-    sha1Hex <- sha1HexCode(len.toString.getBytes)
-    path <- IO.pure(os.Path(s"${os.pwd}/artifacts/silence_$sha1Hex.wav"))
-    wav <- backgroundIndicator("Exporting silent .wav file").use { _ =>
-      ffmpeg.generateSilentWav(path, len)
-    }
-  } yield (fs2.io.file.Path(path.toString()), len)
+  ): IO[(fs2.io.file.Path, FiniteDuration, domain.model.VowelSeqWithDuration)] =
+    for {
+      len <- IO.pure(
+        ctx.silentLength.getOrElse(FiniteDuration(3, "second"))
+      ) // 指定してないなら3秒にしているが理由はない
+      sha1Hex <- sha1HexCode(len.toString.getBytes)
+      path <- IO.pure(os.Path(s"${os.pwd}/artifacts/silence_$sha1Hex.wav"))
+      wav <- backgroundIndicator("Exporting silent .wav file").use { _ =>
+        ffmpeg.generateSilentWav(path, len)
+      }
+    } yield (fs2.io.file.Path(path.toString()), len, Seq())
 
   private def contentSanityCheck(elem: scala.xml.Elem): IO[Unit] = {
     val checkTopElem = elem.label == "content"
@@ -411,26 +444,41 @@ abstract class Cli(logLevel: String = "INFO")
 
   private def generateVideo(
       sayCtxPairs: Seq[(domain.model.Say, Context)],
-      pathAndDurations: Seq[(fs2.io.file.Path, FiniteDuration)]
+      paths: Seq[fs2.io.file.Path]
   ): IO[os.Path] = {
     import cats.syntax.parallel._
 
+    val fileCheck: String => IO[Boolean] = p =>
+      IO(os.exists(os.pwd / os.RelPath(p)))
+
+    // スクリーンショットは重いのでHTMLの内容をもとにキャッシュする(HTMLが同一内容なら同一のスクリーンショットになるという前提)
     val shot: ScreenShot => (domain.model.Say, Context) => IO[os.Path] =
       (ss: ScreenShot) =>
-        (s: domain.model.Say, ctx: Context) =>
+        (s: domain.model.Say, ctx: Context) => {
+          val htmlIO = buildHtmlFile(s.text, ctx)
           for {
-            stream <- buildHtmlFile(s.text, ctx).map(s =>
-              fs2.Stream[IO, Byte](s.getBytes(): _*)
+            stream <- htmlIO.map(s => fs2.Stream[IO, Byte](s.getBytes(): _*))
+            html <- htmlIO
+            sha1Hex <- sha1HexCode(html.getBytes())
+            htmlPath = s"./artifacts/html/${sha1Hex}.html"
+            htmlFile <- fileCheck(htmlPath).ifM(
+              IO.pure(fs2.io.file.Path(htmlPath)),
+              writeStreamToFile(stream, htmlPath)
             )
-            sha1Hex <- sha1HexCode(s.text.getBytes())
-            htmlFile <- writeStreamToFile(
-              stream,
-              s"./artifacts/html/${sha1Hex}.html"
+            _ <- fileCheck(s"${htmlPath}.png").ifM(
+              logger.debug(s"Cache HIT: ${htmlPath}.png"),
+              logger.debug(s"Cache expired: ${htmlPath}.png")
             )
-            screenShotFile <- ss.takeScreenShot(
-              os.pwd / os.RelPath(htmlFile.toString)
+            screenShotFile <- fileCheck(s"${htmlPath}.png").ifM(
+              IO.pure(
+                os.pwd / os.RelPath(s"${htmlPath}.png")
+              ),
+              ss.takeScreenShot(
+                os.pwd / os.RelPath(htmlFile.toString)
+              )
             )
           } yield screenShotFile
+        }
 
     for {
       ss <- screenShotResource
@@ -439,7 +487,7 @@ abstract class Cli(logLevel: String = "INFO")
           ss.use { ss => shot(ss).tupled(pair) }
         }.parSequence
         concatenatedImages <- ffmpeg.concatenateImagesWithDuration(
-          sceneImages.zip(pathAndDurations.map(_._2))
+          sceneImages.zip(sayCtxPairs.map(_._2.duration.get))
         )
       } yield concatenatedImages
 

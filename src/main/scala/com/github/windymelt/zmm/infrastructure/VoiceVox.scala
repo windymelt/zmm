@@ -1,6 +1,9 @@
 package com.github.windymelt.zmm
 package infrastructure
 
+import scala.concurrent.duration.Duration
+import scala.concurrent.duration.FiniteDuration
+
 trait VoiceVoxComponent {
   self: domain.repository.VoiceVoxComponent =>
 
@@ -107,6 +110,68 @@ trait VoiceVoxComponent {
 
       c.successful(req) *> IO.unit
     }
+
+    def getVowels(aq: AudioQuery): IO[domain.model.VowelSeqWithDuration] =
+      IO.pure {
+        import io.circe.parser._
+        import io.circe.optics.JsonPath._
+        import io.circe.syntax._
+        import cats.data.{NonEmptySeq => NES}
+        import cats.implicits._
+        // 簡単のために母音と子音まとめて時間に含めてしまう
+
+        // 母音
+        val vowels: Seq[String] =
+          root.accent_phrases.each.moras.each.vowel.string.getAll(aq)
+        val vowelDurs: Seq[Double] =
+          root.accent_phrases.each.moras.each.vowel_length.double.getAll(aq)
+
+        // 子音はあったりなかったりするのでちょっと複雑
+        // 複数のOpticsの合成で値を取り出す
+        val moras =
+          root.accent_phrases.each.moras.each.json.getAll(aq)
+        val consonantDurs: Seq[Double] =
+          moras
+            .map(root.consonant_length.double.getOption)
+            .map(_.getOrElse(0.0))
+            .map {
+              case d if d.isNaN => 0.0
+              case d            => d
+            }
+
+        // 無音期間
+        val accent_phrases = root.accent_phrases.each.json.getAll(aq)
+        val pausesDur: Seq[Double] = accent_phrases
+          .map(root.pause_mora.vowel_length.double.getOption)
+          .map(
+            _.getOrElse(0.0)
+          ) // vowel_lengthがNaNになることはない(required)のでisNanは調べなくてよい
+
+        // 2つのSeqをおなじ位置の要素同士足して1つのSeqにしたい。
+        // Seqをアプリカティブに足すとデカルト積のように全要素を足し合わせる巨大なSeqになってしまう。
+        // 同じ位置の要素同士を足すにはZipListを使う。
+        // ZipListはNonEmptyList(Seq)とparallelの関係にあるので、2つのNonEmptySeqをparMapNして足せば完成する
+        val durs: Seq[Double] =
+          (
+            NES.fromSeqUnsafe(vowelDurs),
+            NES.fromSeqUnsafe(consonantDurs)
+          ).parMapN(_ + _).toSeq
+
+        // 先頭と末尾にはわずかに無音期間が設定されている。これをSeqの先頭と最後の要素に加算する
+        val paddedDurs = durs match {
+          case head +: mid :+ last =>
+            val headPadding = root.prePhonemeLength.double.getOption(aq).get
+            val lastPadding = root.postPhonemeLength.double.getOption(aq).get
+            (headPadding + head) +: mid :+ (last + pausesDur.combineAll + lastPadding)
+        }
+
+        vowels zip paddedDurs.map { s =>
+          val finite = Duration(s"$s second")
+          Some(finite).collect { case d: FiniteDuration =>
+            d
+          }.get
+        }
+      }
 
     private lazy val client = {
       import concurrent.duration._
