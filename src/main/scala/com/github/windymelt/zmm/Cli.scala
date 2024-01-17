@@ -448,25 +448,37 @@ abstract class Cli(logLevel: String = "INFO")
   ): IO[os.Path] = {
     import cats.syntax.parallel._
 
+    val fileCheck: String => IO[Boolean] = p =>
+      IO(os.exists(os.pwd / os.RelPath(p)))
+
+    // スクリーンショットは重いのでHTMLの内容をもとにキャッシュする(HTMLが同一内容なら同一のスクリーンショットになるという前提)
     val shot: ScreenShot => (domain.model.Say, Context) => IO[os.Path] =
       (ss: ScreenShot) =>
-        (s: domain.model.Say, ctx: Context) =>
+        (s: domain.model.Say, ctx: Context) => {
+          val htmlIO = buildHtmlFile(s.text, ctx)
           for {
-            stream <- buildHtmlFile(s.text, ctx).map(s =>
-              fs2.Stream[IO, Byte](s.getBytes(): _*)
+            stream <- htmlIO.map(s => fs2.Stream[IO, Byte](s.getBytes(): _*))
+            html <- htmlIO
+            sha1Hex <- sha1HexCode(html.getBytes())
+            htmlPath = s"./artifacts/html/${sha1Hex}.html"
+            htmlFile <- fileCheck(htmlPath).ifM(
+              IO.pure(fs2.io.file.Path(htmlPath)),
+              writeStreamToFile(stream, htmlPath)
             )
-            sha1Hex <- sha1HexCode(
-              s.text.getBytes() ++ hashCodeToBytes(ctx.hashCode())
+            _ <- fileCheck(s"${htmlPath}.png").ifM(
+              logger.debug(s"Cache HIT: ${htmlPath}.png"),
+              logger.debug(s"Cache expired: ${htmlPath}.png")
             )
-            // TODO: キャッシュを効かせられるようにしたい
-            htmlFile <- writeStreamToFile(
-              stream,
-              s"./artifacts/html/${sha1Hex}.html"
-            )
-            screenShotFile <- ss.takeScreenShot(
-              os.pwd / os.RelPath(htmlFile.toString)
+            screenShotFile <- fileCheck(s"${htmlPath}.png").ifM(
+              IO.pure(
+                os.pwd / os.RelPath(s"${htmlPath}.png")
+              ),
+              ss.takeScreenShot(
+                os.pwd / os.RelPath(htmlFile.toString)
+              )
             )
           } yield screenShotFile
+        }
 
     for {
       ss <- screenShotResource
