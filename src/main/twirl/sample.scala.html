@@ -1,12 +1,14 @@
 @(serif: String, ctx: com.github.windymelt.zmm.domain.model.Context)
 @font() = {@ctx.font.getOrElse("sans-serif")}
-<html>
+<html><!-- TODO: embed SHA-256 of background image. -->
     <body style="@ctx.backgroundImageUrl.map(url => s"background-image: url('${url}');" ).getOrElse("") background-size: 100%;">
     <!-- Highlight.js -->
     <link rel="stylesheet"
           href="../../default.min.css">
     <script src="../../highlight.min.js"></script>
     <script>hljs.highlightAll();</script>
+    <script
+      src="https://unpkg.com/budoux/bundle/budoux-ja.min.js"></script>
     <!-- Mathjax: TODO: あとでjsを埋め込む -->
     <script>
     MathJax = {
@@ -35,9 +37,9 @@
             }
             </pre>
         </div>
-        <img alt="" src="@ctx.tachieUrl.getOrElse("")" onerror='this.style.display = "none"' style="position: fixed; height: 80%; bottom:0px; right: 0%;" />
+        <img alt="" src="@ctx.tachieUrl.getOrElse("")" onerror='this.style.display = "none"' style="position: fixed; height: 100%; bottom: -30%; right: -5%;" />
         <div style="background-color: rgba(0,0,0,0.5); position: fixed; left: 0px; bottom: 0px; height: 25%; width: 100%; font-size: 48pt; padding: 1em 0 0 0;">
-            <div style="padding:0 1em 0 1em; font-family: @font(); font-weight: 800; color: white; -webkit-text-stroke: 0.05em @{ctx.serifColor.getOrElse("black")}; text-stroke: 0.05em @{ctx.serifColor.getOrElse("black")}; filter: drop-shadow(0 0 0.2em #fff); text-align: center;">@serif</div>
+            <div style="padding:0 1em 0 1em; font-family: @font(); font-weight: 800; color: white; -webkit-text-stroke: 0.05em @{ctx.serifColor.getOrElse("black")}; text-stroke: 0.05em @{ctx.serifColor.getOrElse("black")}; filter: drop-shadow(0 0 0.3em #ccc); text-align: center;"><budoux-ja>@serif</budoux-ja></div>
             <!-- <div style="padding:0 1em 0 1em; font-family: Corporate Logo ver3; font-weight: 800; color: white; -webkit-text-stroke: 0.05em black; text-stroke: 0.05em black;">
                 TODO: SVG Textには今のところ折り返し機能が無いのだ そのかわり綺麗なテキスト縁取りが利用できるのだ
                 <svg style="width: 100%">
