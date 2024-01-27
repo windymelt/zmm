@@ -13,8 +13,8 @@ trait FirefoxScreenShotComponent {
 
   object FirefoxScreenShot {
     sealed trait Verbosity
-    final object Quiet extends Verbosity
-    final object Verbose extends Verbosity
+    object Quiet extends Verbosity
+    object Verbose extends Verbosity
   }
 
   def screenShotResource: IO[Resource[IO, ScreenShot]]

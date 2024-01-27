@@ -11,8 +11,8 @@ trait FFmpegComponent {
 
   object ConcreteFFmpeg {
     sealed trait Verbosity
-    final object Quiet extends Verbosity
-    final object Verbose extends Verbosity
+    object Quiet extends Verbosity
+    object Verbose extends Verbosity
   }
 
   def ffmpeg: ConcreteFFmpeg
