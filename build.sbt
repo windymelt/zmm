@@ -14,7 +14,6 @@ lazy val root = (project in file("."))
     name := "zmm",
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.scala-lang.modules" %% "scala-xml" % "1.2.0",
       "org.typelevel" %% "cats-effect" % "3.3.12",
       "org.http4s" %% "http4s-ember-client" % "0.23.16",
       "org.http4s" %% "http4s-circe" % "0.23.16",
