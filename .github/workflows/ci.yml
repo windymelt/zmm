@@ -20,11 +20,9 @@ jobs:
           distribution: 'temurin'
           java-version: 17
           cache: 'sbt'
-      - name: Install sbt
-        run: curl -Ls https://raw.githubusercontent.com/dwijnand/sbt-extras/master/sbt > /bin/sbt && chmod 0755 /bin/sbt
       - uses: coursier/cache-action@v6
       - name: sbt scalafmtAll
-        run: /bin/sbt scalafmtAll
+        run: sbt scalafmtAll
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: Apply scalafmt
@@ -41,8 +39,6 @@ jobs:
           distribution: ${{ matrix.java-distribution }}
           java-version: ${{ matrix.java-version }}
           cache: 'sbt'
-      - name: Install sbt
-        run: curl -Ls https://raw.githubusercontent.com/dwijnand/sbt-extras/master/sbt > /bin/sbt && chmod 0755 /bin/sbt
       - uses: coursier/cache-action@v6
       - name: Test
-        run: /bin/sbt test
+        run: sbt test
