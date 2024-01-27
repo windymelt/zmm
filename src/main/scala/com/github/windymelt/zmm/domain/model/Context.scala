@@ -61,7 +61,7 @@ object Context {
   import scala.xml.{Text, Node, Elem, Comment}
 
   // Context is a Monoid
-  implicit val monoidForContext = new Monoid[Context] {
+  implicit val monoidForContext: Monoid[Context] = new Monoid[Context] {
     def combine(x: Context, y: Context): Context = {
       val spokenByCharacterId = y.spokenByCharacterId |+| x.spokenByCharacterId
       val characterConfigMap = x.characterConfigMap ++ y.characterConfigMap
