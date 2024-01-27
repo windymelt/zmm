@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    if: ${{ github.repository_owner == 'windymelt' }}
     steps:
       - uses: actions/checkout@v3
         with:
