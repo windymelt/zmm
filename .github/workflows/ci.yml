@@ -22,7 +22,7 @@ jobs:
           cache: 'sbt'
       - uses: coursier/cache-action@v6
       - name: sbt scalafmtAll
-        run: sbt scalafmtAll
+        run: sbt scalafmtAll scalafmtSbt
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: Apply scalafmt
@@ -41,4 +41,4 @@ jobs:
           cache: 'sbt'
       - uses: coursier/cache-action@v6
       - name: Test
-        run: sbt test
+        run: sbt scalafmtSbtCheck scalafmtCheckAll test
