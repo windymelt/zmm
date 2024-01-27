@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    if: ${{ github.repository_owner == 'windymelt' }}
+    if: ${{ github.event_name == 'push' || github.event.pull_request.user.login == 'windymelt' }}
     steps:
       - uses: actions/checkout@v3
         with:
