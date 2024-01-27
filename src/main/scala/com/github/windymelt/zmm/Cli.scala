@@ -184,7 +184,7 @@ abstract class Cli(logLevel: String = "INFO")
           generateVideo(sayCtxPairs, paths) product ffmpeg
             .concatenateWavFiles(paths.map(_.toString))
       }
-      val (video, audio) = va
+      (video, audio) = va
       zippedVideo <- backgroundIndicator("Zipping silent video and audio").use {
         _ => ffmpeg.zipVideoWithAudio(video, audio)
       }
@@ -457,7 +457,9 @@ abstract class Cli(logLevel: String = "INFO")
         (s: domain.model.Say, ctx: Context) => {
           val htmlIO = buildHtmlFile(s.text, ctx)
           for {
-            stream <- htmlIO.map(s => fs2.Stream[IO, Byte](s.getBytes(): _*))
+            stream <- htmlIO.map(s =>
+              fs2.Stream[IO, Byte](s.getBytes().toSeq: _*)
+            )
             html <- htmlIO
             sha1Hex <- sha1HexCode(html.getBytes())
             htmlPath = s"./artifacts/html/${sha1Hex}.html"

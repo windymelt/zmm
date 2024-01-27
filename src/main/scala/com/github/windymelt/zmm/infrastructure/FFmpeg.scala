@@ -74,7 +74,7 @@ trait FFmpegComponent {
           .call(cwd = os.pwd, stderr = os.Pipe, stdout = stdout)
         val durationRegex =
           """Duration: (\d\d):(\d\d):(\d\d)\.(\d\d)""".r.unanchored
-        commandResult.err.text match {
+        commandResult.err.text() match {
           case durationRegex(hh, mm, ss, milli) =>
             val toLong = (s: String) => allCatch.opt(s.toLong)
             val to100Long =
@@ -103,7 +103,7 @@ trait FFmpegComponent {
           s"file ${p}\noutpoint ${dur.toUnit(concurrent.duration.SECONDS)}"
         } mkString ("\n")
         self.writeStreamToFile(
-          fs2.Stream[IO, Byte](cutFileContent.getBytes(): _*),
+          fs2.Stream[IO, Byte](cutFileContent.getBytes().toSeq: _*),
           "./artifacts/cutFile.txt"
         )
       }
@@ -157,7 +157,7 @@ trait FFmpegComponent {
           )
         } mkString ("\n")
         self.writeStreamToFile(
-          fs2.Stream[IO, Byte](cutFileContent.getBytes(): _*),
+          fs2.Stream[IO, Byte](cutFileContent.getBytes().toSeq: _*),
           "./artifacts/bgmCutFile.txt"
         )
       }
@@ -263,7 +263,7 @@ trait FFmpegComponent {
           } mkString ("\n")
           self.writeStreamToFile(
             fs2.Stream[IO, Byte](
-              (paddingContent ++ cutFileContent).getBytes(): _*
+              (paddingContent ++ cutFileContent).getBytes().toSeq: _*
             ),
             "./artifacts/baseVideoCutFile.txt"
           ) >> IO.pure(os.Path("./artifacts/baseVideoCutFile.txt", os.pwd))

@@ -32,7 +32,9 @@ trait VoiceVoxComponent {
   class ConcreteVoiceVox(voiceVoxUri: String) extends VoiceVox {
     def speakers(): IO[SpeakerInfo] = client.use { c =>
       val req =
-        Request[IO](uri = Uri.fromString(s"${voiceVoxUri}/speakers").right.get)
+        Request[IO](uri =
+          Uri.fromString(s"${voiceVoxUri}/speakers").fold(throw _, identity)
+        )
       c.expect[SpeakerInfo](req)
     }
     // TODO: localhost:50021決め打ちをやめる
@@ -48,7 +50,7 @@ trait VoiceVoxComponent {
           )
         val req = Request[IO](
           Method.POST,
-          uri = uri.right.get,
+          uri = uri.fold(throw _, identity),
           headers = Headers("accept" -> "application/json")
         )
         c.expect[AudioQuery](req)
@@ -65,10 +67,10 @@ trait VoiceVoxComponent {
           )
         val req = Request[IO](
           Method.POST,
-          uri = uri.right.get,
+          uri = uri.fold(throw _, identity),
           headers = Headers("Content-Type" -> "application/json"),
           body = fs2.Stream.fromIterator[IO](
-            aq.toString().getBytes().toIterator,
+            aq.toString().getBytes().iterator,
             64
           ) // TODO: chinksize適当に指定しているのでなんとかする
         )
@@ -104,7 +106,7 @@ trait VoiceVoxComponent {
 
       val req = Request[IO](
         Method.POST,
-        uri = uri.right.get,
+        uri = uri.fold(throw _, identity),
         headers = Headers("Content-Type" -> "application/json")
       )
 
