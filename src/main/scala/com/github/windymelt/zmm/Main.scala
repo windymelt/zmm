@@ -53,7 +53,7 @@ object Main
           ) >>
           IO.pure(ExitCode.Success)
       case InitializeCommand() =>
-        defaultCli.initializeProject() >> IO.pure(ExitCode.Success)
+        application.Init.initializeProject() >> IO.pure(ExitCode.Success)
     }
   }
 
