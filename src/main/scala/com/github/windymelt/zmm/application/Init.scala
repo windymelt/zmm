@@ -3,13 +3,14 @@ package com.github.windymelt.zmm.application
 import cats.effect.IO
 
 object Init {
+
   /** 現在のディレクトリをZMMプロジェクトとして初期化する。
-   *
-   * 現在のディレクトリに原稿XMLファイルや生成物配置用のディレクトリを作成する。 既にディレクトリやファイルが存在している場合は何もしない。
-   *
-   * @return
-   *   Unitを返す。
-   */
+    *
+    * 現在のディレクトリに原稿XMLファイルや生成物配置用のディレクトリを作成する。 既にディレクトリやファイルが存在している場合は何もしない。
+    *
+    * @return
+    *   Unitを返す。
+    */
   def initializeProject(): IO[Unit] = {
     val agreed = for {
       cwd <- IO.pure(os.pwd.toString())
