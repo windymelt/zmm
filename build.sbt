@@ -71,7 +71,7 @@ lazy val root = (project in file("."))
       // Initnally, run as root. Go to protected user inside entrypoint.sh.
       Cmd("USER", "root"),
       // coretto image does not have useradd utils
-      ExecCmd("RUN", "yum", "install", "-y", "shadow-utils"),
+      ExecCmd("RUN", "yum", "install", "-y", "shadow-utils", "unzip"),
       ExecCmd("RUN", "yum", "clean", "all"),
       // Add protected user. entrypoint.sh uses this.
       ExecCmd("RUN", "useradd", "-m", "zundamon"),
@@ -79,6 +79,28 @@ lazy val root = (project in file("."))
       ExecCmd("RUN", "mkdir", "-p", "/app/artifacts/html"),
       ExecCmd("RUN", "mkdir", "/app/assets"),
       // Install dependencies
+      // font
+      ExecCmd(
+        "ADD",
+        "https://ftp.iij.ad.jp/pub/osdn.jp/users/8/8574/rounded-mplus-20150529.zip",
+        "/tmp/mplus.zip"
+      ),
+      ExecCmd(
+        "RUN",
+        "unzip",
+        "-d",
+        "/usr/share/fonts",
+        "/tmp/mplus.zip"
+      ),
+      ExecCmd(
+        "RUN",
+        "rm",
+        "/tmp/mplus.zip"
+      ),
+      ExecCmd(
+        "RUN",
+        "fc-cache"
+      ),
       ExecCmd(
         "ADD",
         "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js",
@@ -98,12 +120,20 @@ lazy val root = (project in file("."))
         "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
       ),
       ExecCmd("RUN", "tar", "xvf", "ffmpeg-release-amd64-static.tar.xz"),
-      ExecCmd("RUN", "mv", "ffmpeg-6.0-amd64-static/ffmpeg", "/usr/bin/ffmpeg"),
+      // output directory sometimes changes according to latest version.
+      ExecCmd("RUN", "mv", "ffmpeg-6.1-amd64-static/ffmpeg", "/usr/bin/ffmpeg"),
       ExecCmd(
         "RUN",
         "mv",
-        "ffmpeg-6.0-amd64-static/ffprobe",
+        "ffmpeg-6.1-amd64-static/ffprobe",
         "/usr/bin/ffprobe"
+      ),
+      ExecCmd(
+        "RUN",
+        "rm",
+        "-rf",
+        "ffmpeg-release-amd64-static.tar.xz",
+        "ffmpeg-6.1-amd64-static/"
       ),
       ExecCmd("RUN", "amazon-linux-extras", "install", "-y", "epel"),
       ExecCmd("RUN", "yum", "update", "-y"),
