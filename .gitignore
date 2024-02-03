@@ -13,3 +13,4 @@ metals.sbt
 fileList.txt
 artifacts/
 assets/
+/.idea/
