@@ -150,6 +150,8 @@ lazy val root = (project in file("."))
 ThisBuild / assemblyMergeStrategy := {
   case PathList("META-INF", "versions", "9", "module-info.class") =>
     MergeStrategy.first
+  case PathList("module-info.class") =>
+    MergeStrategy.first
   case x =>
     val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
     oldStrategy(x)
