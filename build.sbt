@@ -94,6 +94,11 @@ lazy val root = (project in file("."))
       ),
       ExecCmd(
         "RUN",
+        "rm",
+        "/tmp/mplus.zip"
+      ),
+      ExecCmd(
+        "RUN",
         "fc-cache"
       ),
       ExecCmd(
@@ -122,6 +127,13 @@ lazy val root = (project in file("."))
         "mv",
         "ffmpeg-6.1-amd64-static/ffprobe",
         "/usr/bin/ffprobe"
+      ),
+      ExecCmd(
+        "RUN",
+        "rm",
+        "-rf",
+        "ffmpeg-release-amd64-static.tar.xz",
+        "ffmpeg-6.1-amd64-static/"
       ),
       ExecCmd("RUN", "amazon-linux-extras", "install", "-y", "epel"),
       ExecCmd("RUN", "yum", "update", "-y"),
