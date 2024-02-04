@@ -138,7 +138,9 @@ abstract class Cli(logLevel: String = "INFO")
         val videoWithDuration: Seq[(Option[os.Path], FiniteDuration)] =
           sayCtxPairs
             .map(p =>
-              p._2.video.map(os.pwd / os.RelPath(_)) -> p._2.duration.get
+              p._2.video.map(path =>
+                os.pwd / os.RelPath(util.PathAlias.resolve(path, "ffmpeg"))
+              ) -> p._2.duration.get
             )
 
         val reductedVideoWithDuration = groupReduction(videoWithDuration)
