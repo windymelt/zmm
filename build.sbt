@@ -3,7 +3,7 @@ import com.typesafe.sbt.packager.docker._
 
 import ReleaseTransformations._
 
-ThisBuild / scalaVersion := "2.13.12"
+ThisBuild / scalaVersion := "3.3.0"
 ThisBuild / organization := "com.github.windymelt"
 ThisBuild / organizationName := "windymelt"
 

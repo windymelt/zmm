@@ -4,7 +4,7 @@ import cats.data.Kleisli
 import cats.implicits._
 
 object Filter {
-  def talkingMouthFilter: Filter[Seq] = Kleisli { ctx: Context =>
+  def talkingMouthFilter: Filter[Seq] = Kleisli { (ctx: Context) =>
     ctx.spokenVowels match {
       case None => Seq(ctx)
       case Some(vs) =>
