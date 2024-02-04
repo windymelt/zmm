@@ -42,7 +42,6 @@ def groupReduction[E : Eq, S : Semigroup](xs: Seq[(E, S)]): Seq[(E, S)] = {
     </code>
   </predef>
   <dialogue backgroundImage="" bgm="">
-  <!-- TODO: assetのパスをhtmlからのパスではなくxmlからのパスにする、asset: schemeの導入 -->
     <say by="char1" motif="ここには解説を表示できます">このXMLファイルは、zmmの動作を説明するためのサンプルです。</say>
     <say by="char1">キャラクター1の音声です。</say>
     <say by="char2">そして、キャラクター2の音声です。</say>
