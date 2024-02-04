@@ -165,7 +165,11 @@ abstract class Cli(logLevel: String = "INFO")
         // たとえば、BGMa 5sec BGMa 5sec BGMb 10sec であるときは、 BGMa 10sec BGMb 10secに簡約される。
         val bgmWithDuration: Seq[(Option[os.Path], FiniteDuration)] =
           sayCtxPairs
-            .map(p => p._2.bgm.map(os.pwd / os.RelPath(_)) -> p._2.duration.get)
+            .map(p =>
+              p._2.bgm.map(path =>
+                os.pwd / os.RelPath(util.PathAlias.resolve(path, "ffmpeg"))
+              ) -> p._2.duration.get
+            )
 
         val reductedBgmWithDuration = groupReduction(bgmWithDuration)
 

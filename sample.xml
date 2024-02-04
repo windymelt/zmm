@@ -13,10 +13,10 @@
     <voiceconfig id="tsumugi" backend="voicevox">
       <voicevoxconfig id="8" />
     </voiceconfig>
-    <characterconfig name="char1" voice-id="metan" serif-color="#E14D2A" tachie-url="../../assets/metan.png" />
-    <characterconfig name="char2" voice-id="zundamon" serif-color="#379237" tachie-url="../../assets/zunda.png" />
-    <characterconfig name="char2_hiso" voice-id="zundamon-hisohiso" tachie-url="../../assets/zunda.png" />
-    <characterconfig name="char3" voice-id="tsumugi" tachie-url="../../assets/tsumugi.png" />
+    <characterconfig name="char1" voice-id="metan" serif-color="#E14D2A" tachie-url="@assets/metan.png" />
+    <characterconfig name="char2" voice-id="zundamon" serif-color="#379237" tachie-url="@assets/zunda.png" />
+    <characterconfig name="char2_hiso" voice-id="zundamon-hisohiso" tachie-url="@assets/zunda.png" />
+    <characterconfig name="char3" voice-id="tsumugi" tachie-url="@assets/tsumugi.png" />
     <dict pronounce="ゼットエムエ_ム">zmm</dict>
     <dict pronounce="モチー_フ">motif</dict>
     <dict pronounce="コー_ド">code</dict>
@@ -41,7 +41,7 @@ def groupReduction[E : Eq, S : Semigroup](xs: Seq[(E, S)]): Seq[(E, S)] = {
     ]]>
     </code>
   </predef>
-  <dialogue backgroundImage="" bgm="assets/nc282335_20%.mp3">
+  <dialogue backgroundImage="" bgm="">
   <!-- TODO: assetのパスをhtmlからのパスではなくxmlからのパスにする、asset: schemeの導入 -->
     <say by="char1" motif="ここには解説を表示できます">このXMLファイルは、zmmの動作を説明するためのサンプルです。</say>
     <say by="char1">キャラクター1の音声です。</say>
