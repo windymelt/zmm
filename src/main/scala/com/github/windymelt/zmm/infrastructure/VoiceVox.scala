@@ -180,7 +180,7 @@ trait VoiceVoxComponent {
       import scala.language.postfixOps
       EmberClientBuilder
         .default[IO]
-        .withTimeout(10 minutes)
+        .withTimeout(5 minutes)
         .withIdleConnectionTime(10 minutes)
         .build
     }
