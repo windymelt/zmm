@@ -44,8 +44,8 @@ final case class TargetFile(target: java.nio.file.Path)
 
 sealed trait ScreenShotBackend
 object ScreenShotBackend {
-  final case object Chrome extends ScreenShotBackend
-  final case object Firefox extends ScreenShotBackend
+  case object Chrome extends ScreenShotBackend
+  case object Firefox extends ScreenShotBackend
 }
 
 object CliOptions {
