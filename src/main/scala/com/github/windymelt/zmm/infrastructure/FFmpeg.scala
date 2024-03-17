@@ -7,7 +7,7 @@ import os.Path
 import scala.concurrent.duration.FiniteDuration
 
 trait FFmpegComponent {
-  self: domain.repository.FFmpegComponent with util.UtilComponent =>
+  self: domain.repository.FFmpegComponent & util.UtilComponent =>
 
   object ConcreteFFmpeg {
     sealed trait Verbosity
@@ -103,7 +103,7 @@ trait FFmpegComponent {
           s"file ${p}\noutpoint ${dur.toUnit(concurrent.duration.SECONDS)}"
         } mkString ("\n")
         self.writeStreamToFile(
-          fs2.Stream[IO, Byte](cutFileContent.getBytes().toSeq: _*),
+          fs2.Stream[IO, Byte](cutFileContent.getBytes().toSeq*),
           "./artifacts/cutFile.txt"
         )
       }
@@ -157,7 +157,7 @@ trait FFmpegComponent {
           )
         } mkString ("\n")
         self.writeStreamToFile(
-          fs2.Stream[IO, Byte](cutFileContent.getBytes().toSeq: _*),
+          fs2.Stream[IO, Byte](cutFileContent.getBytes().toSeq*),
           "./artifacts/bgmCutFile.txt"
         )
       }
@@ -263,7 +263,7 @@ trait FFmpegComponent {
           } mkString ("\n")
           self.writeStreamToFile(
             fs2.Stream[IO, Byte](
-              (paddingContent ++ cutFileContent).getBytes().toSeq: _*
+              (paddingContent ++ cutFileContent).getBytes().toSeq*
             ),
             "./artifacts/baseVideoCutFile.txt"
           ) >> IO.pure(os.Path("./artifacts/baseVideoCutFile.txt", os.pwd))

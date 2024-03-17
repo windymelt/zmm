@@ -13,7 +13,12 @@ lazy val root = (project in file("."))
   .settings(
     name := "zmm",
     publish / skip := true,
-    scalacOptions += "-deprecation",
+    scalacOptions ++= Seq(
+      "-deprecation",
+      "-rewrite",
+      "-source",
+      "3.4-migration"
+    ),
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-effect" % "3.3.14",
       "org.http4s" %% "http4s-ember-client" % "0.23.25",
