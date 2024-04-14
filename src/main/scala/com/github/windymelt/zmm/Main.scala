@@ -78,9 +78,9 @@ object Main
   /** verbose/quietオプションの個数に従ってlogbackに適用するログレベルを決定する。
     *
     * @param vCount
-    * --verboseの個数
+    *   --verboseの個数
     * @param qCount
-    * --quietの個数
+    *   --quietの個数
     * @return
     */
   private def verbosityToLogLevel(vCount: Int, qCount: Int): String =
