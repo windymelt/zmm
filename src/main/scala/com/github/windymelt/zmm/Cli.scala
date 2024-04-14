@@ -40,7 +40,7 @@ abstract class Cli(logLevel: String = "INFO")
         case "DEBUG" => ConcreteFFmpeg.Verbose
         case "TRACE" => ConcreteFFmpeg.Verbose
         case _       => ConcreteFFmpeg.Quiet
-      }
+      },
     ) // TODO: respect construct parameter
   val chromiumNoSandBox = sys.env
     .get("CHROMIUM_NOSANDBOX")
@@ -60,8 +60,8 @@ abstract class Cli(logLevel: String = "INFO")
           val styles = speaker("styles").get.asArray.get.flatMap(_.asObject)
           styles map (s =>
             styleToSeq(speaker("name").get.asString.get)(
-              s("id").get.asNumber.get.toString
-            )(s("name").get.asString.get)
+              s("id").get.asNumber.get.toString,
+            )(s("name").get.asString.get),
           )
         }
         speakersArray.flatMap(speakerToSeq).map(_.toArray).toArray
@@ -69,8 +69,8 @@ abstract class Cli(logLevel: String = "INFO")
       _ <- IO.println(
         ASCIITable.fromData(
           Seq("voice", "voice ID", "style").toArray,
-          speakersTable
-        )
+          speakersTable,
+        ),
       )
     } yield ()
   }
@@ -84,21 +84,21 @@ abstract class Cli(logLevel: String = "INFO")
       _ <- logger.debug(s"pwd: ${System.getProperty("user.dir")}")
       _ <- logger.debug(s"voicevox api: ${voiceVoxUri}")
       _ <- logger.debug(
-        s"""ffmpeg command: ${config.getString("ffmpeg.command")}"""
+        s"""ffmpeg command: ${config.getString("ffmpeg.command")}""",
       )
       x <- content
       _ <- contentSanityCheck(x)
       defaultCtx <- prepareDefaultContext(x)
       _ <- applyDictionary(defaultCtx)
       sayCtxPairs <- IO.pure(
-        Context.fromNode((x \ "dialogue").head, defaultCtx)
+        Context.fromNode((x \ "dialogue").head, defaultCtx),
       )
       voices <- {
         import cats.syntax.parallel._
         val saySeq = sayCtxPairs map {
           case (s, ctx)
               if ctx.spokenByCharacterId == Some(
-                "silent"
+                "silent",
               ) => // TODO: voiceconfigまで辿る
             generateSilence(ctx)
           case (s, ctx) =>
@@ -115,7 +115,7 @@ abstract class Cli(logLevel: String = "INFO")
           case ((say, context), (_, dur, vowels)) =>
             (
               say,
-              context.copy(spokenVowels = Some(vowels), duration = Some(dur))
+              context.copy(spokenVowels = Some(vowels), duration = Some(dur)),
             )
         }
       }
@@ -139,8 +139,8 @@ abstract class Cli(logLevel: String = "INFO")
           sayCtxPairs
             .map(p =>
               p._2.video.map(path =>
-                os.pwd / os.RelPath(util.PathAlias.resolve(path, "ffmpeg"))
-              ) -> p._2.duration.get
+                os.pwd / os.RelPath(util.PathAlias.resolve(path, "ffmpeg")),
+              ) -> p._2.duration.get,
             )
 
         val reductedVideoWithDuration = groupReduction(videoWithDuration)
@@ -158,7 +158,7 @@ abstract class Cli(logLevel: String = "INFO")
           case _ =>
             ffmpeg.composeVideoWithDuration(
               zippedVideo,
-              reductedVideoWithDuration
+              reductedVideoWithDuration,
             )
         }
       }
@@ -169,8 +169,8 @@ abstract class Cli(logLevel: String = "INFO")
           sayCtxPairs
             .map(p =>
               p._2.bgm.map(path =>
-                os.pwd / os.RelPath(util.PathAlias.resolve(path, "ffmpeg"))
-              ) -> p._2.duration.get
+                os.pwd / os.RelPath(util.PathAlias.resolve(path, "ffmpeg")),
+              ) -> p._2.duration.get,
             )
 
         val reductedBgmWithDuration = groupReduction(bgmWithDuration)
@@ -182,13 +182,13 @@ abstract class Cli(logLevel: String = "INFO")
         reductedBgmWithDuration.filter(_._1.isDefined).size match {
           case 0 =>
             IO.pure(
-              os.move(composedVideo, outputFilePath)
+              os.move(composedVideo, outputFilePath),
             ) // Dirty fix. TODO: fix here
           case _ =>
             ffmpeg.zipVideoWithAudioWithDuration(
               composedVideo,
               reductedBgmWithDuration,
-              outputFilePath
+              outputFilePath,
             )
         }
       }
@@ -197,7 +197,7 @@ abstract class Cli(logLevel: String = "INFO")
   }
 
   private def applyFilters(
-      pairs: Seq[(domain.model.Say, Context)]
+      pairs: Seq[(domain.model.Say, Context)],
   ): Seq[(domain.model.Say, Context)] = {
     // フィルタが増えたら合成して伸ばす
     val composedFilters = domain.model.Filter.talkingMouthFilter
@@ -207,7 +207,7 @@ abstract class Cli(logLevel: String = "INFO")
 
   private def showLogo: IO[Unit] =
     IO.println(
-      withColor(scala.io.AnsiColor.GREEN ++ scala.io.AnsiColor.BOLD)(zmmLogo)
+      withColor(scala.io.AnsiColor.GREEN ++ scala.io.AnsiColor.BOLD)(zmmLogo),
     ) >>
       IO.println(withColor(scala.io.AnsiColor.GREEN)(s"${BuildInfo.version}"))
 
@@ -259,16 +259,16 @@ abstract class Cli(logLevel: String = "INFO")
   private def generateSay(
       sayElem: domain.model.Say,
       voiceVox: VoiceVox,
-      ctx: Context
+      ctx: Context,
   ): IO[
     (
         fs2.io.file.Path,
         scala.concurrent.duration.FiniteDuration,
-        domain.model.VowelSeqWithDuration
-    )
+        domain.model.VowelSeqWithDuration,
+    ),
   ] = for {
     actualPronunciation <- IO.pure(
-      ctx.sic.getOrElse(sayElem.text)
+      ctx.sic.getOrElse(sayElem.text),
     ) // sicがない場合は元々のセリフを使う
     aq <- backgroundIndicator("Building Audio Query").use { _ =>
       // by属性がないことはないやろという想定でgetしている
@@ -276,7 +276,7 @@ abstract class Cli(logLevel: String = "INFO")
         actualPronunciation,
         ctx.spokenByCharacterId.get,
         voiceVox,
-        ctx
+        ctx,
       )
     }
     _ <- logger.debug(aq.toString())
@@ -294,11 +294,11 @@ abstract class Cli(logLevel: String = "INFO")
   } yield (path, dur, vowels)
 
   private def generateSilence(
-      ctx: Context
+      ctx: Context,
   ): IO[(fs2.io.file.Path, FiniteDuration, domain.model.VowelSeqWithDuration)] =
     for {
       len <- IO.pure(
-        ctx.silentLength.getOrElse(FiniteDuration(3, "second"))
+        ctx.silentLength.getOrElse(FiniteDuration(3, "second")),
       ) // 指定してないなら3秒にしているが理由はない
       sha1Hex <- sha1HexCode(len.toString.getBytes)
       path <- IO.pure(os.Path(s"${os.pwd}/artifacts/silence_$sha1Hex.wav"))
@@ -341,7 +341,7 @@ abstract class Cli(logLevel: String = "INFO")
         name,
         cc \@ "voice-id",
         defaultSerifColor,
-        tachieUrl
+        tachieUrl,
       )
     }.toMap
 
@@ -365,7 +365,7 @@ abstract class Cli(logLevel: String = "INFO")
             val id = e \@ "id"
             val lang = Some(e \@ "lang").filterNot(_.isEmpty())
             id -> (code, lang)
-          }
+          },
         )
         .toMap
 
@@ -376,7 +376,7 @@ abstract class Cli(logLevel: String = "INFO")
           val id = e \@ "id"
 
           id -> math
-        }
+        },
       )
       .toMap
 
@@ -388,14 +388,14 @@ abstract class Cli(logLevel: String = "INFO")
         dict = dict,
         codes = codes,
         maths = maths,
-        font = defaultFont
-      )
+        font = defaultFont,
+      ),
     )
   }
 
   private def generateVideo(
       sayCtxPairs: Seq[(domain.model.Say, Context)],
-      paths: Seq[fs2.io.file.Path]
+      paths: Seq[fs2.io.file.Path],
   ): IO[os.Path] = {
     import cats.syntax.parallel._
 
@@ -409,26 +409,26 @@ abstract class Cli(logLevel: String = "INFO")
           val htmlIO = buildHtmlFile(s.text, ctx)
           for {
             stream <- htmlIO.map(s =>
-              fs2.Stream[IO, Byte](s.getBytes().toSeq: _*)
+              fs2.Stream[IO, Byte](s.getBytes().toSeq: _*),
             )
             html <- htmlIO
             sha1Hex <- sha1HexCode(html.getBytes())
             htmlPath = s"./artifacts/html/${sha1Hex}.html"
             htmlFile <- fileCheck(htmlPath).ifM(
               IO.pure(fs2.io.file.Path(htmlPath)),
-              writeStreamToFile(stream, htmlPath)
+              writeStreamToFile(stream, htmlPath),
             )
             _ <- fileCheck(s"${htmlPath}.png").ifM(
               logger.debug(s"Cache HIT: ${htmlPath}.png"),
-              logger.debug(s"Cache expired: ${htmlPath}.png")
+              logger.debug(s"Cache expired: ${htmlPath}.png"),
             )
             screenShotFile <- fileCheck(s"${htmlPath}.png").ifM(
               IO.pure(
-                os.pwd / os.RelPath(s"${htmlPath}.png")
+                os.pwd / os.RelPath(s"${htmlPath}.png"),
               ),
               ss.takeScreenShot(
-                os.pwd / os.RelPath(htmlFile.toString)
-              )
+                os.pwd / os.RelPath(htmlFile.toString),
+              ),
             )
           } yield screenShotFile
         }
@@ -440,7 +440,7 @@ abstract class Cli(logLevel: String = "INFO")
           ss.use { ss => shot(ss).tupled(pair) }
         }.parSequence
         concatenatedImages <- ffmpeg.concatenateImagesWithDuration(
-          sceneImages.zip(sayCtxPairs.map(_._2.duration.get))
+          sceneImages.zip(sayCtxPairs.map(_._2.duration.get)),
         )
       } yield concatenatedImages
 
@@ -451,7 +451,7 @@ abstract class Cli(logLevel: String = "INFO")
       text: String,
       character: String,
       voiceVox: VoiceVox,
-      ctx: Context
+      ctx: Context,
   ) = {
     val characterConfig = ctx.characterConfigMap(character)
     val voiceConfig = ctx.voiceConfigMap(characterConfig.voiceId)
@@ -465,7 +465,7 @@ abstract class Cli(logLevel: String = "INFO")
       aq: AudioQuery,
       character: String,
       voiceVox: VoiceVox,
-      ctx: Context
+      ctx: Context,
   ): IO[fs2.Stream[IO, Byte]] = {
     val characterConfig = ctx.characterConfigMap(character)
     val voiceConfig = ctx.voiceConfigMap(characterConfig.voiceId)
@@ -485,18 +485,18 @@ abstract class Cli(logLevel: String = "INFO")
 
   // 進捗インジケータを表示するためのユーティリティ
   private def backgroundIndicator(
-      message: String
+      message: String,
   ): cats.effect.ResourceIO[IO[cats.effect.OutcomeIO[Unit]]] =
     indicator(message).background
   import concurrent.duration._
   import scala.language.postfixOps
   private def piece(s: String): IO[Unit] =
     IO.sleep(100 milliseconds) *> IO.print(
-      s"\r${withColor(scala.io.AnsiColor.GREEN ++ scala.io.AnsiColor.BOLD)(s)}"
+      s"\r${withColor(scala.io.AnsiColor.GREEN ++ scala.io.AnsiColor.BOLD)(s)}",
     )
   private def indicator(message: String): IO[Unit] =
     piece(s"⢄ $message") *> piece(s"⠢ $message") *> piece(
-      s"⠑ $message"
+      s"⠑ $message",
     ) *> piece(s"⡈ $message") foreverM
 
 }

@@ -21,7 +21,7 @@ class FirefoxCli(logLevel: String = "INFO")
           case "TRACE" => FirefoxScreenShot.Verbose
           case "DEBUG" => FirefoxScreenShot.Verbose
           case _       => FirefoxScreenShot.Quiet
-        }
+        },
       )
     }
 }

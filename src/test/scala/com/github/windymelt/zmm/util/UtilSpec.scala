@@ -22,7 +22,7 @@ class UtilSpec extends AnyFlatSpec with Matchers with UtilComponent {
     groupReduction(Seq("foo" -> 1, "bar" -> 2, "foo" -> 3)) shouldBe Seq(
       "foo" -> 1,
       "bar" -> 2,
-      "foo" -> 3
+      "foo" -> 3,
     )
   }
 

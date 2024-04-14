@@ -10,17 +10,17 @@ class ContextSpec extends AnyFlatSpec with Matchers {
     val x = Context(
       Map("zundamon" -> VoiceVoxBackendConfig("3")),
       Map("z" -> CharacterConfig("z", "zundamon")),
-      Some("https://example.com/bg1.png")
+      Some("https://example.com/bg1.png"),
     )
     val y = Context(
       Map("metan" -> VoiceVoxBackendConfig("2")),
       Map("m" -> CharacterConfig("m", "metan")),
-      Some("https://example.com/bg2.png")
+      Some("https://example.com/bg2.png"),
     )
     val z = Context(
       Map("tsumugi" -> VoiceVoxBackendConfig("8")),
       Map("t" -> CharacterConfig("t", "tsumugi")),
-      None
+      None,
     )
 
     import cats.implicits._
@@ -30,7 +30,7 @@ class ContextSpec extends AnyFlatSpec with Matchers {
   it should "have identity element" in {
     val x = Context(
       Map("zundamon" -> VoiceVoxBackendConfig("3")),
-      Map("z" -> CharacterConfig("z", "zundamon"))
+      Map("z" -> CharacterConfig("z", "zundamon")),
     )
 
     val e = Context.empty
@@ -88,12 +88,12 @@ class ContextSpec extends AnyFlatSpec with Matchers {
     cs.map(_._1.text) shouldBe Seq(
       "こんにちはなのだ",
       "一つめのコンテキストなのだ",
-      "そして、二つめのコンテキストだよ"
+      "そして、二つめのコンテキストだよ",
     )
     cs.map(_._2.backgroundImageUrl) shouldBe Seq(
       Some("https://example.com/bg1.png"),
       Some("https://example.com/bg1.png"),
-      Some("https://example.com/default.png")
+      Some("https://example.com/default.png"),
     )
   }
 }

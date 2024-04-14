@@ -1,5 +1,11 @@
 // DO NOT EDIT! This file is auto-generated.
 
-// This file enables sbt-bloop to create bloop config files.
+// This plugin enables semantic information to be produced by sbt.
+// It also adds support for debugging using the Debug Adapter Protocol
 
-addSbtPlugin("ch.epfl.scala" % "sbt-bloop" % "1.5.13")
+addSbtPlugin("org.scalameta" % "sbt-metals" % "1.2.0")
+
+// This plugin makes sure that the JDI tools are in the sbt classpath.
+// JDI tools are used by the debug adapter server.
+
+addSbtPlugin("org.scala-debugger" % "sbt-jdi-tools" % "1.1.1")

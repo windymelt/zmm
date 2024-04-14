@@ -19,7 +19,7 @@ trait ChromeScreenShotComponent {
   class ChromeScreenShot(
       chromeCommand: String,
       verbosity: ChromeScreenShot.Verbosity,
-      noSandBox: Boolean = false
+      noSandBox: Boolean = false,
   ) extends ScreenShot {
     val screenShotImplementation = "chrome"
     val stdout = verbosity match {
@@ -29,7 +29,7 @@ trait ChromeScreenShotComponent {
     def takeScreenShot(
         htmlFilePath: os.Path,
         windowWidth: Int = 1920,
-        windowHeight: Int = 1080
+        windowHeight: Int = 1080,
     ): IO[os.Path] = IO.delay {
       val proc = noSandBox match {
         case true =>
@@ -41,7 +41,7 @@ trait ChromeScreenShotComponent {
             s"--screenshot=${htmlFilePath}.png",
             s"--window-size=${windowWidth},${windowHeight}",
             "--default-background-color=00000000",
-            htmlFilePath
+            htmlFilePath,
           )
         case false =>
           os.proc(
@@ -51,7 +51,7 @@ trait ChromeScreenShotComponent {
             s"--screenshot=${htmlFilePath}.png",
             s"--window-size=${windowWidth},${windowHeight}",
             "--default-background-color=00000000",
-            htmlFilePath
+            htmlFilePath,
           )
       }
       proc.call(stdout = stdout, stderr = stdout, cwd = os.pwd)

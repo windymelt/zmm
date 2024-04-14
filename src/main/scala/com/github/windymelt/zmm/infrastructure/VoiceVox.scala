@@ -33,7 +33,7 @@ trait VoiceVoxComponent {
     def speakers(): IO[SpeakerInfo] = client.use { c =>
       val req =
         Request[IO](uri =
-          Uri.fromString(s"${voiceVoxUri}/speakers").fold(throw _, identity)
+          Uri.fromString(s"${voiceVoxUri}/speakers").fold(throw _, identity),
         )
       c.expect[SpeakerInfo](req)
     }
@@ -45,13 +45,13 @@ trait VoiceVoxComponent {
           .map(
             _.copy(query =
               org.http4s.Query
-                .fromMap(Map("speaker" -> Seq(speaker), "text" -> Seq(text)))
-            )
+                .fromMap(Map("speaker" -> Seq(speaker), "text" -> Seq(text))),
+            ),
           )
         val req = Request[IO](
           Method.POST,
           uri = uri.fold(throw _, identity),
-          headers = Headers("accept" -> "application/json")
+          headers = Headers("accept" -> "application/json"),
         )
         c.expect[AudioQuery](req)
     }
@@ -62,8 +62,8 @@ trait VoiceVoxComponent {
           .fromString(s"${voiceVoxUri}/synthesis")
           .map(
             _.copy(
-              query = org.http4s.Query.fromMap(Map("speaker" -> Seq(speaker)))
-            )
+              query = org.http4s.Query.fromMap(Map("speaker" -> Seq(speaker))),
+            ),
           )
         val req = Request[IO](
           Method.POST,
@@ -71,8 +71,8 @@ trait VoiceVoxComponent {
           headers = Headers("Content-Type" -> "application/json"),
           body = fs2.Stream.fromIterator[IO](
             aq.toString().getBytes().iterator,
-            64
-          ) // TODO: chinksize適当に指定しているのでなんとかする
+            64,
+          ), // TODO: chinksize適当に指定しているのでなんとかする
         )
         IO.pure(c.stream(req).flatMap(_.body))
       }
@@ -81,14 +81,14 @@ trait VoiceVoxComponent {
       import io.circe.syntax._
       // TODO: .getやめて失敗できるようにする
       IO.pure(
-        aq.hcursor.downField("speedScale").withFocus(_ => speed.asJson).top.get
+        aq.hcursor.downField("speedScale").withFocus(_ => speed.asJson).top.get,
       )
     }
 
     def registerDict(
         word: String,
         pronounce: String,
-        lowerPoint: Int
+        lowerPoint: Int,
     ): IO[Unit] = client.use { c =>
       val uri = Uri
         .fromString(s"${voiceVoxUri}/user_dict_word")
@@ -98,16 +98,16 @@ trait VoiceVoxComponent {
               Map(
                 "surface" -> Seq(word),
                 "pronunciation" -> Seq(pronounce),
-                "accent_type" -> Seq(lowerPoint.toString)
-              )
-            )
-          )
+                "accent_type" -> Seq(lowerPoint.toString),
+              ),
+            ),
+          ),
         )
 
       val req = Request[IO](
         Method.POST,
         uri = uri.fold(throw _, identity),
-        headers = Headers("Content-Type" -> "application/json")
+        headers = Headers("Content-Type" -> "application/json"),
       )
 
       c.successful(req) *> IO.unit
@@ -146,7 +146,7 @@ trait VoiceVoxComponent {
         val pausesDur: Seq[Double] = accent_phrases
           .map(root.pause_mora.vowel_length.double.getOption)
           .map(
-            _.getOrElse(0.0)
+            _.getOrElse(0.0),
           ) // vowel_lengthがNaNになることはない(required)のでisNanは調べなくてよい
 
         // 2つのSeqをおなじ位置の要素同士足して1つのSeqにしたい。
@@ -156,7 +156,7 @@ trait VoiceVoxComponent {
         val durs: Seq[Double] =
           (
             NES.fromSeqUnsafe(vowelDurs),
-            NES.fromSeqUnsafe(consonantDurs)
+            NES.fromSeqUnsafe(consonantDurs),
           ).parMapN(_ + _).toSeq
 
         // 先頭と末尾にはわずかに無音期間が設定されている。これをSeqの先頭と最後の要素に加算する

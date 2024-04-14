@@ -29,9 +29,9 @@ lazy val root = (project in file("."))
       "com.mitchtalmadge" % "ascii-data" % "1.4.0",
       "ch.qos.logback" % "logback-classic" % "1.4.7",
       "org.typelevel" %% "log4cats-slf4j" % "2.6.0",
-      scalaTest % Test
+      scalaTest % Test,
     ),
-    assembly / mainClass := Some("com.github.windymelt.zmm.Main")
+    assembly / mainClass := Some("com.github.windymelt.zmm.Main"),
   )
   .enablePlugins(SbtTwirl)
   .enablePlugins(BuildInfoPlugin)
@@ -39,7 +39,7 @@ lazy val root = (project in file("."))
   .enablePlugins(DockerPlugin)
   .settings(
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion),
-    buildInfoPackage := "com.github.windymelt.zmm"
+    buildInfoPackage := "com.github.windymelt.zmm",
   )
   .settings(
     releaseProcess := Seq[ReleaseStep](
@@ -55,8 +55,8 @@ lazy val root = (project in file("."))
       releaseStepTask(Docker / publish),
       setNextVersion, // : ReleaseStep
       commitNextVersion, // : ReleaseStep
-      pushChanges // : ReleaseStep, also checks that an upstream branch is properly configured
-    )
+      pushChanges, // : ReleaseStep, also checks that an upstream branch is properly configured
+    ),
   )
   .settings(
     dockerBaseImage := "amazoncorretto:17",
@@ -83,41 +83,41 @@ lazy val root = (project in file("."))
       ExecCmd(
         "ADD",
         "https://ftp.iij.ad.jp/pub/osdn.jp/users/8/8574/rounded-mplus-20150529.zip",
-        "/tmp/mplus.zip"
+        "/tmp/mplus.zip",
       ),
       ExecCmd(
         "RUN",
         "unzip",
         "-d",
         "/usr/share/fonts",
-        "/tmp/mplus.zip"
+        "/tmp/mplus.zip",
       ),
       ExecCmd(
         "RUN",
         "rm",
-        "/tmp/mplus.zip"
+        "/tmp/mplus.zip",
       ),
       ExecCmd(
         "RUN",
-        "fc-cache"
+        "fc-cache",
       ),
       ExecCmd(
         "ADD",
         "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js",
-        "/app/highlight.min.js"
+        "/app/highlight.min.js",
       ),
       ExecCmd("RUN", "mkdir", "-p", "/app/highlight/styles"),
       ExecCmd(
         "ADD",
         "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css",
-        "/app/highlight/styles/default.min.css"
+        "/app/highlight/styles/default.min.css",
       ),
       Cmd("WORKDIR", "/root"),
       ExecCmd("RUN", "yum", "-y", "install", "wget", "tar", "xz"),
       ExecCmd(
         "RUN",
         "wget",
-        "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
+        "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz",
       ),
       ExecCmd("RUN", "tar", "xvf", "ffmpeg-release-amd64-static.tar.xz"),
       // output directory sometimes changes according to latest version.
@@ -126,14 +126,14 @@ lazy val root = (project in file("."))
         "RUN",
         "mv",
         "ffmpeg-6.1-amd64-static/ffprobe",
-        "/usr/bin/ffprobe"
+        "/usr/bin/ffprobe",
       ),
       ExecCmd(
         "RUN",
         "rm",
         "-rf",
         "ffmpeg-release-amd64-static.tar.xz",
-        "ffmpeg-6.1-amd64-static/"
+        "ffmpeg-6.1-amd64-static/",
       ),
       ExecCmd("RUN", "amazon-linux-extras", "install", "-y", "epel"),
       ExecCmd("RUN", "yum", "update", "-y"),
@@ -142,9 +142,9 @@ lazy val root = (project in file("."))
       ExecCmd("RUN", "chmod", "u+x", "/opt/docker/entrypoint.sh"),
       ExecCmd("RUN", "chown", "-R", "zundamon", "/app"),
       Cmd("ENV", "IS_DOCKER_ZMM=1"),
-      Cmd("WORKDIR", "/app")
+      Cmd("WORKDIR", "/app"),
     ),
-    dockerEntrypoint := Seq("/opt/docker/entrypoint.sh")
+    dockerEntrypoint := Seq("/opt/docker/entrypoint.sh"),
   )
 
 ThisBuild / assemblyMergeStrategy := {

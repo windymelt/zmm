@@ -19,7 +19,7 @@ trait UtilComponent {
     */
   def writeStreamToFile(
       stream: fs2.Stream[IO, Byte],
-      fileName: String
+      fileName: String,
   ): IO[fs2.io.file.Path] = {
     import fs2.io.file.{Files, Path}
     val target = Path(fileName)

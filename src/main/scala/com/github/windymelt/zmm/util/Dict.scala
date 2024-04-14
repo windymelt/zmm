@@ -13,7 +13,7 @@ object Dict {
         (
           dictItem.text,
           pronounceWithoutAccentSymbol(dictItem \@ "pronounce"),
-          indexOfAccent(dictItem \@ "pronounce")
+          indexOfAccent(dictItem \@ "pronounce"),
         )
       }
 

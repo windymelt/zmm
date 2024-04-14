@@ -13,7 +13,7 @@ object Main
     extends CommandIOApp(
       name = "zmm",
       header =
-        "Zunda Movie Maker -- see https://www.3qe.us/zmm/doc/ for more documentation"
+        "Zunda Movie Maker -- see https://www.3qe.us/zmm/doc/ for more documentation",
     ) {
   override def main: Opts[IO[ExitCode]] = CliOptions.opts map { o =>
     val defaultCli = new ChromiumCli(logLevel = "INFO")
@@ -26,13 +26,13 @@ object Main
             defaultCli.showVoiceVoxSpeakers() >> IO.pure(ExitCode.Success)
           case _ =>
             IO.println(
-              "subcommand [show] only accepts 'voicevox'. try `show voicevox`"
+              "subcommand [show] only accepts 'voicevox'. try `show voicevox`",
             ) >> IO.pure(ExitCode.Error)
         }
       case Generate(file, out, screenShotBackend, verbosity) =>
         val optionalLogLevel = verbosityToLogLevel(
           vCount = verbosity.getOrElse(0),
-          qCount = 0 /* TODO: implement it later */
+          qCount = 0, /* TODO: implement it later */
         )
         val environmentalLogLevel = getLogLevelFromEnvVar()
         val logLevel = environmentalLogLevel.getOrElse(optionalLogLevel)
@@ -49,7 +49,7 @@ object Main
         cli.logger.debug(s"Verbose mode enabled (log level: $logLevel)") >> cli
           .generate(
             file.target.toString,
-            out.toAbsolutePath.toString
+            out.toAbsolutePath.toString,
           ) >>
           IO.pure(ExitCode.Success)
       case InitializeCommand() =>

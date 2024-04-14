@@ -10,12 +10,12 @@ class PathAliasSpec extends AnyFlatSpec with Matchers {
 
     PathAlias.resolve(
       "@assets/foo/bar.png",
-      "template"
+      "template",
     ) shouldBe "../../assets/foo/bar.png"
 
     PathAlias.resolve(
       "@assets/foo/bar.mp3",
-      "ffmpeg"
+      "ffmpeg",
     ) shouldBe "./assets/foo/bar.mp3"
   }
 }

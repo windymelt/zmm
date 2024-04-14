@@ -14,7 +14,7 @@ object PathAlias {
   private val annotationPathMap: Map[String, Map[Purpose, String]] = Map(
     "assets" -> Map(
       "template" -> "../../assets/",
-      "ffmpeg" -> "./assets/"
-    )
+      "ffmpeg" -> "./assets/",
+    ),
   )
 }

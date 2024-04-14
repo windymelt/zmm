@@ -21,7 +21,7 @@ trait FirefoxScreenShotComponent {
 
   class FirefoxScreenShot(
       firefoxCommand: String,
-      verbosity: FirefoxScreenShot.Verbosity
+      verbosity: FirefoxScreenShot.Verbosity,
   ) extends ScreenShot {
     val screenShotImplementation = "firefox"
     val stdout = verbosity match {
@@ -31,7 +31,7 @@ trait FirefoxScreenShotComponent {
     def takeScreenShot(
         htmlFilePath: os.Path,
         windowWidth: Int = 1920,
-        windowHeight: Int = 1080
+        windowHeight: Int = 1080,
     ): IO[os.Path] = {
       val absPath = htmlFilePath
       val fileUri = s"file://$absPath"
@@ -41,7 +41,7 @@ trait FirefoxScreenShotComponent {
         "-screenshot",
         "-window-size",
         s"$windowWidth,$windowHeight",
-        fileUri
+        fileUri,
       )
       // mutex.lock.surround {
       IO.blocking {

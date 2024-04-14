@@ -29,7 +29,7 @@ final case class Generate(
     targetFile: TargetFile,
     outputFile: java.nio.file.Path,
     screenShotBackend: Option[ScreenShotBackend],
-    verbosity: Option[Int]
+    verbosity: Option[Int],
 ) extends ZmmOption
 
 /** ディレクトリをZMMのプロジェクトとして初期化するモード。
@@ -51,7 +51,7 @@ object ScreenShotBackend {
 object CliOptions {
   private val showCommand =
     Opts.subcommand(name = "show", help = "Prints information.")(
-      Opts.argument[String]("voicevox").map(ShowCommand.apply)
+      Opts.argument[String]("voicevox").map(ShowCommand.apply),
     )
 
   private val targetFile =
@@ -65,7 +65,7 @@ object CliOptions {
         "output",
         help = "Output file name",
         short = "o",
-        metavar = "OUTPUT.mp4"
+        metavar = "OUTPUT.mp4",
       )
       .withDefault(java.nio.file.Path.of("output_with_bgm.mp4"))
 
@@ -74,7 +74,7 @@ object CliOptions {
       "screenshot",
       help = "Backend for screenshot. chrome or firefox.",
       short = "s",
-      metavar = "chrome | firefox"
+      metavar = "chrome | firefox",
     )
     .mapValidated {
       case "chrome" =>
@@ -83,7 +83,7 @@ object CliOptions {
       case _ =>
         Validated.invalid(
           "screenshot backend should be one of chrome and firefox"
-            .pure[NonEmptyList]
+            .pure[NonEmptyList],
         )
     }
     .orNone
@@ -91,7 +91,7 @@ object CliOptions {
   private val verbosityFlag = Opts
     .flags(
       "verbose",
-      help = "Be more verbose. Log level will increase."
+      help = "Be more verbose. Log level will increase.",
     )
     .orNone // TODO: -vをversionから奪う
 
@@ -100,19 +100,19 @@ object CliOptions {
       targetFile,
       outputFile,
       screenShotBackend,
-      verbosityFlag
+      verbosityFlag,
     ) mapN (Generate.apply)
 
   private val initCommand = Opts.subcommand(
     name = "init",
-    help = "Initializes current directory as ZMM project."
+    help = "Initializes current directory as ZMM project.",
   )(Opts.unit.map(_ => InitializeCommand()))
 
   private val versionOption = Opts
     .flag(
       "version",
       help = "Show version",
-      short = "v"
+      short = "v",
     ) // TODO: short optionはverbosityに譲りたい!!
     .map(_ => VersionFlag())
 

@@ -14,7 +14,7 @@ class ChromiumCli(logLevel: String = "INFO")
   def screenShotResource: IO[Resource[IO, ScreenShot]] = {
     for {
       _ <- logger.debug(
-        s"chromium command: $chromiumCommand, chromoumNoSandBox: $chromiumNoSandBox"
+        s"chromium command: $chromiumCommand, chromoumNoSandBox: $chromiumNoSandBox",
       )
       mu <- Mutex[IO]
     } yield mu.lock.map { _ =>
@@ -25,7 +25,7 @@ class ChromiumCli(logLevel: String = "INFO")
           case "DEBUG" => ChromeScreenShot.Verbose
           case _       => ChromeScreenShot.Quiet
         },
-        chromiumNoSandBox
+        chromiumNoSandBox,
       )
     }
   }

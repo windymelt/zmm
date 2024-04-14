@@ -11,7 +11,7 @@ final case class CharacterConfig(
     name: String,
     voiceId: String,
     serifColor: Option[String] = None,
-    tachieUrl: Option[String] = None // セリフカラー同様、セリフによって上書きされうる
+    tachieUrl: Option[String] = None, // セリフカラー同様、セリフによって上書きされうる
 )
 
 /*
@@ -43,7 +43,7 @@ final case class Context(
     maths: Map[String, String] = Map.empty, // id -> LaTeX string
     sic: Option[String] = None, // 代替読みを設定できる(数式などで使う)
     silentLength: Option[FiniteDuration] = None, // by=silentな場合に停止する時間
-    video: Option[String] = None // 背景に合成する動画
+    video: Option[String] = None, // 背景に合成する動画
     // TODO: BGM, fontColor, etc.
 ) {
   def atv = additionalTemplateVariables // alias for template
@@ -93,7 +93,7 @@ object Context {
         maths = x.maths |+| y.maths,
         sic = y.sic orElse x.sic,
         silentLength = y.silentLength <+> x.silentLength,
-        video = y.video <+> x.video
+        video = y.video <+> x.video,
       )
     }
     def empty: Context = Context.empty
@@ -101,7 +101,7 @@ object Context {
 
   def fromNode(
       dialogueElem: scala.xml.Node,
-      currentContext: Context = Context.empty
+      currentContext: Context = Context.empty,
   ): Seq[(Say, Context)] = dialogueElem match {
     case Comment(_) => Seq.empty // コメントは無視する
     case Text(t) if t.forall(_.isWhitespace) =>
@@ -135,9 +135,9 @@ object Context {
       bgm = firstAttrTextOf(e, "bgm"),
       sic = firstAttrTextOf(e, "sic"),
       silentLength = firstAttrTextOf(e, "silent-length").map(l =>
-        FiniteDuration.apply(Integer.parseInt(l), "second")
+        FiniteDuration.apply(Integer.parseInt(l), "second"),
       ),
-      video = firstAttrTextOf(e, "video")
+      video = firstAttrTextOf(e, "video"),
     )
   }
 

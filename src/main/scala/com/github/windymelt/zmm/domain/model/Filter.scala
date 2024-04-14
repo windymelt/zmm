@@ -49,7 +49,7 @@ object Filter {
   // caution: invokes side effect.
   private def alternativeFileIfExists(
       originalPath: String,
-      alternativePath: String
+      alternativePath: String,
   ): String = originalPath match {
     case originalPath @ ExtRe(file: String, ext: String) =>
       tachieExistenceCache.get(alternativePath) match {
@@ -59,8 +59,8 @@ object Filter {
           val pathToFind = os.pwd / os.RelPath(
             util.PathAlias.resolve(
               alternativePath,
-              "ffmpeg" /* ffmpeg refers `./`. we should define stub Purpose */
-            )
+              "ffmpeg", /* ffmpeg refers `./`. we should define stub Purpose */
+            ),
           )
           if (os.exists(pathToFind)) {
             tachieExistenceCache += alternativePath -> true

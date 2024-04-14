@@ -19,7 +19,7 @@ trait FFmpegComponent {
 
   class ConcreteFFmpeg(
       ffmpegCommand: String,
-      verbosity: ConcreteFFmpeg.Verbosity
+      verbosity: ConcreteFFmpeg.Verbosity,
   ) extends FFmpeg {
     val FRAME_RATE_FPS = 30 // TODO: application.confなどに逃がす
     val stdout = verbosity match {
@@ -51,13 +51,13 @@ trait FFmpegComponent {
               "copy",
               "-ac", // ステレオ化する
               "2",
-              "artifacts/concatenated.wav"
+              "artifacts/concatenated.wav",
             )
             .call(
               stdout = stdout,
               stderr = stdout,
               stdin = fileList,
-              cwd = os.pwd
+              cwd = os.pwd,
             )
         } *>
         IO.pure(os.pwd / os.RelPath("artifacts/concatenated.wav"))
@@ -84,7 +84,7 @@ trait FFmpegComponent {
               toLong(hh),
               toLong(mm),
               toLong(ss),
-              to100Long(milli)
+              to100Long(milli),
             ).sequence.get
             val units = Seq("hour", "minute", "second", "millisecond")
             hms
@@ -96,7 +96,7 @@ trait FFmpegComponent {
     }
 
     def concatenateImagesWithDuration(
-        imageDurationPair: Seq[(os.Path, FiniteDuration)]
+        imageDurationPair: Seq[(os.Path, FiniteDuration)],
     ): IO[os.Path] = {
       val writeCutfile = {
         val cutFileContent = imageDurationPair map { case (p, dur) =>
@@ -104,7 +104,7 @@ trait FFmpegComponent {
         } mkString ("\n")
         self.writeStreamToFile(
           fs2.Stream[IO, Byte](cutFileContent.getBytes().toSeq: _*),
-          "./artifacts/cutFile.txt"
+          "./artifacts/cutFile.txt",
         )
       }
       // スクリーンショット実装がChrome(Chromium)の場合、透明度付きPNGが出力されることを期待して良いので、
@@ -138,7 +138,7 @@ trait FFmpegComponent {
             "[scaledimg]",
             "-map",
             "[alpha]",
-            "artifacts/scenes.mkv"
+            "artifacts/scenes.mkv",
           ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
         }
       } yield os.pwd / os.RelPath("artifacts/scenes.mkv")
@@ -147,18 +147,18 @@ trait FFmpegComponent {
     def zipVideoWithAudioWithDuration(
         videoPath: os.Path,
         audioDurationPair: Seq[(Option[os.Path], FiniteDuration)],
-        outputPath: os.Path
+        outputPath: os.Path,
     ): IO[os.Path] = {
       // 一度オーディオをDurationに従って結合し、これと動画を合成する。単に上書きすると元の音声が消えてしまうのでフィルタ合成する。
       val writeCutfile = {
         val cutFileContent = audioDurationPair flatMap { case (pOpt, dur) =>
           pOpt.map(p =>
-            s"file ${p}\noutpoint ${dur.toUnit(concurrent.duration.SECONDS)}"
+            s"file ${p}\noutpoint ${dur.toUnit(concurrent.duration.SECONDS)}",
           )
         } mkString ("\n")
         self.writeStreamToFile(
           fs2.Stream[IO, Byte](cutFileContent.getBytes().toSeq: _*),
-          "./artifacts/bgmCutFile.txt"
+          "./artifacts/bgmCutFile.txt",
         )
       }
       for {
@@ -175,7 +175,7 @@ trait FFmpegComponent {
             "0",
             "-i",
             "artifacts/bgmCutFile.txt",
-            "artifacts/concatenatedBGM.wav"
+            "artifacts/concatenatedBGM.wav",
           ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
           os.pwd / os.RelPath("artifacts/concatenatedBGM.wav")
         }
@@ -197,7 +197,7 @@ trait FFmpegComponent {
             "copy",
             "-ac",
             "2",
-            outputPath
+            outputPath,
           ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
         }
       } yield outputPath
@@ -214,7 +214,7 @@ trait FFmpegComponent {
       */
     def composeVideoWithDuration(
         overlayVideoPath: os.Path,
-        baseVideoDurationPair: Seq[(Option[os.Path], FiniteDuration)]
+        baseVideoDurationPair: Seq[(Option[os.Path], FiniteDuration)],
     ): IO[os.Path] = {
       import cats.implicits._
 
@@ -245,7 +245,7 @@ trait FFmpegComponent {
               "[v]",
               "-map",
               "[o]",
-              "artifacts/basePadding.mp4"
+              "artifacts/basePadding.mp4",
             ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
             Some(os.pwd / os.RelPath("artifacts/basePadding.mp4"))
           }
@@ -258,14 +258,14 @@ trait FFmpegComponent {
           val cutFileContent = baseVideoDurationPair flatMap {
             case (pOpt, dur) =>
               pOpt.map(p =>
-                s"file ${p}\noutpoint ${dur.toUnit(concurrent.duration.SECONDS)}"
+                s"file ${p}\noutpoint ${dur.toUnit(concurrent.duration.SECONDS)}",
               )
           } mkString ("\n")
           self.writeStreamToFile(
             fs2.Stream[IO, Byte](
-              (paddingContent ++ cutFileContent).getBytes().toSeq: _*
+              (paddingContent ++ cutFileContent).getBytes().toSeq: _*,
             ),
-            "./artifacts/baseVideoCutFile.txt"
+            "./artifacts/baseVideoCutFile.txt",
           ) >> IO.pure(os.Path("./artifacts/baseVideoCutFile.txt", os.pwd))
         }
 
@@ -305,7 +305,7 @@ trait FFmpegComponent {
             cutFilePath,
             "-vf",
             s"framerate=$FRAME_RATE_FPS", // こちらは動画なのでfpsではなくframerateフィルタでやや丁寧に処理する
-            "artifacts/concatenatedBase.mp4"
+            "artifacts/concatenatedBase.mp4",
           ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
           os.pwd / os.RelPath("artifacts/concatenatedBase.mp4")
         }
@@ -336,7 +336,7 @@ trait FFmpegComponent {
             "-shortest",
             "-ac",
             "2",
-            "output_composed.mp4"
+            "output_composed.mp4",
           ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
         }
       // TODO: Firefoxを使うときにこちらを起動する
@@ -364,7 +364,7 @@ trait FFmpegComponent {
             "-shortest",
             "-ac",
             "2",
-            "output_composed.mp4"
+            "output_composed.mp4",
           ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
         }
 
@@ -399,7 +399,7 @@ trait FFmpegComponent {
           "0:1",
           "-map",
           "1:a",
-          "output.mkv"
+          "output.mkv",
         ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
       }
     } yield os.pwd / "output.mkv"
@@ -420,7 +420,7 @@ trait FFmpegComponent {
             s"anullsrc=cl=mono:r=${sample}",
             "-sample_fmt",
             "s16", // depth 16
-            path
+            path,
           ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
         }
       } yield path

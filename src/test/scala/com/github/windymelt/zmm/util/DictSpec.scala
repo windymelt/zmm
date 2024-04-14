@@ -33,7 +33,7 @@ class DictSpec extends UnitSpec with UtilComponent {
       dict should have size (2)
       dict shouldBe Seq(
         ("ずんだもん", "ズンダモン", 1),
-        ("きりたん", "キリタン", 1)
+        ("きりたん", "キリタン", 1),
       )
     }
   }
