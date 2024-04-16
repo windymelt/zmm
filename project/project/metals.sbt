@@ -5,7 +5,7 @@
 
 addSbtPlugin("org.scalameta" % "sbt-metals" % "1.2.0")
 
-addSbtPlugin("ch.epfl.scala" % "sbt-bloop" % "1.5.16")
+addSbtPlugin("ch.epfl.scala" % "sbt-bloop" % "1.5.17")
 
 // This plugin makes sure that the JDI tools are in the sbt classpath.
 // JDI tools are used by the debug adapter server.
