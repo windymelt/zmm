@@ -119,7 +119,7 @@ class Cli(
       }
       composedVideo <- backgroundIndicator("Composing Video").surround {
         import util.Util.EqForPath
-        
+
         // もし設定されていればビデオを合成する。BGMと同様、同じビデオであれば結合する。
         val videoWithDuration: Seq[(Option[os.Path], FiniteDuration)] =
           sayCtxPairs

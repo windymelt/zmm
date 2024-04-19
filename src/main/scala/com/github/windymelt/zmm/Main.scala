@@ -59,8 +59,10 @@ object Main
 
         cliDesign.runIO: (cli: Cli) =>
           for
-          _ <- cli.logger.debug(s"Verbose mode enabled (log level: $logLevel)")
-          _ <- cli.generate(file.target.toString, out.toAbsolutePath.toString)
+            _ <- cli.logger.debug(
+              s"Verbose mode enabled (log level: $logLevel)",
+            )
+            _ <- cli.generate(file.target.toString, out.toAbsolutePath.toString)
           yield ExitCode.Success
 
       case InitializeCommand() =>

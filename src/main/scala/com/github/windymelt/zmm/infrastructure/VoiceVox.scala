@@ -25,7 +25,8 @@ type SpeakerInfo = Json // TODO: 必要に応じて高級なcase class / HList�
   * docker run --rm -it -p '127.0.0.1:50021:50021' voicevox/voicevox_engine:cpu-ubuntu20.04-latest
   * }}}
   */
-class ConcreteVoiceVox(val voiceVoxUri: String) extends domain.repository.VoiceVox {
+class ConcreteVoiceVox(val voiceVoxUri: String)
+    extends domain.repository.VoiceVox {
   def speakers(): IO[SpeakerInfo] = client.use { c =>
     val req =
       Request[IO](uri =
