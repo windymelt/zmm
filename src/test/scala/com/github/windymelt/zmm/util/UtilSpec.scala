@@ -1,9 +1,6 @@
 package com.github.windymelt.zmm
 package util
 
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
-
 // TODO: use UnitSpec
 class UtilSpec extends UnitSpec {
   import cats.implicits._
