@@ -6,6 +6,9 @@ import cats.effect.IOApp
 import com.monovore.decline.Opts
 import com.monovore.decline.effect.CommandIOApp
 import org.http4s.syntax.header
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
+import Design.runIO
 
 import java.io.OutputStream
 
@@ -16,14 +19,21 @@ object Main
         "Zunda Movie Maker -- see https://www.3qe.us/zmm/doc/ for more documentation",
     ) {
   override def main: Opts[IO[ExitCode]] = CliOptions.opts map { o =>
-    val defaultCli = new ChromiumCli(logLevel = "INFO")
+    implicit def logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+
+    val defaultCliDesign = Design.chrome(util.Util.config, "INFO", logger)
 
     o match {
-      case VersionFlag() => defaultCli.showVersion >> IO.pure(ExitCode.Success)
+      case VersionFlag() =>
+        defaultCliDesign.runIO: (cli: Cli) =>
+          cli.showVersion >> IO.pure(ExitCode.Success)
+
       case ShowCommand(target) =>
         target match {
           case "voicevox" =>
-            defaultCli.showVoiceVoxSpeakers() >> IO.pure(ExitCode.Success)
+            defaultCliDesign.run[Cli, IO[ExitCode]]: cli =>
+              cli.showVoiceVoxSpeakers() >> IO.pure(ExitCode.Success)
+
           case _ =>
             IO.println(
               "subcommand [show] only accepts 'voicevox'. try `show voicevox`",
@@ -38,20 +48,23 @@ object Main
         val logLevel = environmentalLogLevel.getOrElse(optionalLogLevel)
         setLogLevel(logLevel)
 
-        val cli = screenShotBackend match {
+        val cliDesign = screenShotBackend match
           // TODO: ffmpeg verbosityをcli opsから設定可能にする
           case Some(ScreenShotBackend.Chrome) =>
-            new ChromiumCli(logLevel = logLevel)
+            Design.chrome(util.Util.config, logLevel, logger)
           case Some(ScreenShotBackend.Firefox) =>
-            new FirefoxCli(logLevel = logLevel)
-          case _ => new ChromiumCli(logLevel = logLevel)
-        }
-        cli.logger.debug(s"Verbose mode enabled (log level: $logLevel)") >> cli
-          .generate(
-            file.target.toString,
-            out.toAbsolutePath.toString,
-          ) >>
-          IO.pure(ExitCode.Success)
+            Design.firefox(util.Util.config, logLevel, logger)
+          case _ =>
+            Design.chrome(util.Util.config, logLevel, logger)
+
+        cliDesign.runIO: (cli: Cli) =>
+          for
+            _ <- cli.logger.debug(
+              s"Verbose mode enabled (log level: $logLevel)",
+            )
+            _ <- cli.generate(file.target.toString, out.toAbsolutePath.toString)
+          yield ExitCode.Success
+
       case InitializeCommand() =>
         application.Init.initializeProject() >> IO.pure(ExitCode.Success)
     }
@@ -72,7 +85,8 @@ object Main
       LoggerFactory
         .getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME)
         .asInstanceOf[Logger]
-    root.setLevel(Level.toLevel(level));
+
+    root.setLevel(Level.toLevel(level))
   }
 
   /** verbose/quietオプションの個数に従ってlogbackに適用するログレベルを決定する。

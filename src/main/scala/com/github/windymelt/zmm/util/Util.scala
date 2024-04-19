@@ -2,7 +2,7 @@ package com.github.windymelt.zmm.util
 
 import cats.effect.{IO, Ref}
 import cats.effect.implicits._
-trait UtilComponent {
+object Util {
   import java.security.MessageDigest
   // MessageDigestオブジェクトはアトミックに使用する必要があるが、とりあえず毎回生成することで面倒を回避する
   def sha1HexCode(bs: Array[Byte]): IO[String] = {
@@ -63,5 +63,5 @@ trait UtilComponent {
 
   lazy val config = com.typesafe.config.ConfigFactory.load()
 
-  implicit val EqForPath: Eq[os.Path] = Eq.by(_.toString())
+  given EqForPath: Eq[os.Path] = Eq.by(_.toString())
 }
