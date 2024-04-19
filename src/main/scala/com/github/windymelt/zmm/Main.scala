@@ -1,5 +1,6 @@
 package com.github.windymelt.zmm
 
+import cats.data.EitherT
 import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.IOApp
@@ -58,12 +59,18 @@ object Main
             Design.chrome(util.Util.config, logLevel, logger)
 
         cliDesign.runIO: (cli: Cli) =>
-          for
-            _ <- cli.logger.debug(
-              s"Verbose mode enabled (log level: $logLevel)",
+          val run: EitherT[IO, String, Unit] = for
+            _ <- EitherT.right[String](
+              cli.logger.debug(
+                s"Verbose mode enabled (log level: $logLevel)",
+              ),
             )
             _ <- cli.generate(file.target.toString, out.toAbsolutePath.toString)
-          yield ExitCode.Success
+          yield ()
+          run.foldF(
+            err => cli.logger.error(err) >> IO.pure(ExitCode.Error),
+            _ => IO.pure(ExitCode.Success),
+          )
 
       case InitializeCommand() =>
         application.Init.initializeProject() >> IO.pure(ExitCode.Success)
@@ -81,6 +88,11 @@ object Main
     import ch.qos.logback.classic.Level
     import ch.qos.logback.classic.Logger
 
+    @SuppressWarnings(
+      Array(
+        "scalafix:DisableSyntax.asInstanceOf",
+      ),
+    )
     val root: Logger =
       LoggerFactory
         .getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME)
