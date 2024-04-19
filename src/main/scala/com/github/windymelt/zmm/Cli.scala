@@ -1,11 +1,13 @@
 package com.github.windymelt.zmm
 
-import cats.effect.ExitCode
-import cats.effect.IO
-import cats.effect.IOApp
+import domain.repository.ScreenShot
+
+import cats.effect.kernel.Resource
+import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Mutex
 import com.github.windymelt.zmm.domain.model.Context
 import com.github.windymelt.zmm.domain.model.VoiceBackendConfig
+import com.github.windymelt.zmm.domain.repository.VoiceVox
 import org.http4s.syntax.header
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
@@ -13,13 +15,12 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import java.io.OutputStream
 import scala.concurrent.duration.FiniteDuration
 
-abstract class Cli(logLevel: String = "INFO")
-    extends domain.repository.FFmpegComponent
-    with domain.repository.VoiceVoxComponent
-    with domain.repository.ScreenShotComponent
-    with infrastructure.FFmpegComponent
-    with infrastructure.VoiceVoxComponent
-    with util.UtilComponent {
+class Cli(
+    voiceVox: domain.repository.VoiceVox,
+    ffmpeg: domain.repository.FFmpeg,
+    screenShotBackend: ScreenShot,
+    screenShotResource: IO[Resource[IO, ScreenShot]],
+) {
 
   val zmmLogo = """ _________  ______  ___
 |___  /|  \/  ||  \/  |
@@ -29,23 +30,6 @@ abstract class Cli(logLevel: String = "INFO")
 \_____/\_|  |_/\_|  |_/"""
 
   implicit def logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-
-  val voiceVoxUri =
-    sys.env.get("VOICEVOX_URI") getOrElse config.getString("voicevox.apiUri")
-  def voiceVox: VoiceVox = new ConcreteVoiceVox(voiceVoxUri)
-  def ffmpeg =
-    new ConcreteFFmpeg(
-      config.getString("ffmpeg.command"),
-      verbosity = logLevel match {
-        case "DEBUG" => ConcreteFFmpeg.Verbose
-        case "TRACE" => ConcreteFFmpeg.Verbose
-        case _       => ConcreteFFmpeg.Quiet
-      },
-    ) // TODO: respect construct parameter
-  val chromiumNoSandBox = sys.env
-    .get("CHROMIUM_NOSANDBOX")
-    .map(_ == "1")
-    .getOrElse(config.getBoolean("chromium.nosandbox"))
 
   def showVoiceVoxSpeakers(): IO[Unit] = {
     import io.circe.JsonObject
@@ -82,9 +66,9 @@ abstract class Cli(logLevel: String = "INFO")
       _ <- logger.debug(s"generate($filePath, $outPathString)")
       _ <- showLogo
       _ <- logger.debug(s"pwd: ${System.getProperty("user.dir")}")
-      _ <- logger.debug(s"voicevox api: ${voiceVoxUri}")
+      _ <- logger.debug(s"voicevox api: ${voiceVox.voiceVoxUri}")
       _ <- logger.debug(
-        s"""ffmpeg command: ${config.getString("ffmpeg.command")}""",
+        s"""ffmpeg command: ${ffmpeg.ffmpegCommand}""",
       )
       x <- content
       _ <- contentSanityCheck(x)
@@ -134,6 +118,8 @@ abstract class Cli(logLevel: String = "INFO")
         _ => ffmpeg.zipVideoWithAudio(video, audio)
       }
       composedVideo <- backgroundIndicator("Composing Video").surround {
+        import util.Util.EqForPath
+        
         // もし設定されていればビデオを合成する。BGMと同様、同じビデオであれば結合する。
         val videoWithDuration: Seq[(Option[os.Path], FiniteDuration)] =
           sayCtxPairs
@@ -143,7 +129,8 @@ abstract class Cli(logLevel: String = "INFO")
               ) -> p._2.duration.get,
             )
 
-        val reductedVideoWithDuration = groupReduction(videoWithDuration)
+        val reductedVideoWithDuration =
+          util.Util.groupReduction(videoWithDuration)
 
         // 環境によっては上書きに失敗する？ので出力ファイルが存在する場合削除する
         val outputFile = os.pwd / "output_composed.mp4"
@@ -163,6 +150,8 @@ abstract class Cli(logLevel: String = "INFO")
         }
       }
       _ <- backgroundIndicator("Applying BGM").use { _ =>
+        import util.Util.EqForPath
+
         // BGMを合成する。BGMはコンテキストで割り当てる。sayCtxPairsでsayごとにコンテキストが確定するので、同じBGMであれば結合しつつ最終的なDurationを計算する。
         // たとえば、BGMa 5sec BGMa 5sec BGMb 10sec であるときは、 BGMa 10sec BGMb 10secに簡約される。
         val bgmWithDuration: Seq[(Option[os.Path], FiniteDuration)] =
@@ -173,7 +162,7 @@ abstract class Cli(logLevel: String = "INFO")
               ) -> p._2.duration.get,
             )
 
-        val reductedBgmWithDuration = groupReduction(bgmWithDuration)
+        val reductedBgmWithDuration = util.Util.groupReduction(bgmWithDuration)
 
         // 環境によっては上書きに失敗する？ので出力ファイルが存在する場合削除する
         val outputFilePath = os.Path(outPathString)
@@ -285,9 +274,9 @@ abstract class Cli(logLevel: String = "INFO")
     wav <- backgroundIndicator("Synthesizing wav").use { _ =>
       buildWavFile(aq, ctx.spokenByCharacterId.get, voiceVox, ctx)
     }
-    sha1Hex <- sha1HexCode(sayElem.text.getBytes())
+    sha1Hex <- util.Util.sha1HexCode(sayElem.text.getBytes())
     path <- backgroundIndicator("Exporting .wav file").use { _ =>
-      writeStreamToFile(wav, s"artifacts/voice_${sha1Hex}.wav")
+      util.Util.writeStreamToFile(wav, s"artifacts/voice_${sha1Hex}.wav")
     }
     dur <- ffmpeg.getWavDuration(path.toString)
     vowels <- voiceVox.getVowels(aq)
@@ -300,7 +289,7 @@ abstract class Cli(logLevel: String = "INFO")
       len <- IO.pure(
         ctx.silentLength.getOrElse(FiniteDuration(3, "second")),
       ) // 指定してないなら3秒にしているが理由はない
-      sha1Hex <- sha1HexCode(len.toString.getBytes)
+      sha1Hex <- util.Util.sha1HexCode(len.toString.getBytes)
       path <- IO.pure(os.Path(s"${os.pwd}/artifacts/silence_$sha1Hex.wav"))
       wav <- backgroundIndicator("Exporting silent .wav file").use { _ =>
         ffmpeg.generateSilentWav(path, len)
@@ -412,11 +401,11 @@ abstract class Cli(logLevel: String = "INFO")
               fs2.Stream[IO, Byte](s.getBytes().toSeq: _*),
             )
             html <- htmlIO
-            sha1Hex <- sha1HexCode(html.getBytes())
+            sha1Hex <- util.Util.sha1HexCode(html.getBytes())
             htmlPath = s"./artifacts/html/${sha1Hex}.html"
             htmlFile <- fileCheck(htmlPath).ifM(
               IO.pure(fs2.io.file.Path(htmlPath)),
-              writeStreamToFile(stream, htmlPath),
+              util.Util.writeStreamToFile(stream, htmlPath),
             )
             _ <- fileCheck(s"${htmlPath}.png").ifM(
               logger.debug(s"Cache HIT: ${htmlPath}.png"),
@@ -462,7 +451,7 @@ abstract class Cli(logLevel: String = "INFO")
   }
 
   private def buildWavFile(
-      aq: AudioQuery,
+      aq: domain.repository.AudioQuery,
       character: String,
       voiceVox: VoiceVox,
       ctx: Context,

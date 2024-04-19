@@ -1,10 +1,7 @@
 package com.github.windymelt.zmm
 package util
 
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
-
-class DictSpec extends UnitSpec with UtilComponent {
+class DictSpec extends UnitSpec {
   describe("dictFromNode") {
     it("returns empty dictionary when there is no meta/dict element") {
       // TODO: dummy xml generator
