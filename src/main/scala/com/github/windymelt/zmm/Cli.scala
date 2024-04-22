@@ -18,7 +18,6 @@ import concurrent.duration.FiniteDuration
 class Cli(
     voiceVox: domain.repository.VoiceVox,
     ffmpeg: domain.repository.FFmpeg,
-    screenShotBackend: ScreenShot,
     screenShotResource: IO[Resource[IO, ScreenShot]],
 ) {
 
@@ -425,8 +424,7 @@ class Cli(
         (s: domain.model.Say, ctx: Context) => {
           val htmlIO = buildHtmlFile(s.text, ctx)
           for {
-            stream <- htmlIO.map(s => fs2.Stream[IO, Byte](s.getBytes().toSeq*),
-            )
+            stream <- htmlIO.map(s => fs2.Stream[IO, Byte](s.getBytes().toSeq*))
             html <- htmlIO
             sha1Hex <- util.Util.sha1HexCode(html.getBytes())
             htmlPath = s"./artifacts/html/${sha1Hex}.html"
