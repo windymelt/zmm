@@ -40,7 +40,7 @@ object Main
           vCount = verbosity.getOrElse(0),
           qCount = 0, /* TODO: implement it later */
         )
-        val environmentalLogLevel = getLogLevelFromEnvVar()
+        val environmentalLogLevel = getLogLevelFromEnvVar
         val logLevel = environmentalLogLevel.getOrElse(optionalLogLevel)
         setLogLevel(logLevel)
 
@@ -110,5 +110,5 @@ object Main
       case n if n >= 2  => "TRACE"
     }
 
-  private def getLogLevelFromEnvVar(): Option[String] = sys.env.get("LOG_LEVEL")
+  private def getLogLevelFromEnvVar: Option[String] = sys.env.get("LOG_LEVEL")
 }
