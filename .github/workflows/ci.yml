@@ -7,7 +7,7 @@ on:
 
 jobs:
   checkFmt:
-    name: Scalafmt check
+    name: Scalafmt/Scalafix check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,8 +17,8 @@ jobs:
           java-version: 17
           cache: 'sbt'
       - uses: coursier/cache-action@v6
-      - name: sbt scalafmtCheckAll
-        run: sbt scalafmtCheckAll
+      - name: sbt scalafmtCheckAll; scalafixAll --check
+        run: sbt 'scalafmtCheckAll; scalafixAll --check'
   build-test:
     runs-on: ubuntu-latest
     strategy:

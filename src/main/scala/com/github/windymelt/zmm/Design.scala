@@ -65,7 +65,7 @@ object Design:
       )
       .bind[IO[Resource[IO, ScreenShot]]].toInstance(screenShotResource)
       .bind[VoiceVox].toInstance(
-        infrastructure.ConcreteVoiceVox(voiceVoxUri),
+        infrastructure.ConcreteVoiceVox(voiceVoxUri, logger),
       )
   }
 
@@ -113,7 +113,7 @@ object Design:
       )
       .bind[IO[Resource[IO, ScreenShot]]].toInstance(screenShotResource)
       .bind[VoiceVox].toInstance(
-        infrastructure.ConcreteVoiceVox(voiceVoxUri),
+        infrastructure.ConcreteVoiceVox(voiceVoxUri, logger),
       )
   }
 
