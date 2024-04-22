@@ -3,8 +3,7 @@ package com.github.windymelt.zmm
 import domain.repository.ScreenShot
 import cats.data.EitherT
 import cats.effect.kernel.Resource
-import cats.effect.{ExitCode, IO, IOApp}
-import cats.effect.std.Mutex
+import cats.effect.IO
 import com.github.windymelt.zmm.domain.model.{
   Context,
   SilentBackendConfig,
@@ -12,12 +11,9 @@ import com.github.windymelt.zmm.domain.model.{
   VoiceVoxBackendConfig,
 }
 import com.github.windymelt.zmm.domain.repository.VoiceVox
-import org.http4s.syntax.header
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-
-import java.io.OutputStream
-import scala.concurrent.duration.FiniteDuration
+import concurrent.duration.FiniteDuration
 
 class Cli(
     voiceVox: domain.repository.VoiceVox,
@@ -128,47 +124,53 @@ class Cli(
       sayCtxPairs <- EitherT.rightT(applyFilters(sayCtxPairs))
       // この時点でvideoとaudioとの間に依存がないので並列実行する
       // BUG: SI-5589 により、タプルにバインドできない
-      (video, audio) <- EitherT.right(backgroundIndicator("Generating video and concatenated audio").use {
-        _ =>
-          val paths = voices.map(_._1)
-          generateVideo(sayCtxPairs, paths) product ffmpeg
-            .concatenateWavFiles(paths.map(_.toString))
-      })
-      zippedVideo <- EitherT.right(backgroundIndicator("Zipping silent video and audio").use {
-        _ => ffmpeg.zipVideoWithAudio(video, audio)
-      })
-      composedVideo <- EitherT.right(backgroundIndicator("Composing Video").surround {
-        import util.Util.EqForPath
+      (video, audio) <- EitherT.right(
+        backgroundIndicator("Generating video and concatenated audio").use {
+          _ =>
+            val paths = voices.map(_._1)
+            generateVideo(sayCtxPairs, paths) product ffmpeg
+              .concatenateWavFiles(paths.map(_.toString))
+        },
+      )
+      zippedVideo <- EitherT.right(
+        backgroundIndicator("Zipping silent video and audio").use { _ =>
+          ffmpeg.zipVideoWithAudio(video, audio)
+        },
+      )
+      composedVideo <- EitherT.right(
+        backgroundIndicator("Composing Video").surround {
+          import util.Util.EqForPath
 
-        // もし設定されていればビデオを合成する。BGMと同様、同じビデオであれば結合する。
-        val videoWithDuration: Seq[(Option[os.Path], FiniteDuration)] =
-          sayCtxPairs
-            .map(p =>
-              p._2.video.map(path =>
-                os.pwd / os.RelPath(util.PathAlias.resolve(path, "ffmpeg")),
-              ) -> p._2.duration.get,
-            )
+          // もし設定されていればビデオを合成する。BGMと同様、同じビデオであれば結合する。
+          val videoWithDuration: Seq[(Option[os.Path], FiniteDuration)] =
+            sayCtxPairs
+              .map(p =>
+                p._2.video.map(path =>
+                  os.pwd / os.RelPath(util.PathAlias.resolve(path, "ffmpeg")),
+                ) -> p._2.duration.get,
+              )
 
-        val reductedVideoWithDuration =
-          util.Util.groupReduction(videoWithDuration)
+          val reductedVideoWithDuration =
+            util.Util.groupReduction(videoWithDuration)
 
-        // 環境によっては上書きに失敗する？ので出力ファイルが存在する場合削除する
-        val outputFile = os.pwd / "output_composed.mp4"
-        os.remove(outputFile, checkExists = false)
+          // 環境によっては上書きに失敗する？ので出力ファイルが存在する場合削除する
+          val outputFile = os.pwd / "output_composed.mp4"
+          os.remove(outputFile, checkExists = false)
 
-        reductedVideoWithDuration.filter(_._1.isDefined).size match {
-          case 0 =>
-            IO.delay {
-              os.move(zippedVideo, outputFile)
-              outputFile
-            }
-          case _ =>
-            ffmpeg.composeVideoWithDuration(
-              zippedVideo,
-              reductedVideoWithDuration,
-            )
-        }
-      })
+          reductedVideoWithDuration.filter(_._1.isDefined).size match {
+            case 0 =>
+              IO.delay {
+                os.move(zippedVideo, outputFile)
+                outputFile
+              }
+            case _ =>
+              ffmpeg.composeVideoWithDuration(
+                zippedVideo,
+                reductedVideoWithDuration,
+              )
+          }
+        },
+      )
       _ <- EitherT.right(backgroundIndicator("Applying BGM").use { _ =>
         import util.Util.EqForPath
 
