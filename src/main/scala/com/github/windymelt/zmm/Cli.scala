@@ -1,7 +1,6 @@
 package com.github.windymelt.zmm
 
 import domain.repository.ScreenShot
-import cats.data.EitherT
 import cats.effect.kernel.Resource
 import cats.effect.IO
 import com.github.windymelt.zmm.domain.model.{
@@ -61,41 +60,32 @@ class Cli(
   def generate(
       filePath: String,
       outPathString: String,
-  ): EitherT[IO, String, Unit] = {
+  ): IO[Unit] = {
     import cats.syntax.all.{*, given}
     import scala.util.control.Exception.allCatch
 
-    val content = EitherT(
-      IO.delay(
-        allCatch
-          .either(
-            scala.xml.XML.loadFile(filePath),
-          ).leftMap(_.getMessage),
+    val content = IO.fromEither(
+      allCatch.either(
+        scala.xml.XML.loadFile(filePath),
       ),
     )
 
     for {
-      _ <- EitherT.right(logger.debug(s"generate($filePath, $outPathString)"))
-      _ <- EitherT.right(showLogo)
-      _ <- EitherT.right(
-        logger.debug(s"pwd: ${System.getProperty("user.dir")}"),
-      )
-      _ <- EitherT.right(logger.debug(s"voicevox api: ${voiceVox.voiceVoxUri}"))
-      _ <- EitherT.right(
-        logger.debug(
-          s"""ffmpeg command: ${ffmpeg.ffmpegCommand}""",
-        ),
-      )
+      _ <- logger.debug(s"generate($filePath, $outPathString)")
+      _ <- showLogo
+      _ <- logger.debug(s"pwd: ${System.getProperty("user.dir")}")
+      _ <- logger.debug(s"voicevox api: ${voiceVox.voiceVoxUri}")
+      _ <- logger.debug(s"""ffmpeg command: ${ffmpeg.ffmpegCommand}""")
       x <- content
       _ <- contentSanityCheck(x)
       defaultCtx <- prepareDefaultContext(x)
       _ <- applyDictionary(defaultCtx)
-      sayCtxPairs <- EitherT.rightT(
+      sayCtxPairs <- IO(
         Context.fromNode((x \ "dialogue").head, defaultCtx),
       )
       voices <- {
         import cats.syntax.parallel._
-        val saySeq = sayCtxPairs map {
+        val saySeq = sayCtxPairs map:
           case (s, ctx)
               if ctx.spokenByCharacterId == Some(
                 "silent",
@@ -103,11 +93,10 @@ class Cli(
             generateSilence(ctx)
           case (s, ctx) =>
             generateSay(s, voiceVox, ctx)
-        }
-        EitherT.right(saySeq.parSequence)
+        saySeq.parSequence
       }
       // 読み上げ長をContextに追加する。母音情報が得られた場合も追加する
-      sayCtxPairs <- EitherT.rightT {
+      sayCtxPairs <- IO {
         val pairs = sayCtxPairs zip voices
         pairs map {
           case ((say, context), (_, dur, Seq())) =>
@@ -120,57 +109,53 @@ class Cli(
         }
       }
       // Contextにフィルタを適用する
-      sayCtxPairs <- EitherT.rightT(applyFilters(sayCtxPairs))
+      sayCtxPairs <- IO(applyFilters(sayCtxPairs))
       // この時点でvideoとaudioとの間に依存がないので並列実行する
       // BUG: SI-5589 により、タプルにバインドできない
-      (video, audio) <- EitherT.right(
-        backgroundIndicator("Generating video and concatenated audio").use {
-          _ =>
-            val paths = voices.map(_._1)
-            generateVideo(sayCtxPairs, paths) product ffmpeg
-              .concatenateWavFiles(paths.map(_.toString))
-        },
-      )
-      zippedVideo <- EitherT.right(
-        backgroundIndicator("Zipping silent video and audio").use { _ =>
+      (video, audio) <- backgroundIndicator(
+        "Generating video and concatenated audio",
+      ).use { _ =>
+        val paths = voices.map(_._1)
+        generateVideo(sayCtxPairs, paths) product ffmpeg
+          .concatenateWavFiles(paths.map(_.toString))
+      }
+      zippedVideo <- backgroundIndicator("Zipping silent video and audio").use {
+        _ =>
           ffmpeg.zipVideoWithAudio(video, audio)
-        },
-      )
-      composedVideo <- EitherT.right(
-        backgroundIndicator("Composing Video").surround {
-          import util.Util.EqForPath
+      }
+      composedVideo <- backgroundIndicator("Composing Video").surround {
+        import util.Util.EqForPath
 
-          // もし設定されていればビデオを合成する。BGMと同様、同じビデオであれば結合する。
-          val videoWithDuration: Seq[(Option[os.Path], FiniteDuration)] =
-            sayCtxPairs
-              .map(p =>
-                p._2.video.map(path =>
-                  os.pwd / os.RelPath(util.PathAlias.resolve(path, "ffmpeg")),
-                ) -> p._2.duration.get,
-              )
+        // もし設定されていればビデオを合成する。BGMと同様、同じビデオであれば結合する。
+        val videoWithDuration: Seq[(Option[os.Path], FiniteDuration)] =
+          sayCtxPairs
+            .map(p =>
+              p._2.video.map(path =>
+                os.pwd / os.RelPath(util.PathAlias.resolve(path, "ffmpeg")),
+              ) -> p._2.duration.get,
+            )
 
-          val reductedVideoWithDuration =
-            util.Util.groupReduction(videoWithDuration)
+        val reductedVideoWithDuration =
+          util.Util.groupReduction(videoWithDuration)
 
-          // 環境によっては上書きに失敗する？ので出力ファイルが存在する場合削除する
-          val outputFile = os.pwd / "output_composed.mp4"
-          os.remove(outputFile, checkExists = false)
+        // 環境によっては上書きに失敗する？ので出力ファイルが存在する場合削除する
+        val outputFile = os.pwd / "output_composed.mp4"
+        os.remove(outputFile, checkExists = false)
 
-          reductedVideoWithDuration.filter(_._1.isDefined).size match {
-            case 0 =>
-              IO.delay {
-                os.move(zippedVideo, outputFile)
-                outputFile
-              }
-            case _ =>
-              ffmpeg.composeVideoWithDuration(
-                zippedVideo,
-                reductedVideoWithDuration,
-              )
-          }
-        },
-      )
-      _ <- EitherT.right(backgroundIndicator("Applying BGM").use { _ =>
+        reductedVideoWithDuration.filter(_._1.isDefined).size match {
+          case 0 =>
+            IO.delay {
+              os.move(zippedVideo, outputFile)
+              outputFile
+            }
+          case _ =>
+            ffmpeg.composeVideoWithDuration(
+              zippedVideo,
+              reductedVideoWithDuration,
+            )
+        }
+      }
+      _ <- backgroundIndicator("Applying BGM").use { _ =>
         import util.Util.EqForPath
 
         // BGMを合成する。BGMはコンテキストで割り当てる。sayCtxPairsでsayごとにコンテキストが確定するので、同じBGMであれば結合しつつ最終的なDurationを計算する。
@@ -201,9 +186,9 @@ class Cli(
               outputFilePath,
             )
         }
-      })
-      _ <- EitherT.rightT(logger.info(s"Done! Generated to $outPathString"))
-    } yield Right(())
+      }
+      _ <- logger.info(s"Done! Generated to $outPathString")
+    } yield ()
   }
 
   private def applyFilters(
@@ -258,14 +243,11 @@ class Cli(
     * @return
     *   有用な情報は返されない
     */
-  private def applyDictionary(ctx: Context): EitherT[IO, String, Unit] =
-    EitherT.right {
-      import cats.syntax.parallel._
-      val registerList = ctx.dict.map { d =>
-        voiceVox.registerDict(d._1, d._2, d._3)
-      }
-      registerList.reduceLeft[IO[Unit]] { case (acc, i) => i >> acc }
-    }
+  private def applyDictionary(ctx: Context): IO[Unit] =
+    import cats.syntax.parallel._
+    val registerList = ctx.dict.map: d =>
+      voiceVox.registerDict(d._1, d._2, d._3)
+    registerList.reduceLeft[IO[Unit]] { case (acc, i) => i >> acc }
 
   private def generateSay(
       sayElem: domain.model.Say,
@@ -320,20 +302,20 @@ class Cli(
 
   private def contentSanityCheck(
       elem: scala.xml.Elem,
-  ): EitherT[IO, String, Unit] = {
+  ): IO[Unit] = {
     val checkTopElem = elem.label == "content"
     val ver = elem \@ "version" == "0.0"
 
     if (!(checkTopElem && ver)) {
-      EitherT.leftT("Invalid scenary XML") // TODO: 丁寧なエラーメッセージ
+      IO.raiseError(Exception("Invalid scenary XML")) // TODO: 丁寧なエラーメッセージ
     } else {
-      EitherT.rightT(())
+      IO.unit
     }
   }
 
   private def prepareDefaultContext(
       elem: scala.xml.Elem,
-  ): EitherT[IO, String, Context] = EitherT.right {
+  ): IO[Context] =
     val voiceConfigList = elem \ "meta" \ "voiceconfig"
     val voiceConfigMap: Map[String, VoiceBackendConfig] = voiceConfigList.map {
       vc =>
@@ -407,7 +389,7 @@ class Cli(
         font = defaultFont,
       ),
     )
-  }
+  end prepareDefaultContext
 
   private def generateVideo(
       sayCtxPairs: Seq[(domain.model.Say, Context)],

@@ -1,17 +1,12 @@
 package com.github.windymelt.zmm
 
-import cats.data.EitherT
 import cats.effect.ExitCode
 import cats.effect.IO
-import cats.effect.IOApp
 import com.monovore.decline.Opts
 import com.monovore.decline.effect.CommandIOApp
-import org.http4s.syntax.header
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import Design.runIO
-
-import java.io.OutputStream
 
 object Main
     extends CommandIOApp(
@@ -59,17 +54,14 @@ object Main
             Design.chrome(util.Util.config, logLevel, logger)
 
         cliDesign.runIO: (cli: Cli) =>
-          val run: EitherT[IO, String, Unit] = for
-            _ <- EitherT.right[String](
-              cli.logger.debug(
-                s"Verbose mode enabled (log level: $logLevel)",
-              ),
+          val run: IO[Unit] = for
+            _ <- cli.logger.debug(
+              s"Verbose mode enabled (log level: $logLevel)",
             )
             _ <- cli.generate(file.target.toString, out.toAbsolutePath.toString)
           yield ()
-          run.foldF(
-            err => cli.logger.error(err) >> IO.pure(ExitCode.Error),
-            _ => IO.pure(ExitCode.Success),
+          (run *> IO.pure(ExitCode.Success)).onError(err =>
+            cli.logger.error(err.getMessage) *> IO.pure(ExitCode.Error),
           )
 
       case InitializeCommand() =>
