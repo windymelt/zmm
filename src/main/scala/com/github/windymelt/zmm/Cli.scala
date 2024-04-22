@@ -425,8 +425,7 @@ class Cli(
         (s: domain.model.Say, ctx: Context) => {
           val htmlIO = buildHtmlFile(s.text, ctx)
           for {
-            stream <- htmlIO.map(s =>
-              fs2.Stream[IO, Byte](s.getBytes().toSeq: _*),
+            stream <- htmlIO.map(s => fs2.Stream[IO, Byte](s.getBytes().toSeq*),
             )
             html <- htmlIO
             sha1Hex <- util.Util.sha1HexCode(html.getBytes())
