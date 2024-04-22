@@ -2,8 +2,6 @@ package com.github.windymelt.zmm
 package infrastructure
 
 import cats.effect.IO
-import cats.effect.kernel.Resource
-import cats.implicits._
 
 object ChromeScreenShot {
   sealed trait Verbosity
@@ -26,29 +24,28 @@ class ChromeScreenShot(
       windowWidth: Int = 1920,
       windowHeight: Int = 1080,
   ): IO[os.Path] = IO.delay {
-    val proc = noSandBox match {
-      case true =>
+    val proc =
+      if noSandBox then
         os.proc(
           chromeCommand,
           "--headless=new",
           "--no-sandbox",
           "--hide-scrollbars",
-          s"--screenshot=${htmlFilePath}.png",
-          s"--window-size=${windowWidth},${windowHeight}",
+          s"--screenshot=$htmlFilePath.png",
+          s"--window-size=$windowWidth,$windowHeight",
           "--default-background-color=00000000",
           htmlFilePath,
         )
-      case false =>
+      else
         os.proc(
           chromeCommand,
           "--headless=new",
           "--hide-scrollbars",
-          s"--screenshot=${htmlFilePath}.png",
-          s"--window-size=${windowWidth},${windowHeight}",
+          s"--screenshot=$htmlFilePath.png",
+          s"--window-size=$windowWidth,$windowHeight",
           "--default-background-color=00000000",
           htmlFilePath,
         )
-    }
     proc.call(stdout = stdout, stderr = stdout, cwd = os.pwd)
-  } *> IO.pure(os.Path(s"${htmlFilePath}.png"))
+  } *> IO.pure(os.Path(s"$htmlFilePath.png"))
 }

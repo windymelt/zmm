@@ -2,11 +2,6 @@ package com.github.windymelt.zmm
 package infrastructure
 
 import cats.effect.IO
-import cats.effect.kernel.Resource
-import cats.effect.std.Mutex
-import cats.implicits._
-
-import scala.concurrent.duration.FiniteDuration
 
 object FirefoxScreenShot {
   sealed trait Verbosity
@@ -19,10 +14,10 @@ class FirefoxScreenShot(
     verbosity: FirefoxScreenShot.Verbosity,
 ) extends domain.repository.ScreenShot {
   val screenShotImplementation = "firefox"
-  val stdout = verbosity match {
+  val stdout = verbosity match
     case FirefoxScreenShot.Quiet   => os.Pipe
     case FirefoxScreenShot.Verbose => os.Inherit
-  }
+
   def takeScreenShot(
       htmlFilePath: os.Path,
       windowWidth: Int = 1920,
@@ -41,7 +36,7 @@ class FirefoxScreenShot(
     // mutex.lock.surround {
     IO.blocking {
       proc.call(stdout = stdout, stderr = stdout, cwd = os.pwd)
-      val outputPath = os.Path(s"${htmlFilePath}.png")
+      val outputPath = os.Path(s"$htmlFilePath.png")
       os.move(os.pwd / "screenshot.png", outputPath, replaceExisting = true)
       outputPath
     }

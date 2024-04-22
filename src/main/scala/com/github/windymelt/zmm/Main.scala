@@ -2,15 +2,11 @@ package com.github.windymelt.zmm
 
 import cats.effect.ExitCode
 import cats.effect.IO
-import cats.effect.IOApp
 import com.monovore.decline.Opts
 import com.monovore.decline.effect.CommandIOApp
-import org.http4s.syntax.header
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import Design.runIO
-
-import java.io.OutputStream
 
 object Main
     extends CommandIOApp(
@@ -44,7 +40,7 @@ object Main
           vCount = verbosity.getOrElse(0),
           qCount = 0, /* TODO: implement it later */
         )
-        val environmentalLogLevel = getLogLevelFromEnvVar()
+        val environmentalLogLevel = getLogLevelFromEnvVar
         val logLevel = environmentalLogLevel.getOrElse(optionalLogLevel)
         setLogLevel(logLevel)
 
@@ -58,12 +54,15 @@ object Main
             Design.chrome(util.Util.config, logLevel, logger)
 
         cliDesign.runIO: (cli: Cli) =>
-          for
+          val run: IO[Unit] = for
             _ <- cli.logger.debug(
               s"Verbose mode enabled (log level: $logLevel)",
             )
             _ <- cli.generate(file.target.toString, out.toAbsolutePath.toString)
-          yield ExitCode.Success
+          yield ()
+          (run *> IO.pure(ExitCode.Success)).onError(err =>
+            cli.logger.error(err.getMessage) *> IO.pure(ExitCode.Error),
+          )
 
       case InitializeCommand() =>
         application.Init.initializeProject() >> IO.pure(ExitCode.Success)
@@ -81,6 +80,11 @@ object Main
     import ch.qos.logback.classic.Level
     import ch.qos.logback.classic.Logger
 
+    @SuppressWarnings(
+      Array(
+        "scalafix:DisableSyntax.asInstanceOf",
+      ),
+    )
     val root: Logger =
       LoggerFactory
         .getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME)
@@ -106,5 +110,5 @@ object Main
       case n if n >= 2  => "TRACE"
     }
 
-  private def getLogLevelFromEnvVar(): Option[String] = sys.env.get("LOG_LEVEL")
+  private def getLogLevelFromEnvVar: Option[String] = sys.env.get("LOG_LEVEL")
 }

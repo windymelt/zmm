@@ -3,7 +3,7 @@ import com.typesafe.sbt.packager.docker._
 
 import ReleaseTransformations._
 
-ThisBuild / scalaVersion := "3.3.3"
+ThisBuild / scalaVersion := "3.4.1"
 ThisBuild / organization := "com.github.windymelt"
 ThisBuild / organizationName := "windymelt"
 
@@ -13,7 +13,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "zmm",
     publish / skip := true,
-    scalacOptions += "-deprecation",
+    scalacOptions ++= Seq("-deprecation", "-Wunused:all"),
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-effect" % "3.5.4",
       "org.http4s" %% "http4s-ember-client" % "0.23.26",

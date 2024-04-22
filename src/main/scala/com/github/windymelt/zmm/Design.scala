@@ -52,20 +52,9 @@ object Design:
       .bind[FFmpeg].toInstance(
         ConcreteFFmpeg("ffmpeg", ffmpegVerbosity),
       )
-      .bind[ScreenShot].toInstance(
-        infrastructure.ChromeScreenShot(
-          chromiumCommand,
-          logLevel match {
-            case "TRACE" => ChromeScreenShot.Verbose
-            case "DEBUG" => ChromeScreenShot.Verbose
-            case _       => ChromeScreenShot.Quiet
-          },
-          chromiumNoSandBox,
-        ),
-      )
       .bind[IO[Resource[IO, ScreenShot]]].toInstance(screenShotResource)
       .bind[VoiceVox].toInstance(
-        infrastructure.ConcreteVoiceVox(voiceVoxUri),
+        infrastructure.ConcreteVoiceVox(voiceVoxUri, logger),
       )
   }
 
@@ -101,19 +90,9 @@ object Design:
       .bind[FFmpeg].toInstance(
         ConcreteFFmpeg("ffmpeg", ffmpegVerbosity),
       )
-      .bind[ScreenShot].toInstance(
-        new FirefoxScreenShot(
-          firefoxCommand,
-          logLevel match {
-            case "TRACE" => FirefoxScreenShot.Verbose
-            case "DEBUG" => FirefoxScreenShot.Verbose
-            case _       => FirefoxScreenShot.Quiet
-          },
-        ),
-      )
       .bind[IO[Resource[IO, ScreenShot]]].toInstance(screenShotResource)
       .bind[VoiceVox].toInstance(
-        infrastructure.ConcreteVoiceVox(voiceVoxUri),
+        infrastructure.ConcreteVoiceVox(voiceVoxUri, logger),
       )
   }
 

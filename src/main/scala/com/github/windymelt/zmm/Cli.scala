@@ -1,24 +1,22 @@
 package com.github.windymelt.zmm
 
 import domain.repository.ScreenShot
-
 import cats.effect.kernel.Resource
-import cats.effect.{ExitCode, IO, IOApp}
-import cats.effect.std.Mutex
-import com.github.windymelt.zmm.domain.model.Context
-import com.github.windymelt.zmm.domain.model.VoiceBackendConfig
+import cats.effect.IO
+import com.github.windymelt.zmm.domain.model.{
+  Context,
+  SilentBackendConfig,
+  VoiceBackendConfig,
+  VoiceVoxBackendConfig,
+}
 import com.github.windymelt.zmm.domain.repository.VoiceVox
-import org.http4s.syntax.header
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-
-import java.io.OutputStream
-import scala.concurrent.duration.FiniteDuration
+import concurrent.duration.FiniteDuration
 
 class Cli(
     voiceVox: domain.repository.VoiceVox,
     ffmpeg: domain.repository.FFmpeg,
-    screenShotBackend: ScreenShot,
     screenShotResource: IO[Resource[IO, ScreenShot]],
 ) {
 
@@ -59,27 +57,35 @@ class Cli(
     } yield ()
   }
 
-  def generate(filePath: String, outPathString: String): IO[Unit] = {
-    val content = IO.delay(scala.xml.XML.loadFile(filePath))
+  def generate(
+      filePath: String,
+      outPathString: String,
+  ): IO[Unit] = {
+    import cats.syntax.all.{*, given}
+    import scala.util.control.Exception.allCatch
+
+    val content = IO.fromEither(
+      allCatch.either(
+        scala.xml.XML.loadFile(filePath),
+      ),
+    )
 
     for {
       _ <- logger.debug(s"generate($filePath, $outPathString)")
       _ <- showLogo
       _ <- logger.debug(s"pwd: ${System.getProperty("user.dir")}")
       _ <- logger.debug(s"voicevox api: ${voiceVox.voiceVoxUri}")
-      _ <- logger.debug(
-        s"""ffmpeg command: ${ffmpeg.ffmpegCommand}""",
-      )
+      _ <- logger.debug(s"""ffmpeg command: ${ffmpeg.ffmpegCommand}""")
       x <- content
       _ <- contentSanityCheck(x)
       defaultCtx <- prepareDefaultContext(x)
       _ <- applyDictionary(defaultCtx)
-      sayCtxPairs <- IO.pure(
+      sayCtxPairs <- IO(
         Context.fromNode((x \ "dialogue").head, defaultCtx),
       )
       voices <- {
         import cats.syntax.parallel._
-        val saySeq = sayCtxPairs map {
+        val saySeq = sayCtxPairs map:
           case (s, ctx)
               if ctx.spokenByCharacterId == Some(
                 "silent",
@@ -87,11 +93,10 @@ class Cli(
             generateSilence(ctx)
           case (s, ctx) =>
             generateSay(s, voiceVox, ctx)
-        }
         saySeq.parSequence
       }
       // 読み上げ長をContextに追加する。母音情報が得られた場合も追加する
-      sayCtxPairs <- IO.pure {
+      sayCtxPairs <- IO {
         val pairs = sayCtxPairs zip voices
         pairs map {
           case ((say, context), (_, dur, Seq())) =>
@@ -104,18 +109,19 @@ class Cli(
         }
       }
       // Contextにフィルタを適用する
-      sayCtxPairs <- IO.pure(applyFilters(sayCtxPairs))
+      sayCtxPairs <- IO(applyFilters(sayCtxPairs))
       // この時点でvideoとaudioとの間に依存がないので並列実行する
       // BUG: SI-5589 により、タプルにバインドできない
-      va <- backgroundIndicator("Generating video and concatenated audio").use {
-        _ =>
-          val paths = voices.map(_._1)
-          generateVideo(sayCtxPairs, paths) product ffmpeg
-            .concatenateWavFiles(paths.map(_.toString))
+      (video, audio) <- backgroundIndicator(
+        "Generating video and concatenated audio",
+      ).use { _ =>
+        val paths = voices.map(_._1)
+        generateVideo(sayCtxPairs, paths) product ffmpeg
+          .concatenateWavFiles(paths.map(_.toString))
       }
-      (video, audio) = va
       zippedVideo <- backgroundIndicator("Zipping silent video and audio").use {
-        _ => ffmpeg.zipVideoWithAudio(video, audio)
+        _ =>
+          ffmpeg.zipVideoWithAudio(video, audio)
       }
       composedVideo <- backgroundIndicator("Composing Video").surround {
         import util.Util.EqForPath
@@ -237,13 +243,11 @@ class Cli(
     * @return
     *   有用な情報は返されない
     */
-  private def applyDictionary(ctx: Context): IO[Unit] = {
+  private def applyDictionary(ctx: Context): IO[Unit] =
     import cats.syntax.parallel._
-    val registerList = ctx.dict.map { d =>
+    val registerList = ctx.dict.map: d =>
       voiceVox.registerDict(d._1, d._2, d._3)
-    }
     registerList.reduceLeft[IO[Unit]] { case (acc, i) => i >> acc }
-  }
 
   private def generateSay(
       sayElem: domain.model.Say,
@@ -296,17 +300,22 @@ class Cli(
       }
     } yield (fs2.io.file.Path(path.toString()), len, Seq())
 
-  private def contentSanityCheck(elem: scala.xml.Elem): IO[Unit] = {
+  private def contentSanityCheck(
+      elem: scala.xml.Elem,
+  ): IO[Unit] = {
     val checkTopElem = elem.label == "content"
     val ver = elem \@ "version" == "0.0"
 
     if (!(checkTopElem && ver)) {
-      throw new Exception("Invalid scenary XML") // TODO: 丁寧なエラーメッセージ
+      IO.raiseError(Exception("Invalid scenary XML")) // TODO: 丁寧なエラーメッセージ
+    } else {
+      IO.unit
     }
-    IO.unit
   }
 
-  private def prepareDefaultContext(elem: scala.xml.Elem): IO[Context] = {
+  private def prepareDefaultContext(
+      elem: scala.xml.Elem,
+  ): IO[Context] =
     val voiceConfigList = elem \ "meta" \ "voiceconfig"
     val voiceConfigMap: Map[String, VoiceBackendConfig] = voiceConfigList.map {
       vc =>
@@ -380,7 +389,7 @@ class Cli(
         font = defaultFont,
       ),
     )
-  }
+  end prepareDefaultContext
 
   private def generateVideo(
       sayCtxPairs: Seq[(domain.model.Say, Context)],
@@ -397,9 +406,7 @@ class Cli(
         (s: domain.model.Say, ctx: Context) => {
           val htmlIO = buildHtmlFile(s.text, ctx)
           for {
-            stream <- htmlIO.map(s =>
-              fs2.Stream[IO, Byte](s.getBytes().toSeq: _*),
-            )
+            stream <- htmlIO.map(s => fs2.Stream[IO, Byte](s.getBytes().toSeq*))
             html <- htmlIO
             sha1Hex <- util.Util.sha1HexCode(html.getBytes())
             htmlPath = s"./artifacts/html/${sha1Hex}.html"
@@ -445,9 +452,9 @@ class Cli(
     val characterConfig = ctx.characterConfigMap(character)
     val voiceConfig = ctx.voiceConfigMap(characterConfig.voiceId)
     // VOICEVOX特有の実装 いずれどこかの層に分離する
-    val speakerId =
-      voiceConfig.asInstanceOf[domain.model.VoiceVoxBackendConfig].speakerId
-    voiceVox.audioQuery(text, speakerId)
+    voiceConfig match
+      case domain.model.VoiceVoxBackendConfig(speakerId) =>
+        voiceVox.audioQuery(text, speakerId)
   }
 
   private def buildWavFile(
@@ -459,9 +466,9 @@ class Cli(
     val characterConfig = ctx.characterConfigMap(character)
     val voiceConfig = ctx.voiceConfigMap(characterConfig.voiceId)
     // VOICEVOX特有の実装 いずれどこかの層に分離する
-    val speakerId =
-      voiceConfig.asInstanceOf[domain.model.VoiceVoxBackendConfig].speakerId
-    voiceVox.synthesis(aq, speakerId)
+    voiceConfig match
+      case VoiceVoxBackendConfig(speakerId) =>
+        voiceVox.synthesis(aq, speakerId)
   }
 
   // TODO: Templaceコンポーネントとかに切り出す
