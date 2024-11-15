@@ -15,7 +15,7 @@ lazy val root = (project in file("."))
     publish / skip := true,
     scalacOptions ++= Seq("-deprecation", "-Wunused:all"),
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-effect" % "3.5.4",
+      "org.typelevel" %% "cats-effect" % "3.5.5",
       "org.http4s" %% "http4s-ember-client" % "0.23.26",
       "org.http4s" %% "http4s-circe" % "0.23.26",
       "io.circe" %% "circe-generic" % "0.14.6",
