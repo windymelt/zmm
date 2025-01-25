@@ -43,7 +43,7 @@ class Cli(
           styles map (s =>
             styleToSeq(speaker("name").get.asString.get)(
               s("id").get.asNumber.get.toString,
-            )(s("name").get.asString.get),
+            )(s("name").get.asString.get)
           )
         }
         speakersArray.flatMap(speakerToSeq).map(_.toArray).toArray
