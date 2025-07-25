@@ -11,6 +11,8 @@ trait FFmpeg {
   def getWavDuration(file: File): IO[FiniteDuration]
   def concatenateImagesWithDuration(
       imageDurationPair: Seq[(os.Path, FiniteDuration)],
+      width: Int,
+      height: Int,
   ): IO[os.Path]
   def zipVideoWithAudioWithDuration(
       videoPath: os.Path,
@@ -20,6 +22,8 @@ trait FFmpeg {
   def composeVideoWithDuration(
       baseVideoPath: os.Path,
       overlayVideoDurationPair: Seq[(Option[os.Path], FiniteDuration)],
+      width: Int,
+      height: Int,
   ): IO[os.Path]
   def zipVideoWithAudio(videoPath: os.Path, audioPath: os.Path): IO[os.Path]
   def generateSilentWav(path: os.Path, length: FiniteDuration): IO[os.Path]
