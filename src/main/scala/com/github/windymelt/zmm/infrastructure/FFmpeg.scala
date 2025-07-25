@@ -130,7 +130,7 @@ class ConcreteFFmpeg(
           "-pix_fmt",
           "yuv420p",
           "-c:v",
-          "libx264",
+          h264CodecName,
           "-map",
           "[scaledimg]",
           "-map",
@@ -139,6 +139,23 @@ class ConcreteFFmpeg(
         ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
       }
     } yield os.pwd / os.RelPath("artifacts/scenes.mkv")
+  }
+
+  lazy val h264CodecName: String = {
+    val result = os.proc(ffmpegCommand, "-codecs").call(cwd = os.pwd)
+    // use "h264" or "libx264"
+    val h264Regex =
+      """\s+DEV.LS\s+(\w+)\s+H.264\s+.+""".r.unanchored
+    val libx264Regex =
+      """\s+DEV.LS\s+(\w+)\s+libx264\s+.+""".r.unanchored
+    result.out.text() match {
+      case h264Regex(codec)    => codec
+      case libx264Regex(codec) => codec
+      case _ =>
+        throw new RuntimeException(
+          "H.264 codec not found in ffmpeg codecs list.",
+        )
+    }
   }
 
   def zipVideoWithAudioWithDuration(
