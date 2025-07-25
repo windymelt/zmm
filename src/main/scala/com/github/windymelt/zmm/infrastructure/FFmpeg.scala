@@ -92,6 +92,8 @@ class ConcreteFFmpeg(
 
   def concatenateImagesWithDuration(
       imageDurationPair: Seq[(os.Path, FiniteDuration)],
+      width: Int = 1920,
+      height: Int = 1080,
   ): IO[os.Path] = {
     val writeCutfile = {
       val cutFileContent = imageDurationPair map { case (p, dur) =>
@@ -124,11 +126,11 @@ class ConcreteFFmpeg(
           "artifacts/cutFile.txt",
           "-filter_complex",
           // FIXME: 現在Chromiumのバグでサイズがおかしくなっているのでscaleしている
-          "split[img][img2];[img2]alphaextract,scale=1920:1080[alpha];[img]scale=1920:1080[scaledimg]",
+          s"split[img][img2];[img2]alphaextract,scale=${width}:${height}[alpha];[img]scale=${width}:${height}[scaledimg]",
           "-pix_fmt",
           "yuv420p",
           "-c:v",
-          "libx264",
+          h264CodecName,
           "-map",
           "[scaledimg]",
           "-map",
@@ -137,6 +139,23 @@ class ConcreteFFmpeg(
         ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
       }
     } yield os.pwd / os.RelPath("artifacts/scenes.mkv")
+  }
+
+  lazy val h264CodecName: String = {
+    val result = os.proc(ffmpegCommand, "-codecs").call(cwd = os.pwd)
+    // use "h264" or "libx264"
+    val h264Regex =
+      """\s+DEV.LS\s+(\w+)\s+H.264\s+.+""".r.unanchored
+    val libx264Regex =
+      """\s+DEV.LS\s+(\w+)\s+libx264\s+.+""".r.unanchored
+    result.out.text() match {
+      case h264Regex(codec)    => codec
+      case libx264Regex(codec) => codec
+      case _ =>
+        throw new RuntimeException(
+          "H.264 codec not found in ffmpeg codecs list.",
+        )
+    }
   }
 
   def zipVideoWithAudioWithDuration(
@@ -210,6 +229,8 @@ class ConcreteFFmpeg(
   def composeVideoWithDuration(
       overlayVideoPath: os.Path,
       baseVideoDurationPair: Seq[(Option[os.Path], FiniteDuration)],
+      width: Int = 1920,
+      height: Int = 1080,
   ): IO[os.Path] = {
     import cats.implicits._
 
@@ -233,9 +254,18 @@ class ConcreteFFmpeg(
             "-t",
             paddingDur,
             "-filter_complex",
-            s"smptehdbars=s=1920x1080:d=$paddingDur, fps=$FRAME_RATE_FPS[v];anullsrc=channel_layout=stereo:sample_rate=24000[o]",
+            s"smptehdbars=s=${width}x${height}:d=$paddingDur, fps=$FRAME_RATE_FPS[v];anullsrc=channel_layout=stereo:sample_rate=24000[o]",
             "-safe",
             "0",
+            "-i",
+            "artifacts/cutFile.txt",
+            "-filter_complex",
+            // FIXME: 現在Chromiumのバグでサイズがおかしくなっているのでscaleしている
+            s"split[img][img2];[img2]alphaextract,scale=${width}:${height}[alpha];[img]scale=${width}:${height}[scaledimg]",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:v",
+            "libsvtav1",
             "-map",
             "[v]",
             "-map",
@@ -317,7 +347,7 @@ class ConcreteFFmpeg(
           "-filter_complex",
           // TODO: overlayVideoPathのFPSが25になっているので30に持ち上げる
           // 必ずbase videoはoverlay video以上の長さである必要があるので、何もない画面にbase videoをoverlayすることで長さを揃えてから再度overlayする
-          s"""nullsrc=s=1920x1080:r=$FRAME_RATE_FPS:d=$wholeDurationSec[nullsrc];
+          s"""nullsrc=s=${width}x${height}:r=$FRAME_RATE_FPS:d=$wholeDurationSec[nullsrc];
                 [0:a][1:a]amix=normalize=0[a];
                 [nullsrc][1:v]overlay=x=0:y=0[paddedbase];
                 [0:0][0:1]alphamerge[overlayv];
@@ -345,7 +375,7 @@ class ConcreteFFmpeg(
           base,
           "-filter_complex",
           // 必ずbase videoはoverlay video以上の長さである必要があるので、何もない画面にbase videoをoverlayすることで長さを揃えてから再度overlayする
-          s"""nullsrc=s=1920x1080:r=$FRAME_RATE_FPS:d=$wholeDurationSec[nullsrc];
+          s"""nullsrc=s=${width}x${height}:r=$FRAME_RATE_FPS:d=$wholeDurationSec[nullsrc];
                 [0:a][1:a]amix=normalize=0[a];
                 [nullsrc][1:v]overlay=x=0:y=0[paddedbase];
                 [0:v]colorkey=0xFF00FF:0.1:0.5[overlayv];

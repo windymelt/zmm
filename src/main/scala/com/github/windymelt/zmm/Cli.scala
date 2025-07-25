@@ -69,6 +69,7 @@ class Cli(
         scala.xml.XML.loadFile(filePath),
       ),
     )
+    val (width, height) = (1080, 1920)
 
     for {
       _ <- logger.debug(s"generate($filePath, $outPathString)")
@@ -116,7 +117,7 @@ class Cli(
         "Generating video and concatenated audio",
       ).use { _ =>
         val paths = voices.map(_._1)
-        generateVideo(sayCtxPairs, paths) product ffmpeg
+        generateVideo(sayCtxPairs, paths, width, height) product ffmpeg
           .concatenateWavFiles(paths.map(_.toString))
       }
       zippedVideo <- backgroundIndicator("Zipping silent video and audio").use {
@@ -152,6 +153,8 @@ class Cli(
             ffmpeg.composeVideoWithDuration(
               zippedVideo,
               reductedVideoWithDuration,
+              width,
+              height,
             )
         }
       }
@@ -394,6 +397,8 @@ class Cli(
   private def generateVideo(
       sayCtxPairs: Seq[(domain.model.Say, Context)],
       paths: Seq[fs2.io.file.Path],
+      width: Int,
+      height: Int
   ): IO[os.Path] = {
     import cats.syntax.parallel._
 
@@ -424,6 +429,8 @@ class Cli(
               ),
               ss.takeScreenShot(
                 os.pwd / os.RelPath(htmlFile.toString),
+                windowWidth = 1080,
+                windowHeight = 1920,
               ),
             )
           } yield screenShotFile
@@ -437,6 +444,8 @@ class Cli(
         }.parSequence
         concatenatedImages <- ffmpeg.concatenateImagesWithDuration(
           sceneImages.zip(sayCtxPairs.map(_._2.duration.get)),
+          width,
+          height,
         )
       } yield concatenatedImages
 
