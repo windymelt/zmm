@@ -10,7 +10,7 @@ jobs:
     name: Scalafmt/Scalafix check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -26,7 +26,7 @@ jobs:
         java-distribution: [ 'temurin' ]
         java-version: [ '17' ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-java@v4
         with:
           distribution: ${{ matrix.java-distribution }}
