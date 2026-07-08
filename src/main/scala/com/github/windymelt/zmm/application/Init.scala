@@ -1,6 +1,8 @@
 package com.github.windymelt.zmm.application
 
-import cats.effect.IO
+import zio.Console
+import zio.Task
+import zio.ZIO
 
 object Init {
 
@@ -11,51 +13,49 @@ object Init {
     * @return
     *   Unitを返す。
     */
-  def initializeProject(): IO[Unit] = {
+  def initializeProject(): Task[Unit] = {
     val agreed = for {
-      cwd <- IO.pure(os.pwd.toString())
-      _ <- IO.print(s"$cwd を ZMMプロジェクトとして初期化しますか? [y/N]?>")
-      ynString <- IO.readLine
+      cwd <- ZIO.succeed(os.pwd.toString())
+      _ <- Console.print(s"$cwd を ZMMプロジェクトとして初期化しますか? [y/N]?>")
+      ynString <- Console.readLine
     } yield ynString == "y"
 
-    val placeXml: IO[Unit] = IO {
-      os.exists(os.pwd / "script.xml") match {
-        case true  => IO.println("script.xml は既に存在するのでスキップされました")
-        case false => IO(os.write(os.pwd / "script.xml", xml.script().body))
+    val placeXml: Task[Unit] =
+      ZIO.attemptBlocking(os.exists(os.pwd / "script.xml")).flatMap {
+        case true => Console.printLine("script.xml は既に存在するのでスキップされました")
+        case false =>
+          ZIO.attemptBlocking(os.write(os.pwd / "script.xml", xml.script().body))
       }
-    }.flatten
 
-    val digArtifacts: IO[Unit] = IO {
-      os.exists(os.pwd / "artifacts") match {
-        case true  => IO.println("artifacts/ は既に存在するのでスキップされました")
-        case false => IO(os.makeDir(os.pwd / "artifacts"))
+    val digArtifacts: Task[Unit] =
+      ZIO.attemptBlocking(os.exists(os.pwd / "artifacts")).flatMap {
+        case true => Console.printLine("artifacts/ は既に存在するのでスキップされました")
+        case false => ZIO.attemptBlocking(os.makeDir(os.pwd / "artifacts"))
       }
-    }.flatten
 
-    val digArtifactsHtml: IO[Unit] = IO {
-      os.exists(os.pwd / "artifacts" / "html") match {
-        case true  => IO.println("artifacts/html/ は既に存在するのでスキップされました")
-        case false => IO(os.makeDir(os.pwd / "artifacts" / "html"))
+    val digArtifactsHtml: Task[Unit] =
+      ZIO.attemptBlocking(os.exists(os.pwd / "artifacts" / "html")).flatMap {
+        case true => Console.printLine("artifacts/html/ は既に存在するのでスキップされました")
+        case false =>
+          ZIO.attemptBlocking(os.makeDir(os.pwd / "artifacts" / "html"))
       }
-    }.flatten
 
-    val digAssets: IO[Unit] = IO {
-      os.exists(os.pwd / "assets") match {
-        case true  => IO.println("assets/ は既に存在するのでスキップされました")
-        case false => IO(os.makeDir(os.pwd / "assets"))
+    val digAssets: Task[Unit] =
+      ZIO.attemptBlocking(os.exists(os.pwd / "assets")).flatMap {
+        case true  => Console.printLine("assets/ は既に存在するのでスキップされました")
+        case false => ZIO.attemptBlocking(os.makeDir(os.pwd / "assets"))
       }
-    }.flatten
 
     val init = for {
       _ <- placeXml
-      _ <- digArtifacts >> digArtifactsHtml
+      _ <- digArtifacts *> digArtifactsHtml
       _ <- digAssets
     } yield ()
 
     // ZMMプロジェクトを構成するいくつかのファイル/ディレクトリについて、存在しなかったらテンプレートをもとに作成する、を繰り返す
     agreed flatMap {
       case true  => init
-      case false => IO.println("中断します")
+      case false => Console.printLine("中断します")
     }
   }
 }

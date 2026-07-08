@@ -1,8 +1,8 @@
 package com.github.windymelt.zmm
 package domain.repository
 
-import cats.effect.IO
 import io.circe._
+import zio.Task
 
 type AudioQuery = Json
 type SpeakerInfo = Json
@@ -10,11 +10,15 @@ type SpeakerInfo = Json
 trait VoiceVox {
   val voiceVoxUri: String
   // API
-  def speakers(): IO[SpeakerInfo]
-  def audioQuery(text: String, speaker: String): IO[AudioQuery]
-  def synthesis(aq: AudioQuery, speaker: String): IO[fs2.Stream[IO, Byte]]
+  def speakers(): Task[SpeakerInfo]
+  def audioQuery(text: String, speaker: String): Task[AudioQuery]
+  def synthesis(aq: AudioQuery, speaker: String): Task[Array[Byte]]
   // misc.
-  def controlSpeed(aq: AudioQuery, speed: String): IO[AudioQuery]
-  def registerDict(word: String, pronounce: String, lowerPoint: Int): IO[Unit]
-  def getVowels(aq: AudioQuery): IO[domain.model.VowelSeqWithDuration]
+  def controlSpeed(aq: AudioQuery, speed: String): Task[AudioQuery]
+  def registerDict(
+      word: String,
+      pronounce: String,
+      lowerPoint: Int,
+  ): Task[Unit]
+  def getVowels(aq: AudioQuery): Task[domain.model.VowelSeqWithDuration]
 }

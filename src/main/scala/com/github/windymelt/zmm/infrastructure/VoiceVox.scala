@@ -1,15 +1,12 @@
 package com.github.windymelt.zmm
 package infrastructure
 
-import cats.effect.IO
-import org.http4s.ember.client._
-import org.http4s.Request
-import org.http4s.Method
-import org.http4s.Headers
-import org.http4s.Uri
 import io.circe._
-import org.http4s.circe.CirceEntityDecoder._
-import org.typelevel.log4cats.Logger
+import sttp.client4._
+import sttp.client4.circe._
+import zio.Task
+import zio.ZIO
+
 import concurrent.duration._
 import scala.language.postfixOps
 
@@ -22,86 +19,76 @@ type SpeakerInfo = Json // TODO: 必要に応じて高級なcase class / HList�
   * {{{
   * docker run --rm -it -p '127.0.0.1:50021:50021' voicevox/voicevox_engine:cpu-ubuntu20.04-latest
   * }}}
-  * These code can call `raiseError()`.
+  * These code can call `ZIO.fail()`.
   */
-class ConcreteVoiceVox(val voiceVoxUri: String, logger: Logger[IO])
-    extends domain.repository.VoiceVox {
-  def speakers(): IO[SpeakerInfo] = client.use: c =>
-    for
-      _ <- logger.debug(s"Requesting ${voiceVoxUri}/speakers")
-      uri <- IO.fromEither(Uri.fromString(s"${voiceVoxUri}/speakers"))
-      req = Request[IO](uri = uri)
-      res <- c.expect[SpeakerInfo](req)
-    yield res
+class ConcreteVoiceVox(
+    val voiceVoxUri: String,
+    backend: Backend[Task],
+) extends domain.repository.VoiceVox {
+  // VOICEVOXは合成に時間がかかることがあるのでタイムアウトを長めにとっておく
+  private val requestTimeout = 5 minutes
 
-  def audioQuery(text: String, speaker: String): IO[AudioQuery] = client.use:
-    c =>
-      for
-        _ <- logger.debug(s"Requesting ${voiceVoxUri}/audio_query")
-        uri <- IO
-          .fromEither(Uri.fromString(s"${voiceVoxUri}/audio_query")).map(
-            _.withQueryParam("speaker", speaker).withQueryParam("text", text),
-          )
-        req = Request[IO](
-          Method.POST,
-          uri = uri,
-          headers = Headers("accept" -> "application/json"),
-        )
-        res <- c.expect[AudioQuery](req)
-      yield res
+  def speakers(): Task[SpeakerInfo] = for {
+    _ <- ZIO.logDebug(s"Requesting ${voiceVoxUri}/speakers")
+    res <- basicRequest
+      .get(uri"${voiceVoxUri}/speakers")
+      .readTimeout(requestTimeout)
+      .response(asJson[SpeakerInfo])
+      .send(backend)
+    body <- ZIO.fromEither(res.body)
+  } yield body
 
-  def synthesis(aq: AudioQuery, speaker: String): IO[fs2.Stream[IO, Byte]] =
-    client.use: c =>
-      for
-        _ <- logger.debug(s"Requesting ${voiceVoxUri}/synthesis")
-        uri <- IO
-          .fromEither(Uri.fromString(s"${voiceVoxUri}/synthesis")).map(
-            _.withQueryParam("speaker", speaker),
-          )
-        req = Request[IO](
-          Method.POST,
-          uri = uri,
-          headers = Headers("Content-Type" -> "application/json"),
-          body = fs2.Stream.fromIterator[IO](
-            aq.toString().getBytes().iterator,
-            64,
-          ),
-        )
-      yield c.stream(req).flatMap(_.body)
+  def audioQuery(text: String, speaker: String): Task[AudioQuery] = for {
+    _ <- ZIO.logDebug(s"Requesting ${voiceVoxUri}/audio_query")
+    res <- basicRequest
+      .post(uri"${voiceVoxUri}/audio_query?speaker=$speaker&text=$text")
+      .header("accept", "application/json")
+      .readTimeout(requestTimeout)
+      .response(asJson[AudioQuery])
+      .send(backend)
+    body <- ZIO.fromEither(res.body)
+  } yield body
 
-  def controlSpeed(aq: AudioQuery, speed: String): IO[AudioQuery] =
+  def synthesis(aq: AudioQuery, speaker: String): Task[Array[Byte]] = for {
+    _ <- ZIO.logDebug(s"Requesting ${voiceVoxUri}/synthesis")
+    res <- basicRequest
+      .post(uri"${voiceVoxUri}/synthesis?speaker=$speaker")
+      .header("Content-Type", "application/json")
+      .body(aq.noSpaces)
+      .readTimeout(requestTimeout)
+      .response(asByteArray)
+      .send(backend)
+    body <- ZIO.fromEither(res.body).mapError(msg => new Exception(msg))
+  } yield body
+
+  def controlSpeed(aq: AudioQuery, speed: String): Task[AudioQuery] =
     import io.circe.syntax._
-    IO.fromOption(
-      aq.hcursor.downField("speedScale").withFocus(_ => speed.asJson).top,
-    )(Exception("speedScale not found"))
+    ZIO
+      .fromOption(
+        aq.hcursor.downField("speedScale").withFocus(_ => speed.asJson).top,
+      )
+      .orElseFail(Exception("speedScale not found"))
 
   def registerDict(
       word: String,
       pronounce: String,
       lowerPoint: Int,
-  ): IO[Unit] = client.use: c =>
-    for
-      _ <- logger.debug(s"Requesting ${voiceVoxUri}/user_dict_word")
-      uri <- IO
-        .fromEither(Uri.fromString(s"${voiceVoxUri}/user_dict_word")).map(
-          _.withQueryParams(
-            Map(
-              "surface" -> word,
-              "pronunciation" -> pronounce,
-              "accent_type" -> lowerPoint.toString,
-            ),
-          ),
-        )
-      req = Request[IO](
-        Method.POST,
-        uri = uri,
-        headers = Headers("Content-Type" -> "application/json"),
+  ): Task[Unit] = for {
+    _ <- ZIO.logDebug(s"Requesting ${voiceVoxUri}/user_dict_word")
+    res <- basicRequest
+      .post(
+        uri"${voiceVoxUri}/user_dict_word?surface=$word&pronunciation=$pronounce&accent_type=${lowerPoint.toString}",
       )
-      res <- c.successful(req).void
-    yield res
+      .header("Content-Type", "application/json")
+      .readTimeout(requestTimeout)
+      .send(backend)
+    _ <- ZIO
+      .fail(Exception(s"Failed to register dict: ${res.code}"))
+      .unless(res.code.isSuccess)
+  } yield ()
 
-  def getVowels(aq: AudioQuery): IO[domain.model.VowelSeqWithDuration] =
-    IO.pure {
+  def getVowels(aq: AudioQuery): Task[domain.model.VowelSeqWithDuration] =
+    ZIO.attempt {
       import io.circe.optics.JsonPath._
       import cats.data.{NonEmptySeq => NES}
       import cats.implicits._
@@ -152,12 +139,4 @@ class ConcreteVoiceVox(val voiceVoxUri: String, logger: Logger[IO])
 
       vowels zip paddedDurs.map(_ seconds)
     }
-
-  private lazy val client = {
-    EmberClientBuilder
-      .default[IO]
-      .withTimeout(5 minutes)
-      .withIdleConnectionTime(10 minutes)
-      .build
-  }
 }

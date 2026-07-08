@@ -1,7 +1,8 @@
 package com.github.windymelt.zmm
 package infrastructure
 
-import cats.effect.IO
+import zio.Task
+import zio.ZIO
 
 object ChromeScreenShot {
   sealed trait Verbosity
@@ -23,7 +24,7 @@ class ChromeScreenShot(
       htmlFilePath: os.Path,
       windowWidth: Int = 1920,
       windowHeight: Int = 1080,
-  ): IO[os.Path] = IO.delay {
+  ): Task[os.Path] = ZIO.attemptBlocking {
     val proc =
       if noSandBox then
         os.proc(
@@ -47,5 +48,5 @@ class ChromeScreenShot(
           htmlFilePath,
         )
     proc.call(stdout = stdout, stderr = stdout, cwd = os.pwd)
-  } *> IO.pure(os.Path(s"$htmlFilePath.png"))
+  } *> ZIO.succeed(os.Path(s"$htmlFilePath.png"))
 }

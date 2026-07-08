@@ -1,8 +1,6 @@
 package com.github.windymelt.zmm
 
 import domain.repository.ScreenShot
-import cats.effect.kernel.Resource
-import cats.effect.IO
 import com.github.windymelt.zmm.domain.model.{
   Context,
   SilentBackendConfig,
@@ -10,14 +8,30 @@ import com.github.windymelt.zmm.domain.model.{
   VoiceVoxBackendConfig,
 }
 import com.github.windymelt.zmm.domain.repository.VoiceVox
-import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import zio.Console
+import zio.Scope
+import zio.Task
+import zio.UIO
+import zio.ZIO
+import zio.durationInt
+
 import concurrent.duration.FiniteDuration
+
+/** スクリーンショット実装を排他制御付きで貸し出すサービス。
+  *
+  * スクリーンショットバックエンドは同時に1つしか起動できないため、Semaphoreで直列化する。
+  */
+final case class ScreenShotService(
+    sem: zio.Semaphore,
+    make: () => ScreenShot,
+):
+  def acquire: ZIO[Scope, Nothing, ScreenShot] =
+    sem.withPermitScoped.as(make())
 
 class Cli(
     voiceVox: domain.repository.VoiceVox,
     ffmpeg: domain.repository.FFmpeg,
-    screenShotResource: IO[Resource[IO, ScreenShot]],
+    screenShot: ScreenShotService,
 ) {
 
   val zmmLogo = """ _________  ______  ___
@@ -27,14 +41,12 @@ class Cli(
 ./ /___| |  | || |  | |
 \_____/\_|  |_/\_|  |_/"""
 
-  implicit def logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-
-  def showVoiceVoxSpeakers(): IO[Unit] = {
+  def showVoiceVoxSpeakers(): Task[Unit] = {
     import io.circe.JsonObject
     import com.mitchtalmadge.asciidata.table.ASCIITable
     for {
       speakers <- voiceVox.speakers()
-      speakersTable <- IO.pure {
+      speakersTable <- ZIO.attempt {
         val speakersArray = speakers.asArray.get.flatMap(_.asObject)
         val styleToSeq = (name: String) =>
           (id: String) => (styleName: String) => Seq(name, id, styleName)
@@ -48,7 +60,7 @@ class Cli(
         }
         speakersArray.flatMap(speakerToSeq).map(_.toArray).toArray
       }
-      _ <- IO.println(
+      _ <- Console.printLine(
         ASCIITable.fromData(
           Seq("voice", "voice ID", "style").toArray,
           speakersTable,
@@ -60,31 +72,25 @@ class Cli(
   def generate(
       filePath: String,
       outPathString: String,
-  ): IO[Unit] = {
-    import cats.syntax.all.{*, given}
-    import scala.util.control.Exception.allCatch
-
-    val content = IO.fromEither(
-      allCatch.either(
-        scala.xml.XML.loadFile(filePath),
-      ),
+  ): Task[Unit] = {
+    val content = ZIO.attempt(
+      scala.xml.XML.loadFile(filePath),
     )
 
     for {
-      _ <- logger.debug(s"generate($filePath, $outPathString)")
+      _ <- ZIO.logDebug(s"generate($filePath, $outPathString)")
       _ <- showLogo
-      _ <- logger.debug(s"pwd: ${System.getProperty("user.dir")}")
-      _ <- logger.debug(s"voicevox api: ${voiceVox.voiceVoxUri}")
-      _ <- logger.debug(s"""ffmpeg command: ${ffmpeg.ffmpegCommand}""")
+      _ <- ZIO.logDebug(s"pwd: ${System.getProperty("user.dir")}")
+      _ <- ZIO.logDebug(s"voicevox api: ${voiceVox.voiceVoxUri}")
+      _ <- ZIO.logDebug(s"""ffmpeg command: ${ffmpeg.ffmpegCommand}""")
       x <- content
       _ <- contentSanityCheck(x)
       defaultCtx <- prepareDefaultContext(x)
       _ <- applyDictionary(defaultCtx)
-      sayCtxPairs <- IO(
+      sayCtxPairs <- ZIO.attempt(
         Context.fromNode((x \ "dialogue").head, defaultCtx),
       )
       voices <- {
-        import cats.syntax.parallel._
         val saySeq = sayCtxPairs map:
           case (s, ctx)
               if ctx.spokenByCharacterId == Some(
@@ -93,10 +99,11 @@ class Cli(
             generateSilence(ctx)
           case (s, ctx) =>
             generateSay(s, voiceVox, ctx)
-        saySeq.parSequence
+        // VOICEVOXエンジン側が詰まらないよう並列度に上限を設ける
+        ZIO.withParallelism(4)(ZIO.collectAllPar(saySeq))
       }
       // 読み上げ長をContextに追加する。母音情報が得られた場合も追加する
-      sayCtxPairs <- IO {
+      sayCtxPairs <- ZIO.attempt {
         val pairs = sayCtxPairs zip voices
         pairs map {
           case ((say, context), (_, dur, Seq())) =>
@@ -109,21 +116,20 @@ class Cli(
         }
       }
       // Contextにフィルタを適用する
-      sayCtxPairs <- IO(applyFilters(sayCtxPairs))
+      sayCtxPairs <- ZIO.attempt(applyFilters(sayCtxPairs))
       // この時点でvideoとaudioとの間に依存がないので並列実行する
       // BUG: SI-5589 により、タプルにバインドできない
       (video, audio) <- backgroundIndicator(
         "Generating video and concatenated audio",
-      ).use { _ =>
+      ) {
         val paths = voices.map(_._1)
-        generateVideo(sayCtxPairs, paths) product ffmpeg
+        generateVideo(sayCtxPairs) zipPar ffmpeg
           .concatenateWavFiles(paths.map(_.toString))
       }
-      zippedVideo <- backgroundIndicator("Zipping silent video and audio").use {
-        _ =>
-          ffmpeg.zipVideoWithAudio(video, audio)
+      zippedVideo <- backgroundIndicator("Zipping silent video and audio") {
+        ffmpeg.zipVideoWithAudio(video, audio)
       }
-      composedVideo <- backgroundIndicator("Composing Video").surround {
+      composedVideo <- backgroundIndicator("Composing Video") {
         import util.Util.EqForPath
 
         // もし設定されていればビデオを合成する。BGMと同様、同じビデオであれば結合する。
@@ -140,22 +146,22 @@ class Cli(
 
         // 環境によっては上書きに失敗する？ので出力ファイルが存在する場合削除する
         val outputFile = os.pwd / "output_composed.mp4"
-        os.remove(outputFile, checkExists = false)
 
-        reductedVideoWithDuration.filter(_._1.isDefined).size match {
-          case 0 =>
-            IO.delay {
-              os.move(zippedVideo, outputFile)
-              outputFile
-            }
-          case _ =>
-            ffmpeg.composeVideoWithDuration(
-              zippedVideo,
-              reductedVideoWithDuration,
-            )
-        }
+        ZIO.attemptBlocking(os.remove(outputFile, checkExists = false)) *>
+          (reductedVideoWithDuration.filter(_._1.isDefined).size match {
+            case 0 =>
+              ZIO.attemptBlocking {
+                os.move(zippedVideo, outputFile)
+                outputFile
+              }
+            case _ =>
+              ffmpeg.composeVideoWithDuration(
+                zippedVideo,
+                reductedVideoWithDuration,
+              )
+          })
       }
-      _ <- backgroundIndicator("Applying BGM").use { _ =>
+      _ <- backgroundIndicator("Applying BGM") {
         import util.Util.EqForPath
 
         // BGMを合成する。BGMはコンテキストで割り当てる。sayCtxPairsでsayごとにコンテキストが確定するので、同じBGMであれば結合しつつ最終的なDurationを計算する。
@@ -172,22 +178,22 @@ class Cli(
 
         // 環境によっては上書きに失敗する？ので出力ファイルが存在する場合削除する
         val outputFilePath = os.Path(outPathString)
-        os.remove(outputFilePath, checkExists = false)
 
-        reductedBgmWithDuration.filter(_._1.isDefined).size match {
-          case 0 =>
-            IO.pure(
-              os.move(composedVideo, outputFilePath),
-            ) // Dirty fix. TODO: fix here
-          case _ =>
-            ffmpeg.zipVideoWithAudioWithDuration(
-              composedVideo,
-              reductedBgmWithDuration,
-              outputFilePath,
-            )
-        }
+        ZIO.attemptBlocking(os.remove(outputFilePath, checkExists = false)) *>
+          (reductedBgmWithDuration.filter(_._1.isDefined).size match {
+            case 0 =>
+              ZIO.attemptBlocking(
+                os.move(composedVideo, outputFilePath),
+              ) // Dirty fix. TODO: fix here
+            case _ =>
+              ffmpeg.zipVideoWithAudioWithDuration(
+                composedVideo,
+                reductedBgmWithDuration,
+                outputFilePath,
+              )
+          })
       }
-      _ <- logger.info(s"Done! Generated to $outPathString")
+      _ <- ZIO.logInfo(s"Done! Generated to $outPathString")
     } yield ()
   }
 
@@ -200,39 +206,44 @@ class Cli(
     pairs.flatMap(composedFilters.second.run)
   }
 
-  private def showLogo: IO[Unit] =
-    IO.println(
+  private def showLogo: Task[Unit] =
+    Console.printLine(
       withColor(scala.io.AnsiColor.GREEN ++ scala.io.AnsiColor.BOLD)(zmmLogo),
-    ) >>
-      IO.println(withColor(scala.io.AnsiColor.GREEN)(s"${BuildInfo.version}"))
+    ) *>
+      Console.printLine(
+        withColor(scala.io.AnsiColor.GREEN)(s"${BuildInfo.version}"),
+      )
 
   /** ZMMのバージョンを表示する。
     *
     * デバッグや問い合わせの助けとしても使う。
     *
     * @return
-    *   IO[Unit]
+    *   Task[Unit]
     */
-  def showVersion: IO[Unit] =
-    IO.print("zmm ver=") >>
+  def showVersion: Task[Unit] =
+    Console.print("zmm ver=") *>
       (BuildInfo.version match {
         case s"$_-SNAPSHOT" =>
-          IO.print(withColor(scala.io.AnsiColor.YELLOW)(BuildInfo.version))
+          Console.print(withColor(scala.io.AnsiColor.YELLOW)(BuildInfo.version))
         case _ =>
-          IO.print(withColor(scala.io.AnsiColor.GREEN)(BuildInfo.version))
-      }) >>
+          Console.print(withColor(scala.io.AnsiColor.GREEN)(BuildInfo.version))
+      }) *>
       ((System.getenv("IS_DOCKER_ZMM") == "1") match {
-        case true  => IO.print(withColor(scala.io.AnsiColor.CYAN)(" (Docker)"))
-        case false => IO.unit
-      }) >>
-      IO.print(", scalaVer=") >>
-      IO.print(withColor(scala.io.AnsiColor.GREEN)(BuildInfo.scalaVersion)) >>
-      IO.print(", sbtVer=") >>
-      IO.print(withColor(scala.io.AnsiColor.GREEN)(BuildInfo.sbtVersion)) >>
-      IO.print(s", jvm=${System.getProperty("java.vm.name")}") >>
-      IO.print(s", runtimeVer=${Runtime.version().toString()}") >>
-      IO.print(s", vendor=${System.getProperty("java.vendor")}") >>
-      IO.println("")
+        case true =>
+          Console.print(withColor(scala.io.AnsiColor.CYAN)(" (Docker)"))
+        case false => ZIO.unit
+      }) *>
+      Console.print(", scalaVer=") *>
+      Console.print(
+        withColor(scala.io.AnsiColor.GREEN)(BuildInfo.scalaVersion),
+      ) *>
+      Console.print(", sbtVer=") *>
+      Console.print(withColor(scala.io.AnsiColor.GREEN)(BuildInfo.sbtVersion)) *>
+      Console.print(s", jvm=${System.getProperty("java.vm.name")}") *>
+      Console.print(s", runtimeVer=${Runtime.version().toString()}") *>
+      Console.print(s", vendor=${System.getProperty("java.vendor")}") *>
+      Console.printLine("")
 
   /** 辞書要素を反映させる。
     *
@@ -243,27 +254,25 @@ class Cli(
     * @return
     *   有用な情報は返されない
     */
-  private def applyDictionary(ctx: Context): IO[Unit] =
-    import cats.syntax.parallel._
-    val registerList = ctx.dict.map: d =>
+  private def applyDictionary(ctx: Context): Task[Unit] =
+    ZIO.foreachDiscard(ctx.dict): d =>
       voiceVox.registerDict(d._1, d._2, d._3)
-    registerList.reduceLeft[IO[Unit]] { case (acc, i) => i >> acc }
 
   private def generateSay(
       sayElem: domain.model.Say,
       voiceVox: VoiceVox,
       ctx: Context,
-  ): IO[
+  ): Task[
     (
-        fs2.io.file.Path,
+        os.Path,
         scala.concurrent.duration.FiniteDuration,
         domain.model.VowelSeqWithDuration,
     ),
   ] = for {
-    actualPronunciation <- IO.pure(
+    actualPronunciation <- ZIO.succeed(
       ctx.sic.getOrElse(sayElem.text),
     ) // sicがない場合は元々のセリフを使う
-    aq <- backgroundIndicator("Building Audio Query").use { _ =>
+    aq <- backgroundIndicator("Building Audio Query") {
       // by属性がないことはないやろという想定でgetしている
       buildAudioQuery(
         actualPronunciation,
@@ -272,15 +281,15 @@ class Cli(
         ctx,
       )
     }
-    _ <- logger.debug(aq.toString())
-    aq <- ctx.speed map (sp => voiceVox.controlSpeed(aq, sp)) getOrElse (IO
-      .pure(aq))
-    wav <- backgroundIndicator("Synthesizing wav").use { _ =>
+    _ <- ZIO.logDebug(aq.toString())
+    aq <- ctx.speed map (sp => voiceVox.controlSpeed(aq, sp)) getOrElse (ZIO
+      .succeed(aq))
+    wav <- backgroundIndicator("Synthesizing wav") {
       buildWavFile(aq, ctx.spokenByCharacterId.get, voiceVox, ctx)
     }
-    sha1Hex <- util.Util.sha1HexCode(sayElem.text.getBytes())
-    path <- backgroundIndicator("Exporting .wav file").use { _ =>
-      util.Util.writeStreamToFile(wav, s"artifacts/voice_${sha1Hex}.wav")
+    sha1Hex = util.Util.sha1HexCode(sayElem.text.getBytes())
+    path <- backgroundIndicator("Exporting .wav file") {
+      util.Util.writeBytesToFile(wav, s"artifacts/voice_${sha1Hex}.wav")
     }
     dur <- ffmpeg.getWavDuration(path.toString)
     vowels <- voiceVox.getVowels(aq)
@@ -288,34 +297,34 @@ class Cli(
 
   private def generateSilence(
       ctx: Context,
-  ): IO[(fs2.io.file.Path, FiniteDuration, domain.model.VowelSeqWithDuration)] =
+  ): Task[(os.Path, FiniteDuration, domain.model.VowelSeqWithDuration)] =
     for {
-      len <- IO.pure(
+      len <- ZIO.succeed(
         ctx.silentLength.getOrElse(FiniteDuration(3, "second")),
       ) // 指定してないなら3秒にしているが理由はない
-      sha1Hex <- util.Util.sha1HexCode(len.toString.getBytes)
-      path <- IO.pure(os.Path(s"${os.pwd}/artifacts/silence_$sha1Hex.wav"))
-      wav <- backgroundIndicator("Exporting silent .wav file").use { _ =>
+      sha1Hex = util.Util.sha1HexCode(len.toString.getBytes)
+      path = os.Path(s"${os.pwd}/artifacts/silence_$sha1Hex.wav")
+      wav <- backgroundIndicator("Exporting silent .wav file") {
         ffmpeg.generateSilentWav(path, len)
       }
-    } yield (fs2.io.file.Path(path.toString()), len, Seq())
+    } yield (path, len, Seq())
 
   private def contentSanityCheck(
       elem: scala.xml.Elem,
-  ): IO[Unit] = {
+  ): Task[Unit] = {
     val checkTopElem = elem.label == "content"
     val ver = elem \@ "version" == "0.0"
 
     if (!(checkTopElem && ver)) {
-      IO.raiseError(Exception("Invalid scenary XML")) // TODO: 丁寧なエラーメッセージ
+      ZIO.fail(Exception("Invalid scenary XML")) // TODO: 丁寧なエラーメッセージ
     } else {
-      IO.unit
+      ZIO.unit
     }
   }
 
   private def prepareDefaultContext(
       elem: scala.xml.Elem,
-  ): IO[Context] =
+  ): Task[Context] = ZIO.attempt {
     val voiceConfigList = elem \ "meta" \ "voiceconfig"
     val voiceConfigMap: Map[String, VoiceBackendConfig] = voiceConfigList.map {
       vc =>
@@ -378,69 +387,56 @@ class Cli(
       )
       .toMap
 
-    IO.pure(
-      domain.model.Context(
-        voiceConfigMap,
-        characterConfigMap,
-        defaultBackgroundImage,
-        dict = dict,
-        codes = codes,
-        maths = maths,
-        font = defaultFont,
-      ),
+    domain.model.Context(
+      voiceConfigMap,
+      characterConfigMap,
+      defaultBackgroundImage,
+      dict = dict,
+      codes = codes,
+      maths = maths,
+      font = defaultFont,
     )
-  end prepareDefaultContext
+  }
 
   private def generateVideo(
       sayCtxPairs: Seq[(domain.model.Say, Context)],
-      paths: Seq[fs2.io.file.Path],
-  ): IO[os.Path] = {
-    import cats.syntax.parallel._
-
-    val fileCheck: String => IO[Boolean] = p =>
-      IO(os.exists(os.pwd / os.RelPath(p)))
+  ): Task[os.Path] = {
+    val fileCheck: String => Task[Boolean] = p =>
+      ZIO.attemptBlocking(os.exists(os.pwd / os.RelPath(p)))
 
     // スクリーンショットは重いのでHTMLの内容をもとにキャッシュする(HTMLが同一内容なら同一のスクリーンショットになるという前提)
-    val shot: ScreenShot => (domain.model.Say, Context) => IO[os.Path] =
+    val shot: ScreenShot => (domain.model.Say, Context) => Task[os.Path] =
       (ss: ScreenShot) =>
         (s: domain.model.Say, ctx: Context) => {
-          val htmlIO = buildHtmlFile(s.text, ctx)
           for {
-            stream <- htmlIO.map(s => fs2.Stream[IO, Byte](s.getBytes().toSeq*))
-            html <- htmlIO
-            sha1Hex <- util.Util.sha1HexCode(html.getBytes())
-            htmlPath = s"./artifacts/html/${sha1Hex}.html"
-            htmlFile <- fileCheck(htmlPath).ifM(
-              IO.pure(fs2.io.file.Path(htmlPath)),
-              util.Util.writeStreamToFile(stream, htmlPath),
+            html <- buildHtmlFile(s.text, ctx)
+            sha1Hex = util.Util.sha1HexCode(html.getBytes())
+            htmlPath = s"artifacts/html/${sha1Hex}.html"
+            htmlFile <- ZIO.ifZIO(fileCheck(htmlPath))(
+              ZIO.succeed(os.Path(htmlPath, os.pwd)),
+              util.Util.writeBytesToFile(html.getBytes(), htmlPath),
             )
-            _ <- fileCheck(s"${htmlPath}.png").ifM(
-              logger.debug(s"Cache HIT: ${htmlPath}.png"),
-              logger.debug(s"Cache expired: ${htmlPath}.png"),
+            _ <- ZIO.ifZIO(fileCheck(s"${htmlPath}.png"))(
+              ZIO.logDebug(s"Cache HIT: ${htmlPath}.png"),
+              ZIO.logDebug(s"Cache expired: ${htmlPath}.png"),
             )
-            screenShotFile <- fileCheck(s"${htmlPath}.png").ifM(
-              IO.pure(
+            screenShotFile <- ZIO.ifZIO(fileCheck(s"${htmlPath}.png"))(
+              ZIO.succeed(
                 os.pwd / os.RelPath(s"${htmlPath}.png"),
               ),
-              ss.takeScreenShot(
-                os.pwd / os.RelPath(htmlFile.toString),
-              ),
+              ss.takeScreenShot(htmlFile),
             )
           } yield screenShotFile
         }
 
     for {
-      ss <- screenShotResource
-      imgs <- for {
-        sceneImages <- sayCtxPairs.map { pair =>
-          ss.use { ss => shot(ss).tupled(pair) }
-        }.parSequence
-        concatenatedImages <- ffmpeg.concatenateImagesWithDuration(
-          sceneImages.zip(sayCtxPairs.map(_._2.duration.get)),
-        )
-      } yield concatenatedImages
-
-    } yield imgs
+      sceneImages <- ZIO.collectAllPar(sayCtxPairs.map { pair =>
+        ZIO.scoped(screenShot.acquire.flatMap(ss => shot(ss).tupled(pair)))
+      })
+      concatenatedImages <- ffmpeg.concatenateImagesWithDuration(
+        sceneImages.zip(sayCtxPairs.map(_._2.duration.get)),
+      )
+    } yield concatenatedImages
   }
 
   private def buildAudioQuery(
@@ -462,7 +458,7 @@ class Cli(
       character: String,
       voiceVox: VoiceVox,
       ctx: Context,
-  ): IO[fs2.Stream[IO, Byte]] = {
+  ): Task[Array[Byte]] = {
     val characterConfig = ctx.characterConfigMap(character)
     val voiceConfig = ctx.voiceConfigMap(characterConfig.voiceId)
     // VOICEVOX特有の実装 いずれどこかの層に分離する
@@ -472,27 +468,29 @@ class Cli(
   }
 
   // TODO: Templaceコンポーネントとかに切り出す
-  private def buildHtmlFile(serif: String, ctx: Context): IO[String] = {
-    IO { html.sample(serif = serif, ctx = ctx).body }
+  private def buildHtmlFile(serif: String, ctx: Context): Task[String] = {
+    ZIO.attempt { html.sample(serif = serif, ctx = ctx).body }
   }
 
   private def withColor(color: String) = (s: String) =>
     s"${color.toString()}${s}${scala.io.AnsiColor.RESET}"
 
-  // 進捗インジケータを表示するためのユーティリティ
-  private def backgroundIndicator(
+  // 進捗インジケータを表示しながらbodyを実行するためのユーティリティ
+  private def backgroundIndicator[R, E, A](
       message: String,
-  ): cats.effect.ResourceIO[IO[cats.effect.OutcomeIO[Unit]]] =
-    indicator(message).background
-  import concurrent.duration._
-  import scala.language.postfixOps
-  private def piece(s: String): IO[Unit] =
-    IO.sleep(100 milliseconds) *> IO.print(
-      s"\r${withColor(scala.io.AnsiColor.GREEN ++ scala.io.AnsiColor.BOLD)(s)}",
-    )
-  private def indicator(message: String): IO[Unit] =
-    piece(s"⢄ $message") *> piece(s"⠢ $message") *> piece(
+  )(body: ZIO[R, E, A]): ZIO[R, E, A] =
+    ZIO.scoped[R](indicator(message).forkScoped *> body)
+
+  private def piece(s: String): UIO[Unit] =
+    ZIO.sleep(100.millis) *> Console
+      .print(
+        s"\r${withColor(scala.io.AnsiColor.GREEN ++ scala.io.AnsiColor.BOLD)(s)}",
+      )
+      .orDie
+
+  private def indicator(message: String): UIO[Nothing] =
+    (piece(s"⢄ $message") *> piece(s"⠢ $message") *> piece(
       s"⠑ $message",
-    ) *> piece(s"⡈ $message") foreverM
+    ) *> piece(s"⡈ $message")).forever
 
 }

@@ -1,8 +1,9 @@
 package com.github.windymelt.zmm
 package infrastructure
 
-import cats.effect.IO
 import os.Path
+import zio.Task
+import zio.ZIO
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -21,15 +22,15 @@ class ConcreteFFmpeg(
     case ConcreteFFmpeg.Quiet   => os.Pipe
     case ConcreteFFmpeg.Verbose => os.Inherit
   }
-  def concatenateWavFiles(files: Seq[File]): IO[os.Path] = {
+  def concatenateWavFiles(files: Seq[File]): Task[os.Path] = {
     // stub
     val fileList = files.map(f => s"file '${f}'").mkString("\n")
     val fileListPath = os.pwd / "fileList.txt"
-    IO.delay {
+    ZIO.attemptBlocking {
       os.remove(fileListPath, checkExists = false)
       os.write(fileListPath, fileList)
     } *>
-      IO.delay {
+      ZIO.attemptBlocking {
         os
           .proc(
             ffmpegCommand,
@@ -55,17 +56,17 @@ class ConcreteFFmpeg(
             cwd = os.pwd,
           )
       } *>
-      IO.pure(os.pwd / os.RelPath("artifacts/concatenated.wav"))
+      ZIO.succeed(os.pwd / os.RelPath("artifacts/concatenated.wav"))
   }
 
-  def getWavDuration(file: File): IO[concurrent.duration.FiniteDuration] = {
+  def getWavDuration(file: File): Task[concurrent.duration.FiniteDuration] = {
     import cats.implicits._
     import scala.util.control.Exception.allCatch
     import concurrent.duration.FiniteDuration
 
-    IO.delay {
+    ZIO.attemptBlocking {
       val commandResult = os
-        .proc("ffprobe", (os.pwd / os.RelPath(file)))
+        .proc("ffprobe", os.Path(file, os.pwd))
         .call(cwd = os.pwd, stderr = os.Pipe, stdout = stdout)
       val durationRegex =
         """Duration: (\d\d):(\d\d):(\d\d)\.(\d\d)""".r.unanchored
@@ -92,14 +93,14 @@ class ConcreteFFmpeg(
 
   def concatenateImagesWithDuration(
       imageDurationPair: Seq[(os.Path, FiniteDuration)],
-  ): IO[os.Path] = {
+  ): Task[os.Path] = {
     val writeCutfile = {
       val cutFileContent = imageDurationPair map { case (p, dur) =>
         s"file ${p}\noutpoint ${dur.toUnit(concurrent.duration.SECONDS)}"
       } mkString ("\n")
-      util.Util.writeStreamToFile(
-        fs2.Stream[IO, Byte](cutFileContent.getBytes().toSeq: _*),
-        "./artifacts/cutFile.txt",
+      util.Util.writeBytesToFile(
+        cutFileContent.getBytes(),
+        "artifacts/cutFile.txt",
       )
     }
     // スクリーンショット実装がChrome(Chromium)の場合、透明度付きPNGが出力されることを期待して良いので、
@@ -109,7 +110,7 @@ class ConcreteFFmpeg(
 
     for {
       _ <- writeCutfile
-      _ <- IO.delay {
+      _ <- ZIO.attemptBlocking {
         // TODO: move to infra layer
         os.proc(
           ffmpegCommand,
@@ -143,7 +144,7 @@ class ConcreteFFmpeg(
       videoPath: os.Path,
       audioDurationPair: Seq[(Option[os.Path], FiniteDuration)],
       outputPath: os.Path,
-  ): IO[os.Path] = {
+  ): Task[os.Path] = {
     // 一度オーディオをDurationに従って結合し、これと動画を合成する。単に上書きすると元の音声が消えてしまうのでフィルタ合成する。
     val writeCutfile = {
       val cutFileContent = audioDurationPair flatMap { case (pOpt, dur) =>
@@ -151,14 +152,14 @@ class ConcreteFFmpeg(
           s"file ${p}\noutpoint ${dur.toUnit(concurrent.duration.SECONDS)}",
         )
       } mkString ("\n")
-      util.Util.writeStreamToFile(
-        fs2.Stream[IO, Byte](cutFileContent.getBytes().toSeq: _*),
-        "./artifacts/bgmCutFile.txt",
+      util.Util.writeBytesToFile(
+        cutFileContent.getBytes(),
+        "artifacts/bgmCutFile.txt",
       )
     }
     for {
       _ <- writeCutfile
-      bgm <- IO.delay {
+      bgm <- ZIO.attemptBlocking {
         os.proc(
           ffmpegCommand,
           "-protocol_whitelist",
@@ -174,7 +175,7 @@ class ConcreteFFmpeg(
         ).call(stdout = stdout, stderr = stdout, cwd = os.pwd)
         os.pwd / os.RelPath("artifacts/concatenatedBGM.wav")
       }
-      _ <- IO.delay {
+      _ <- ZIO.attemptBlocking {
         os.proc(
           ffmpegCommand,
           "-y",
@@ -210,7 +211,7 @@ class ConcreteFFmpeg(
   def composeVideoWithDuration(
       overlayVideoPath: os.Path,
       baseVideoDurationPair: Seq[(Option[os.Path], FiniteDuration)],
-  ): IO[os.Path] = {
+  ): Task[os.Path] = {
     import cats.implicits._
 
     // 最初の背景動画が開始するまでの時間を計算する。
@@ -221,10 +222,10 @@ class ConcreteFFmpeg(
         .combineAll
 
     // 背景ビデオが開始する地点まで尺をつなぐためのダミー動画を生成する処理(ffmpegで直接やろうとすると複雑になりすぎる)。
-    val genPadding: IO[Option[Path]] =
-      if (paddingDur.isEmpty) IO.pure(None)
+    val genPadding: Task[Option[Path]] =
+      if (paddingDur.isEmpty) ZIO.none
       else
-        IO.delay {
+        ZIO.attemptBlocking {
           os.proc(
             ffmpegCommand,
             "-protocol_whitelist",
@@ -246,7 +247,7 @@ class ConcreteFFmpeg(
         }
 
     // 一度背景ビデオをDurationに従って結合する。そのためのcutfileを生成する処理。
-    val writeCutfile: Option[os.Path] => IO[os.Path] =
+    val writeCutfile: Option[os.Path] => Task[os.Path] =
       (pad: Option[os.Path]) => {
         val paddingContent =
           pad.map(p => s"file $p\noutpoint $paddingDur\n").getOrElse("")
@@ -255,12 +256,10 @@ class ConcreteFFmpeg(
             s"file ${p}\noutpoint ${dur.toUnit(concurrent.duration.SECONDS)}",
           )
         } mkString ("\n")
-        util.Util.writeStreamToFile(
-          fs2.Stream[IO, Byte](
-            (paddingContent ++ cutFileContent).getBytes().toSeq: _*,
-          ),
-          "./artifacts/baseVideoCutFile.txt",
-        ) >> IO.pure(os.Path("./artifacts/baseVideoCutFile.txt", os.pwd))
+        util.Util.writeBytesToFile(
+          (paddingContent ++ cutFileContent).getBytes(),
+          "artifacts/baseVideoCutFile.txt",
+        ) *> ZIO.succeed(os.pwd / "artifacts" / "baseVideoCutFile.txt")
       }
 
     // デバッグモードが有効なとき、タイムコードを一緒に合成するためのフィルタ文字列。
@@ -283,8 +282,8 @@ class ConcreteFFmpeg(
       .toUnit(concurrent.duration.SECONDS)
 
     // 背景動画を結合するための処理。
-    val combineBaseVideo: Path => IO[Path] = (cutFilePath: os.Path) =>
-      IO.delay {
+    val combineBaseVideo: Path => Task[Path] = (cutFilePath: os.Path) =>
+      ZIO.attemptBlocking {
         os.proc(
           ffmpegCommand,
           "-protocol_whitelist",
@@ -306,7 +305,7 @@ class ConcreteFFmpeg(
 
     // 入力されるMKVファイルは第2ストリームにアルファチャンネル情報を格納してある。このアルファチャンネル情報を用いて背景動画に対する合成を行う処理。
     val alphaChannelStreamOverlay = (base: os.Path) =>
-      IO.delay {
+      ZIO.attemptBlocking {
         os.proc(
           ffmpegCommand,
           "-y",
@@ -335,7 +334,7 @@ class ConcreteFFmpeg(
       }
     // TODO: Firefoxを使うときにこちらを起動する
     val colorKeyOverlay = (base: os.Path) =>
-      IO.delay {
+      ZIO.attemptBlocking {
         os.proc(
           ffmpegCommand,
           "-y",
@@ -372,8 +371,8 @@ class ConcreteFFmpeg(
     } yield os.pwd / "output_composed.mp4"
   }
 
-  def zipVideoWithAudio(video: os.Path, audio: os.Path): IO[os.Path] = for {
-    _ <- IO.delay {
+  def zipVideoWithAudio(video: os.Path, audio: os.Path): Task[os.Path] = for {
+    _ <- ZIO.attemptBlocking {
       os.proc(
         ffmpegCommand,
         "-y",
@@ -398,9 +397,9 @@ class ConcreteFFmpeg(
     }
   } yield os.pwd / "output.mkv"
 
-  def generateSilentWav(path: os.Path, length: FiniteDuration): IO[os.Path] =
+  def generateSilentWav(path: os.Path, length: FiniteDuration): Task[os.Path] =
     for {
-      _ <- IO.delay {
+      _ <- ZIO.attemptBlocking {
         val sample = 24000 // VOICEVOXに揃えないと伸びてしまう
         val lengthSec = length.toSeconds
         os.proc(
