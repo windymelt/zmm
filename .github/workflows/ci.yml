@@ -16,6 +16,7 @@ jobs:
           distribution: 'temurin'
           java-version: 17
           cache: 'sbt'
+      - uses: sbt/setup-sbt@v1
       - uses: coursier/cache-action@v6
       - name: sbt scalafmtCheckAll; scalafixAll --check
         run: sbt 'scalafmtCheckAll; scalafixAll --check'
@@ -32,6 +33,7 @@ jobs:
           distribution: ${{ matrix.java-distribution }}
           java-version: ${{ matrix.java-version }}
           cache: 'sbt'
+      - uses: sbt/setup-sbt@v1
       - uses: coursier/cache-action@v6
       - name: Test
         run: sbt scalafmtSbtCheck scalafmtCheckAll test

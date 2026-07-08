@@ -24,12 +24,14 @@ object Init {
       ZIO.attemptBlocking(os.exists(os.pwd / "script.xml")).flatMap {
         case true => Console.printLine("script.xml は既に存在するのでスキップされました")
         case false =>
-          ZIO.attemptBlocking(os.write(os.pwd / "script.xml", xml.script().body))
+          ZIO.attemptBlocking(
+            os.write(os.pwd / "script.xml", xml.script().body),
+          )
       }
 
     val digArtifacts: Task[Unit] =
       ZIO.attemptBlocking(os.exists(os.pwd / "artifacts")).flatMap {
-        case true => Console.printLine("artifacts/ は既に存在するのでスキップされました")
+        case true  => Console.printLine("artifacts/ は既に存在するのでスキップされました")
         case false => ZIO.attemptBlocking(os.makeDir(os.pwd / "artifacts"))
       }
 

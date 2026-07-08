@@ -239,7 +239,9 @@ class Cli(
         withColor(scala.io.AnsiColor.GREEN)(BuildInfo.scalaVersion),
       ) *>
       Console.print(", sbtVer=") *>
-      Console.print(withColor(scala.io.AnsiColor.GREEN)(BuildInfo.sbtVersion)) *>
+      Console.print(
+        withColor(scala.io.AnsiColor.GREEN)(BuildInfo.sbtVersion),
+      ) *>
       Console.print(s", jvm=${System.getProperty("java.vm.name")}") *>
       Console.print(s", runtimeVer=${Runtime.version().toString()}") *>
       Console.print(s", vendor=${System.getProperty("java.vendor")}") *>
