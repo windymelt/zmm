@@ -28,6 +28,7 @@ final case class Generate(
     targetFile: TargetFile,
     outputFile: java.nio.file.Path,
     screenShotBackend: Option[ScreenShotBackend],
+    ffmpegBackend: Option[FFmpegBackend],
     verbosity: Option[Int],
 ) extends ZmmOption
 
@@ -45,6 +46,12 @@ sealed trait ScreenShotBackend
 object ScreenShotBackend {
   final case object Chrome extends ScreenShotBackend
   final case object Firefox extends ScreenShotBackend
+}
+
+sealed trait FFmpegBackend
+object FFmpegBackend {
+  case object Local extends FFmpegBackend
+  case object Docker extends FFmpegBackend
 }
 
 object CliOptions {
@@ -87,6 +94,23 @@ object CliOptions {
     }
     .orNone
 
+  private val ffmpegBackend = Opts
+    .option[String](
+      "ffmpeg",
+      help = "Backend for ffmpeg. local or docker.",
+      metavar = "local | docker",
+    )
+    .mapValidated {
+      case "local"  => Validated.valid(FFmpegBackend.Local)
+      case "docker" => Validated.valid(FFmpegBackend.Docker)
+      case _ =>
+        Validated.invalid(
+          "ffmpeg backend should be one of local and docker"
+            .pure[NonEmptyList],
+        )
+    }
+    .orNone
+
   private val verbosityFlag = Opts
     .flags(
       "verbose",
@@ -99,6 +123,7 @@ object CliOptions {
       targetFile,
       outputFile,
       screenShotBackend,
+      ffmpegBackend,
       verbosityFlag,
     ) mapN (Generate.apply)
 

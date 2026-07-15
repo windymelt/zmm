@@ -22,6 +22,14 @@ class ConcreteFFmpeg(
     case ConcreteFFmpeg.Quiet   => os.Pipe
     case ConcreteFFmpeg.Verbose => os.Inherit
   }
+
+  // コマンドの組み立てをサブクラスで差し替えられるようにしておく(cf. DockerFFmpeg)
+  protected def ffmpegBaseCommand: Seq[os.Shellable] = Seq(ffmpegCommand)
+  protected def ffprobeBaseCommand: Seq[os.Shellable] = Seq("ffprobe")
+  protected def ffmpegProc(args: os.Shellable*): os.proc =
+    os.proc((ffmpegBaseCommand ++ args)*)
+  protected def ffprobeProc(args: os.Shellable*): os.proc =
+    os.proc((ffprobeBaseCommand ++ args)*)
   def concatenateWavFiles(files: Seq[File]): Task[os.Path] = {
     // stub
     val fileList = files.map(f => s"file '${f}'").mkString("\n")
@@ -31,24 +39,22 @@ class ConcreteFFmpeg(
       os.write(fileListPath, fileList)
     } *>
       ZIO.attemptBlocking {
-        os
-          .proc(
-            ffmpegCommand,
-            "-protocol_whitelist",
-            "file",
-            "-y", // overwrite if exists
-            "-f",
-            "concat",
-            "-safe", // go despite of not being absolute path
-            "0",
-            "-i",
-            "fileList.txt",
-            "-c",
-            "copy",
-            "-ac", // ステレオ化する
-            "2",
-            "artifacts/concatenated.wav",
-          )
+        ffmpegProc(
+          "-protocol_whitelist",
+          "file",
+          "-y", // overwrite if exists
+          "-f",
+          "concat",
+          "-safe", // go despite of not being absolute path
+          "0",
+          "-i",
+          "fileList.txt",
+          "-c",
+          "copy",
+          "-ac", // ステレオ化する
+          "2",
+          "artifacts/concatenated.wav",
+        )
           .call(
             stdout = stdout,
             stderr = stdout,
@@ -65,8 +71,7 @@ class ConcreteFFmpeg(
     import concurrent.duration.FiniteDuration
 
     ZIO.attemptBlocking {
-      val commandResult = os
-        .proc("ffprobe", os.Path(file, os.pwd))
+      val commandResult = ffprobeProc(os.Path(file, os.pwd))
         .call(cwd = os.pwd, stderr = os.Pipe, stdout = stdout)
       val durationRegex =
         """Duration: (\d\d):(\d\d):(\d\d)\.(\d\d)""".r.unanchored
@@ -112,8 +117,7 @@ class ConcreteFFmpeg(
       _ <- writeCutfile
       _ <- ZIO.attemptBlocking {
         // TODO: move to infra layer
-        os.proc(
-          ffmpegCommand,
+        ffmpegProc(
           "-protocol_whitelist",
           "file",
           "-y",
@@ -160,8 +164,7 @@ class ConcreteFFmpeg(
     for {
       _ <- writeCutfile
       bgm <- ZIO.attemptBlocking {
-        os.proc(
-          ffmpegCommand,
+        ffmpegProc(
           "-protocol_whitelist",
           "file",
           "-y",
@@ -176,8 +179,7 @@ class ConcreteFFmpeg(
         os.pwd / os.RelPath("artifacts/concatenatedBGM.wav")
       }
       _ <- ZIO.attemptBlocking {
-        os.proc(
-          ffmpegCommand,
+        ffmpegProc(
           "-y",
           "-i",
           videoPath,
@@ -226,8 +228,7 @@ class ConcreteFFmpeg(
       if (paddingDur.isEmpty) ZIO.none
       else
         ZIO.attemptBlocking {
-          os.proc(
-            ffmpegCommand,
+          ffmpegProc(
             "-protocol_whitelist",
             "file",
             "-y",
@@ -284,8 +285,7 @@ class ConcreteFFmpeg(
     // 背景動画を結合するための処理。
     val combineBaseVideo: Path => Task[Path] = (cutFilePath: os.Path) =>
       ZIO.attemptBlocking {
-        os.proc(
-          ffmpegCommand,
+        ffmpegProc(
           "-protocol_whitelist",
           "file",
           "-y",
@@ -306,8 +306,7 @@ class ConcreteFFmpeg(
     // 入力されるMKVファイルは第2ストリームにアルファチャンネル情報を格納してある。このアルファチャンネル情報を用いて背景動画に対する合成を行う処理。
     val alphaChannelStreamOverlay = (base: os.Path) =>
       ZIO.attemptBlocking {
-        os.proc(
-          ffmpegCommand,
+        ffmpegProc(
           "-y",
           "-i",
           overlayVideoPath,
@@ -335,8 +334,7 @@ class ConcreteFFmpeg(
     // TODO: Firefoxを使うときにこちらを起動する
     val colorKeyOverlay = (base: os.Path) =>
       ZIO.attemptBlocking {
-        os.proc(
-          ffmpegCommand,
+        ffmpegProc(
           "-y",
           "-i",
           overlayVideoPath,
@@ -373,8 +371,7 @@ class ConcreteFFmpeg(
 
   def zipVideoWithAudio(video: os.Path, audio: os.Path): Task[os.Path] = for {
     _ <- ZIO.attemptBlocking {
-      os.proc(
-        ffmpegCommand,
+      ffmpegProc(
         "-y",
         "-r",
         "30",
@@ -402,8 +399,7 @@ class ConcreteFFmpeg(
       _ <- ZIO.attemptBlocking {
         val sample = 24000 // VOICEVOXに揃えないと伸びてしまう
         val lengthSec = length.toSeconds
-        os.proc(
-          ffmpegCommand,
+        ffmpegProc(
           "-y",
           "-t",
           lengthSec,

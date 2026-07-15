@@ -58,7 +58,7 @@ object Main extends ZIOAppDefault {
               "subcommand [show] only accepts 'voicevox'. try `show voicevox`",
             ) *> ZIO.succeed(ExitCode.failure)
         }
-      case Generate(file, out, screenShotBackend, verbosity) =>
+      case Generate(file, out, screenShotBackend, ffmpegBackend, verbosity) =>
         val optionalLogLevel = verbosityToLogLevel(
           vCount = verbosity.getOrElse(0),
           qCount = 0, /* TODO: implement it later */
@@ -67,12 +67,13 @@ object Main extends ZIOAppDefault {
         val logLevel = environmentalLogLevel.getOrElse(optionalLogLevel)
         setLogLevel(logLevel)
 
+        val ffmpeg = ffmpegBackend.getOrElse(FFmpegBackend.Local)
         val cliLayer = screenShotBackend match
           // TODO: ffmpeg verbosityをcli opsから設定可能にする
           case Some(ScreenShotBackend.Firefox) =>
-            Design.firefox(util.Util.config, logLevel)
+            Design.firefox(util.Util.config, logLevel, ffmpeg)
           case _ =>
-            Design.chrome(util.Util.config, logLevel)
+            Design.chrome(util.Util.config, logLevel, ffmpeg)
 
         ZIO
           .serviceWithZIO[Cli] { cli =>
