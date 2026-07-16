@@ -30,7 +30,7 @@ lazy val root = (project in file("."))
       "com.typesafe" % "config" % "1.4.3",
       "com.monovore" %% "decline" % "2.4.1",
       "com.mitchtalmadge" % "ascii-data" % "1.4.0",
-      "ch.qos.logback" % "logback-classic" % "1.4.7",
+      "ch.qos.logback" % "logback-classic" % "1.4.14",
       scalaTest % Test,
     ),
     assembly / mainClass := Some("com.github.windymelt.zmm.Main"),
