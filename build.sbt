@@ -34,6 +34,8 @@ lazy val root = (project in file("."))
       scalaTest % Test,
     ),
     assembly / mainClass := Some("com.github.windymelt.zmm.Main"),
+    // DockerFFmpeg がイメージビルドに利用するため、Dockerfile-ffmpeg を jar に同梱する
+    Compile / unmanagedResources += baseDirectory.value / "Dockerfile-ffmpeg",
   )
   .enablePlugins(SbtTwirl)
   .enablePlugins(BuildInfoPlugin)

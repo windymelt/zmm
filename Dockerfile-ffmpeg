@@ -1,0 +1,11 @@
+# syntax=docker/dockerfile:1
+# check=error=true
+
+FROM node:24.13.0-bookworm
+ENV FFMPEG_VERSION=6.1
+
+RUN apt update -y
+ADD https://johnvansickle.com/ffmpeg/releases/ffmpeg-${FFMPEG_VERSION}-amd64-static.tar.xz ffmpeg.tar.xz
+RUN tar xvf ffmpeg.tar.xz
+RUN mv ffmpeg-${FFMPEG_VERSION}-amd64-static/ffmpeg /usr/local/bin/ffmpeg
+RUN mv ffmpeg-${FFMPEG_VERSION}-amd64-static/ffprobe /usr/local/bin/ffprobe
