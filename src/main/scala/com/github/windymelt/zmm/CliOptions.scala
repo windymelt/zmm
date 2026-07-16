@@ -4,7 +4,6 @@ import cats.data.NonEmptyList
 import cats.data.Validated
 import cats.implicits._
 import com.monovore.decline._
-import com.monovore.decline.effect._
 
 /** ZMMの動作モードを決定するオプション。これらのうちいずれかを選択してZMMは起動する
   */

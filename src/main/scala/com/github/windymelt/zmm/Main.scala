@@ -1,39 +1,62 @@
 package com.github.windymelt.zmm
 
-import cats.effect.ExitCode
-import cats.effect.IO
-import com.monovore.decline.Opts
-import com.monovore.decline.effect.CommandIOApp
-import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
-import Design.runIO
+import com.monovore.decline.Command
+import zio.Console
+import zio.ExitCode
+import zio.Runtime
+import zio.Task
+import zio.ZIO
+import zio.ZIOAppDefault
+import zio.logging.backend.SLF4J
 
-object Main
-    extends CommandIOApp(
-      name = "zmm",
-      header =
-        "Zunda Movie Maker -- see https://www.3qe.us/zmm/doc/ for more documentation",
-    ) {
-  override def main: Opts[IO[ExitCode]] = CliOptions.opts map { o =>
-    implicit def logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+object Main extends ZIOAppDefault {
+  override val bootstrap =
+    Runtime.removeDefaultLoggers >>> SLF4J.slf4j
 
-    val defaultCliDesign = Design.chrome(util.Util.config, "INFO", logger)
+  private val command: Command[ZmmOption] = Command(
+    name = "zmm",
+    header =
+      "Zunda Movie Maker -- see https://www.3qe.us/zmm/doc/ for more documentation",
+  )(CliOptions.opts)
 
+  override def run: ZIO[zio.ZIOAppArgs, Nothing, Unit] =
+    getArgs.flatMap { args =>
+      command.parse(args, sys.env) match {
+        case Left(help) =>
+          // --help による表示も Left(Help) で返るため、エラーが空なら正常終了とする
+          val code =
+            if (help.errors.isEmpty) ExitCode.success else ExitCode.failure
+          Console.printLineError(help.toString).orDie *> exit(code)
+        case Right(o) =>
+          dispatch(o).foldZIO(
+            err =>
+              Console.printLineError(String.valueOf(err.getMessage)).orDie *>
+                exit(ExitCode.failure),
+            exit,
+          )
+      }
+    }
+
+  private def dispatch(o: ZmmOption): Task[ExitCode] =
     o match {
       case VersionFlag() =>
-        defaultCliDesign.runIO: (cli: Cli) =>
-          cli.showVersion >> IO.pure(ExitCode.Success)
+        ZIO
+          .serviceWithZIO[Cli](_.showVersion)
+          .provide(Design.chrome(util.Util.config))
+          .as(ExitCode.success)
 
       case ShowCommand(target) =>
         target match {
           case "voicevox" =>
-            defaultCliDesign.run[Cli, IO[ExitCode]]: cli =>
-              cli.showVoiceVoxSpeakers() >> IO.pure(ExitCode.Success)
+            ZIO
+              .serviceWithZIO[Cli](_.showVoiceVoxSpeakers())
+              .provide(Design.chrome(util.Util.config))
+              .as(ExitCode.success)
 
           case _ =>
-            IO.println(
+            Console.printLine(
               "subcommand [show] only accepts 'voicevox'. try `show voicevox`",
-            ) >> IO.pure(ExitCode.Error)
+            ) *> ZIO.succeed(ExitCode.failure)
         }
       case Generate(file, out, screenShotBackend, verbosity) =>
         val optionalLogLevel = verbosityToLogLevel(
@@ -44,30 +67,25 @@ object Main
         val logLevel = environmentalLogLevel.getOrElse(optionalLogLevel)
         setLogLevel(logLevel)
 
-        val cliDesign = screenShotBackend match
+        val cliLayer = screenShotBackend match
           // TODO: ffmpeg verbosityをcli opsから設定可能にする
-          case Some(ScreenShotBackend.Chrome) =>
-            Design.chrome(util.Util.config, logLevel, logger)
           case Some(ScreenShotBackend.Firefox) =>
-            Design.firefox(util.Util.config, logLevel, logger)
+            Design.firefox(util.Util.config, logLevel)
           case _ =>
-            Design.chrome(util.Util.config, logLevel, logger)
+            Design.chrome(util.Util.config, logLevel)
 
-        cliDesign.runIO: (cli: Cli) =>
-          val run: IO[Unit] = for
-            _ <- cli.logger.debug(
-              s"Verbose mode enabled (log level: $logLevel)",
-            )
-            _ <- cli.generate(file.target.toString, out.toAbsolutePath.toString)
-          yield ()
-          (run *> IO.pure(ExitCode.Success)).onError(err =>
-            cli.logger.error(err.getMessage) *> IO.pure(ExitCode.Error),
-          )
+        ZIO
+          .serviceWithZIO[Cli] { cli =>
+            ZIO.logDebug(s"Verbose mode enabled (log level: $logLevel)") *>
+              cli.generate(file.target.toString, out.toAbsolutePath.toString)
+          }
+          .tapErrorCause(cause => ZIO.logError(cause.prettyPrint))
+          .provide(cliLayer)
+          .as(ExitCode.success)
 
       case InitializeCommand() =>
-        application.Init.initializeProject() >> IO.pure(ExitCode.Success)
+        application.Init.initializeProject().as(ExitCode.success)
     }
-  }
 
   /** ログレベルを実際にlogbackに適用する。
     *

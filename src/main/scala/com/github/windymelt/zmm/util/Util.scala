@@ -1,29 +1,32 @@
 package com.github.windymelt.zmm.util
 
-import cats.effect.{IO, Ref}
-import cats.effect.implicits._
+import zio.Task
+import zio.ZIO
+
 object Util {
   import java.security.MessageDigest
   // MessageDigestオブジェクトはアトミックに使用する必要があるが、とりあえず毎回生成することで面倒を回避する
-  def sha1HexCode(bs: Array[Byte]): IO[String] = {
+  def sha1HexCode(bs: Array[Byte]): String = {
     val digestInstance = MessageDigest.getInstance("SHA-1")
-    IO.pure(digestInstance.digest(bs).map(b => (b & 0xff).toHexString).mkString)
+    digestInstance.digest(bs).map(b => (b & 0xff).toHexString).mkString
   }
 
-  /** Writes fs2 stream into specified Path.
+  /** Writes bytes into specified Path.
     *
-    * @param stream
+    * @param bytes
     * @param fileName
     * @return
     *   Written file path
     */
-  def writeStreamToFile(
-      stream: fs2.Stream[IO, Byte],
+  def writeBytesToFile(
+      bytes: Array[Byte],
       fileName: String,
-  ): IO[fs2.io.file.Path] = {
-    import fs2.io.file.{Files, Path}
-    val target = Path(fileName)
-    stream.through(Files[IO].writeAll(target)).compile.drain.as(target)
+  ): Task[os.Path] = {
+    val target = os.Path(fileName, os.pwd)
+    ZIO.attemptBlocking {
+      os.write.over(target, bytes, createFolders = true)
+      target
+    }
   }
 
   import cats.{Eq, Semigroup}

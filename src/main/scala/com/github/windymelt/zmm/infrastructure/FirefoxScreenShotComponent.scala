@@ -1,7 +1,8 @@
 package com.github.windymelt.zmm
 package infrastructure
 
-import cats.effect.IO
+import zio.Task
+import zio.ZIO
 
 object FirefoxScreenShot {
   sealed trait Verbosity
@@ -22,7 +23,7 @@ class FirefoxScreenShot(
       htmlFilePath: os.Path,
       windowWidth: Int = 1920,
       windowHeight: Int = 1080,
-  ): IO[os.Path] = {
+  ): Task[os.Path] = {
     val absPath = htmlFilePath
     val fileUri = s"file://$absPath"
     val proc = os.proc(
@@ -33,13 +34,11 @@ class FirefoxScreenShot(
       s"$windowWidth,$windowHeight",
       fileUri,
     )
-    // mutex.lock.surround {
-    IO.blocking {
+    ZIO.attemptBlocking {
       proc.call(stdout = stdout, stderr = stdout, cwd = os.pwd)
       val outputPath = os.Path(s"$htmlFilePath.png")
       os.move(os.pwd / "screenshot.png", outputPath, replaceExisting = true)
       outputPath
     }
-    //  }
   }
 }
