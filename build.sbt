@@ -27,7 +27,7 @@ lazy val root = (project in file("."))
       "io.circe" %% "circe-literal" % "0.14.10",
       "io.circe" %% "circe-optics" % "0.15.0",
       "com.lihaoyi" %% "os-lib" % "0.11.3",
-      "com.typesafe" % "config" % "1.4.3",
+      "com.typesafe" % "config" % "1.4.9",
       "com.monovore" %% "decline" % "2.4.1",
       "com.mitchtalmadge" % "ascii-data" % "1.4.0",
       "ch.qos.logback" % "logback-classic" % "1.4.7",
