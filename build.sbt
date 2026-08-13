@@ -1,9 +1,9 @@
-import Dependencies._
-import com.typesafe.sbt.packager.docker._
+import Dependencies.*
+import com.typesafe.sbt.packager.docker.*
 
-import ReleaseTransformations._
+import ReleaseTransformations.*
 
-ThisBuild / scalaVersion := "3.4.1"
+ThisBuild / scalaVersion := "3.8.2"
 ThisBuild / organization := "com.github.windymelt"
 ThisBuild / organizationName := "windymelt"
 
@@ -67,7 +67,12 @@ lazy val root = (project in file("."))
     dockerRepository := Some("docker.io"),
     dockerUsername := Some("windymelt"),
     dockerUpdateLatest := true,
-    Universal / mappings += file("entrypoint.sh") -> "entrypoint.sh",
+    Universal / mappings ++= {
+      val f = file("entrypoint.sh")
+      val ref =
+        xsbti.HashedVirtualFileRef.of(f.getAbsolutePath, sbt.io.Hash.toHex(sbt.io.Hash(f)), f.length)
+      Seq(ref -> "entrypoint.sh")
+    },
     /* zmmではScala highlightのためにカスタムしたhighlight.jsを同梱しているが、mappingが今のところ壊れているのでDocker Imageでは直接highlight.jsをダウンロードさせる */
     dockerCommands ++= Seq(
       // Initnally, run as root. Go to protected user inside entrypoint.sh.
