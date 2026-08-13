@@ -3,9 +3,9 @@ import com.typesafe.sbt.packager.docker.*
 
 import ReleaseTransformations.*
 
-ThisBuild / scalaVersion := "3.8.2"
-ThisBuild / organization := "com.github.windymelt"
-ThisBuild / organizationName := "windymelt"
+scalaVersion := "3.8.2"
+organization := "com.github.windymelt"
+organizationName := "windymelt"
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
@@ -154,13 +154,13 @@ lazy val root = (project in file("."))
     dockerEntrypoint := Seq("/opt/docker/entrypoint.sh"),
   )
 
-ThisBuild / assemblyMergeStrategy := {
+assemblyMergeStrategy := {
   case PathList("META-INF", "versions", "9", "module-info.class") =>
     MergeStrategy.first
   case PathList("module-info.class") =>
     MergeStrategy.first
   case x =>
-    val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
+    val oldStrategy = assemblyMergeStrategy.value
     oldStrategy(x)
 }
 
