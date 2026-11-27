@@ -15,7 +15,7 @@ lazy val root = (project in file("."))
     publish / skip := true,
     scalacOptions ++= Seq("-deprecation", "-Wunused:all"),
     libraryDependencies ++= Seq(
-      "dev.zio" %% "zio" % "2.1.26",
+      "dev.zio" %% "zio" % "2.1.27",
       "dev.zio" %% "zio-logging" % "2.5.3",
       "dev.zio" %% "zio-logging-slf4j2" % "2.5.3",
       "com.softwaremill.sttp.client4" %% "core" % "4.0.25",
